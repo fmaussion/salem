@@ -1,0 +1,8 @@
+# PyCharm stuffs
+.idea/
+
+# iPython stuffs
+examples/.ipynb_checkpoints
+
+# coverage stuffs
+.coverage
