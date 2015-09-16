@@ -8,3 +8,5 @@ class TestGIS(unittest.TestCase):
 
     def test_myfunc(self):
         self.assertTrue(gis.myfunc() == 2)
+        self.assertTrue(True)
+        self.assertFalse(False)

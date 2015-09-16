@@ -1,0 +1,11 @@
+six
+numpy
+scipy
+pyproj
+pandas
+matplotlib
+netCDF4
+shapely
+geopandas
+rasterio
+xray

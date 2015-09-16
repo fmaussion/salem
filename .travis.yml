@@ -7,10 +7,21 @@ env:
   global:
     - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
     - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+    - NUMPY=numpy
 addons:
   apt:
     packages:
-    - gdal-bin
+      # maybe required when wheels will update
+      # copied those from scipy
+      # - libatlas-dev
+      # - libatlas-base-dev
+      # - liblapack-dev
+      # - gfortran
+      # - libpng-dev
+      # copied those from rasterio
+      # - libgdal1h
+      # - gdal-bin
+      # - libgdal-dev
 python:
   - "2.7"
   - "3.4"
@@ -18,12 +29,13 @@ before_install:
   - pip install -U pip
   - pip install wheel
 install:
-  - "pip wheel -r requirements.txt"
-  - "pip install -r requirements.txt"
+  - "pip wheel -r requirements-all.txt"
+  - "pip install -r requirements-all.txt"
+  - "pip install git+https://github.com/fmaussion/motionless.git"
   - "pip install coveralls"
   - "pip install nose"
   - "pip install -e ."
 script: 
-  - nosetests --with-coverage --cover-package=salem
+  - nosetests --with-coverage --cover-package salem --logging-level=INFO
 after_success:
   - coveralls
