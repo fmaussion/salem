@@ -11,17 +11,16 @@ env:
 addons:
   apt:
     packages:
-      # maybe required when wheels will update
-      # # copied those from scipy
-      # - libatlas-dev
-      # - libatlas-base-dev
-      # - liblapack-dev
-      # - gfortran
-      # - libpng-dev
-      # # copied those from rasterio
-      # - libgdal1h
-      # - gdal-bin
-      # - libgdal-dev
+      # copied those from scipy
+      - libatlas-dev
+      - libatlas-base-dev
+      - liblapack-dev
+      - gfortran
+      - libpng-dev
+      # copied those from rasterio
+      - libgdal1h
+      - gdal-bin
+      - libgdal-dev
 python:
   - "2.7"
   - "3.4"
