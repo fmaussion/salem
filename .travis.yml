@@ -12,13 +12,13 @@ addons:
   apt:
     packages:
       # maybe required when wheels will update
-      # copied those from scipy
+      # # copied those from scipy
       # - libatlas-dev
       # - libatlas-base-dev
       # - liblapack-dev
       # - gfortran
       # - libpng-dev
-      # copied those from rasterio
+      # # copied those from rasterio
       # - libgdal1h
       # - gdal-bin
       # - libgdal-dev

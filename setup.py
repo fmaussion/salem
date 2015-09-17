@@ -26,7 +26,11 @@ def check_dependencies(package_names):
         raise ImportError(errmsg + ', '.join(not_met))
 
 req_packages = ['numpy',
-                'scipy']
+                'scipy',
+                'six',
+                'pyproj',
+                'pandas',
+                'matplotlib']
 
 check_dependencies(req_packages)
 
@@ -34,8 +38,7 @@ setup(
     # Project info
     name='Salem',
     version='0.0.1',
-    description='Salem is a cat. But Salem is also a small library to do some '
-                'geoscientific data handling.',
+    description='High-level tool for geoscientific data I/O and map projections.',
     long_description=long_description,
     # The project's main homepage.
     url='https://github.com/fmaussion/salem',

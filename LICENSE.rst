@@ -1,5 +1,5 @@
-DownGlacier - License
-=====================
+Salem - License
+===============
 
 Copyright (c) 2014-2015 Fabien Maussion
 
