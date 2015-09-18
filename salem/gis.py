@@ -414,13 +414,13 @@ class Grid(object):
         # this is not entirely trivial
         # for optimisation we will transform the boundaries only
         _i = np.hstack([np.arange(self.nx),
-                         np.ones(self.ny)*self.nx,
-                         np.arange(self.nx),
-                         np.zeros(self.ny)]).flatten()
+                        np.ones(self.ny)*self.nx,
+                        np.arange(self.nx),
+                        np.zeros(self.ny)]).flatten()
         _j = np.hstack([np.zeros(self.nx),
-                         np.arange(self.ny),
-                         np.ones(self.nx)*self.ny,
-                         np.arange(self.ny)]).flatten()
+                        np.arange(self.ny),
+                        np.ones(self.nx)*self.ny,
+                        np.arange(self.ny)]).flatten()
         _i, _j = self.corner_grid.ij_to_crs(_i, _j, crs=crs)
         return [np.min(_i), np.max(_i), np.min(_j), np.max(_j)]
 
@@ -515,7 +515,6 @@ class Grid(object):
         # First to local proj
         _crs = check_crs(crs)
         if isinstance(_crs, pyproj.Proj):
-            _x, _y = copy.deepcopy(x), copy.deepcopy(y)
             x, y = transform_proj(_crs, self.proj, x, y)
         elif isinstance(_crs, Grid):
             x, y = _crs.ij_to_crs(x, y, crs=self.proj)

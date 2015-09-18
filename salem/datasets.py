@@ -391,7 +391,7 @@ class GoogleCenterMap(GeoDataset):
         fd = urlopen(self.googleurl.generate_url())
         return imread(io.BytesIO(fd.read()))
 
-    def get_vardata(self):
+    def get_vardata(self, var_id=0):
         """Return and subset the image."""
         return self._img[self.sub_y[0]:self.sub_y[1]+1,
                          self.sub_x[0]:self.sub_x[1]+1, :]

@@ -219,7 +219,7 @@ def _wrf_grid(nc):
              '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         p4 = p4.format(**pargs)
     else:
-        raise NotImplementedError('WRF proj not implemented: ' \
+        raise NotImplementedError('WRF proj not implemented: '
                                   '{}'.format(proj_id))
 
     proj = gis.check_crs(p4)
@@ -237,7 +237,8 @@ def _wrf_grid(nc):
         e, n = gis.transform_proj(wgs84, proj, cen_lon, cen_lat)
         x0 = -(nx-1) / 2. * dx + e  # DL corner
         y0 = -(ny-1) / 2. * dy + n  # DL corner
-    grid = gis.Grid(nxny=(nx, ny), ll_corner=(x0,y0), dxdy=(dx, dy), proj=proj)
+    grid = gis.Grid(nxny=(nx, ny), ll_corner=(x0, y0), dxdy=(dx, dy),
+                    proj=proj)
 
 
     if tmp_check_wrf:

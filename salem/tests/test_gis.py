@@ -154,6 +154,7 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(isinstance(g, Grid))
             self.assertTrue(g.xy_coordinates[0].shape == (2, 3))
             self.assertTrue(g.xy_coordinates[1].shape == (2, 3))
+            self.assertTrue(False)
 
     def test_comparisons(self):
         """See if the grids can compare themselves"""
