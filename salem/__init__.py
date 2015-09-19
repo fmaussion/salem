@@ -37,9 +37,9 @@ if not path.exists(cache_dir):
     makedirs(cache_dir)  # pragma: no cover
 
 # python version
-python_str = 'py3'
+python_version = 'py3'
 if sys.version_info.major == 2:
-    python_str = 'py2'  # pragma: no cover
+    python_version = 'py2'  # pragma: no cover
 
 # API
 from salem.gis import *

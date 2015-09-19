@@ -12,6 +12,8 @@ from six.moves.urllib.request import urlopen
 # External libs
 import pyproj
 import numpy as np
+import salem.grids
+
 try:
     import netCDF4
 except ImportError:
@@ -303,15 +305,38 @@ class GeoNetcdf(GeoDataset):
         self._nc = netCDF4.Dataset(file)
         self.variables = self._nc.variables
         if grid is None:
-            grid = utils.netcdf_grid(self._nc)
+            grid = salem.grids.netcdf_grid(self._nc)
         if time is None:
-            time = utils.netcdf_time(self._nc)
+            time = self._netcdf_time()
         dn = self._nc.dimensions.keys()
         self.t_dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
         self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])
         self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])
         self.z_dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
         GeoDataset.__init__(self, grid, time=time)
+
+    def _netcdf_time(self):
+        """Check if the netcdf file contains a time that Salem understands."""
+
+        time = None
+        vt = utils.str_in_list(self._nc.variables.keys(),
+                               utils.valid_names['time_var'])
+        if hasattr(self._nc, 'TITLE') and 'GEOGRID' in self._nc.TITLE:
+            # geogrid file
+            pass
+        elif 'DateStrLen' in self._nc.dimensions:
+            # WRF file
+            time = []
+            for t in self._nc.variables['Times'][:]:
+                time.append(pd.to_datetime(t.tostring().decode(),
+                                           errors='raise',
+                                           format='%Y-%m-%d_%H:%M:%S'))
+        elif vt is not None:
+            # CF time
+            var = self._nc.variables[vt]
+            time = netCDF4.num2date(var[:], var.units)
+
+        return time
 
     def get_vardata(self, var_id=0):
         """Reads the data out of the netCDF file while taking into account
@@ -372,7 +397,7 @@ class GoogleCenterMap(GeoDataset):
             raise NotImplementedError('scale not supported')
 
         # Google grid
-        grid = utils.googlestatic_mercator_grid(center_ll=center_ll,
+        grid = salem.grids.googlestatic_mercator_grid(center_ll=center_ll,
                                                 nx=size_x, ny=size_y,
                                                 zoom=zoom)
 
@@ -410,7 +435,7 @@ class GoogleVisibleMap(GoogleCenterMap):
         mc = (np.mean(lon), np.mean(lat))
         zoom = 20
         while zoom >= 0:
-            grid = utils.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
+            grid = salem.grids.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
                                                     ny=size_y, zoom=zoom)
             dx, dy = grid.transform(lon, lat, maskout=True)
             if np.any(dx.mask):

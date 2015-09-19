@@ -734,5 +734,3 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=True):
     out.crs = to_crs
 
     return out
-
-

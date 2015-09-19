@@ -14,6 +14,7 @@ from salem import Grid
 from salem import wgs84
 from salem import utils
 import salem.gis as gis
+import salem.grids as grids
 from salem.utils import get_demo_file
 
 
@@ -702,3 +703,49 @@ class TestTransform(unittest.TestCase):
         ref = np.array(so.geometry[0].exterior.coords)
         ref = ref - np.floor(ref)
         assert_allclose(ref, st.geometry[0].exterior.coords)
+
+
+class TestGrids(unittest.TestCase):
+
+    def test_mercatorgrid(self):
+
+        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+                                         extent=(2000000, 2000000))
+        lon1, lat1 = grid.center_grid.ll_coordinates
+        e1 = grid.extent
+        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+                                         extent=(2000000, 2000000),
+                                         order='ul')
+        lon2, lat2 = grid.center_grid.ll_coordinates
+        e2 = grid.extent
+
+        assert_allclose(e1, e2)
+        assert_allclose(lon1, lon2[::-1, :])
+        assert_allclose(lat1, lat2[::-1, :])
+
+        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+                                         extent=(2000, 2000),
+                                         nx=100)
+        lon1, lat1 = grid.pixcorner_ll_coordinates
+        e1 = grid.extent
+        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+                                         extent=(2000, 2000),
+                                         order='ul',
+                                         nx=100)
+        lon2, lat2 = grid.pixcorner_ll_coordinates
+        e2 = grid.extent
+
+        assert_allclose(e1, e2)
+        assert_allclose(lon1, lon2[::-1, :])
+        assert_allclose(lat1, lat2[::-1, :])
+
+        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+                                         extent=(2000, 2000),
+                                         nx=10)
+        e1 = grid.extent
+        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+                                         extent=(2000, 2000),
+                                         order='ul',
+                                         nx=9)
+        e2 = grid.extent
+        assert_allclose(e1, e2)

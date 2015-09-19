@@ -8,7 +8,6 @@ import matplotlib as mpl
 
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import URLError
-import io
 from matplotlib.image import imread
 
 import numpy as np

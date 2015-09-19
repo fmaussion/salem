@@ -4,17 +4,14 @@ import unittest
 import shutil
 import os
 import time
-from matplotlib.pyplot import plot
 
 import numpy as np
 from numpy.testing import assert_allclose
 import shapely.geometry as shpg
 import geopandas as gpd
 
-from salem import utils
+from salem import utils, transform_geopandas, GeoTiff
 
-
-# Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
 if not os.path.exists(testdir):
@@ -80,51 +77,19 @@ class TestUtils(unittest.TestCase):
 
         self.assertRaises(ValueError, utils.read_shapefile, 'f1.sph')
         self.assertRaises(ValueError, utils.cached_path, 'f1.splash')
-        
-    def test_mercatorgrid(self):
-
-        grid = utils.local_mercator_grid(center_ll=(11.38, 47.26),
-                                                   extent=(2000000, 2000000))
-        lon1, lat1 = grid.center_grid.ll_coordinates
-        e1 = grid.extent
-        grid = utils.local_mercator_grid(center_ll=(11.38, 47.26),
-                                                   extent=(2000000, 2000000),
-                                                   order='ul')
-        lon2, lat2 = grid.center_grid.ll_coordinates
-        e2 = grid.extent
-
-        assert_allclose(e1, e2)
-        assert_allclose(lon1, lon2[::-1, :])
-        assert_allclose(lat1, lat2[::-1, :])
-
-        grid = utils.local_mercator_grid(center_ll=(11.38, 47.26),
-                                                   extent=(2000, 2000),
-                                                   nx=100)
-        lon1, lat1 = grid.pixcorner_ll_coordinates
-        e1 = grid.extent
-        grid = utils.local_mercator_grid(center_ll=(11.38, 47.26),
-                                                   extent=(2000, 2000),
-                                                   order='ul',
-                                                   nx=100)
-        lon2, lat2 = grid.pixcorner_ll_coordinates
-        e2 = grid.extent
-
-        assert_allclose(e1, e2)
-        assert_allclose(lon1, lon2[::-1, :])
-        assert_allclose(lat1, lat2[::-1, :])
-
-        grid = utils.local_mercator_grid(center_ll=(11.38, 47.26),
-                                                   extent=(2000, 2000),
-                                                   nx=10)
-        e1 = grid.extent
-        grid = utils.local_mercator_grid(center_ll=(11.38, 47.26),
-                                                   extent=(2000, 2000),
-                                                   order='ul',
-                                                   nx=9)
-        e2 = grid.extent
-        assert_allclose(e1, e2)
 
     def test_demofiles(self):
 
         self.assertTrue(os.path.exists(utils.get_demo_file('dem_wgs84.nc')))
         self.assertTrue(utils.get_demo_file('dummy') is None)
+
+    def test_read_to_grid(self):
+
+        g = GeoTiff(utils.get_demo_file('hef_srtm.tif'))
+        sf = utils.get_demo_file('Hintereisferner_UTM.shp')
+
+        df1 = utils.read_shapefile_to_grid(sf, g.grid)
+
+        df2 = transform_geopandas(utils.read_shapefile(sf), to_crs=g.grid)
+        assert_allclose(df1.geometry[0].exterior.coords,
+                        df2.geometry[0].exterior.coords)

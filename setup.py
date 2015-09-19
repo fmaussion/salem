@@ -30,7 +30,8 @@ req_packages = ['numpy',
                 'six',
                 'pyproj',
                 'pandas',
-                'matplotlib']
+                'matplotlib',
+                'joblib']
 
 check_dependencies(req_packages)
 

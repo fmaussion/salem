@@ -14,7 +14,7 @@ Salem
 
 Salem is a `cat <https://drive.google.com/file/d/0B-0AsTwFw61uSE0zaktOOVN5X1E/view?usp
 =sharing>`_. Salem is also a small library to do some geoscientific data
-handling. Together with `cleo <https://bitbucket.org/fmaussion/cleo>`_, they
+handling. Together with `cleo <https://github.com/fmaussion/cleo>`_, they
 provide a framework to work, analyse, and plot climate and geoscientific data.
 
 Bigger (and better) projects are found out there (e.g. Iris): Salem basically
@@ -28,8 +28,8 @@ out Python for a change.
 Installation
 ------------
 
-Salem relies on several libraries (six, numpy, scipy, pyproj, pandas, and
-matplotlib). To get the full functionality you will also need xray,
+Salem relies on several libraries (six, numpy, scipy, pyproj, pandas, joblib
+and matplotlib). To get the full functionality you will also need xray,
 rasterio, pandas, geopandas and shapely.
 
 After installing those, a simple *pip install* should suffice::
