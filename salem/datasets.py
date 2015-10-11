@@ -429,7 +429,14 @@ class GoogleVisibleMap(GoogleCenterMap):
         if 'zoom' in kwargs:
             raise ValueError('zoom kwarg not accepted.')
 
-        lon, lat = gis.transform_proj(src, wgs84, x, y)
+        # Transform to lonlat
+        src = gis.check_crs(src)
+        if isinstance(src, pyproj.Proj):
+            lon, lat = gis.transform_proj(src, wgs84, x, y)
+        elif isinstance(src, Grid):
+            lon, lat = src.ij_to_crs(x, y, crs=wgs84)
+        else:
+            raise NotImplementedError()
 
         # surely not the smartest way to do but should be enough for now
         mc = (np.mean(lon), np.mean(lat))

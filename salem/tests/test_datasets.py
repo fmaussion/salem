@@ -377,7 +377,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         # from scipy.misc import toimage
         # toimage(img).save(get_demo_file('hef_google_roi.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_roi.png'))
-        assert_allclose(ref, img, atol=1e-2)
+        assert_allclose(ref, img, atol=2e-2)
 
     def test_visible(self):
 
@@ -407,7 +407,22 @@ class TestGoogleStaticMap(unittest.TestCase):
         # a1.imshow(ref)
         # a2.imshow(img)
         # plt.show()
-
         self.assertRaises(ValueError, GoogleVisibleMap, x=x, y=y, zoom=12)
+
+        fw = get_demo_file('wrf_tip_d1.nc')
+        d = GeoNetcdf(fw)
+        i, j = d.grid.ij_coordinates
+        g = GoogleVisibleMap(x=i, y=j, src=d.grid, size_x=500, size_y=500)
+        img = g.get_vardata()
+        mask = g.grid.map_gridded_data(i*0+1, d.grid)
+
+        img[np.nonzero(mask)] = np.clip(img[np.nonzero(mask)] + 0.3, 0, 1)
+
+        # from scipy.misc import toimage
+        # toimage(img).save(get_demo_file('hef_google_visible_grid.png'))
+        ref = mpl.image.imread(get_demo_file('hef_google_visible_grid.png'))
+        assert_allclose(ref, img, atol=1e-2)
+
+
 
 
