@@ -27,12 +27,12 @@ before_install:
   - pip install -U pip
   - pip install wheel
 install:
-  - "pip wheel -r requirements-all.txt"
-  - "pip install -r requirements-all.txt"
-  - "pip install git+https://github.com/fmaussion/motionless.git"
-  - "pip install coveralls"
-  - "pip install nose"
-  - "pip install -e ."
+  - travis_wait pip wheel -r requirements-all.txt
+  - travis_wait pip install -r requirements-all.txt
+  - pip install git+https://github.com/fmaussion/motionless.git
+  - pip install coveralls
+  - pip install nose
+  - pip install -e .
 script: 
   - nosetests --with-coverage --cover-package salem --logging-level=INFO
 after_success:
