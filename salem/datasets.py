@@ -39,6 +39,15 @@ from salem import gis
 from salem import wrf
 
 
+def _to_scalar(x):
+    """If a list then scalar"""
+    try:
+        return x[0]
+    except IndexError:
+        return x
+
+
+
 class GeoDataset(object):
     """Interface for georeferenced datasets,
 
@@ -94,7 +103,7 @@ class GeoDataset(object):
             return None
         return self._time[self.t0:self.t1].index
 
-    def set_period(self, t0=0, t1=-1):
+    def set_period(self, t0=[0], t1=[-1]):
         """Set a period of interest for the dataset.
 
          This will be remembered at later calls to time() or GeoDataset's
@@ -109,7 +118,9 @@ class GeoDataset(object):
 
         if self._time is not None:
             # we dont check for what t0 or t1 is, we let Pandas do the job
-            self.sub_t = [self._time[t0], self._time[t1]]
+            # TODO quick and dirty solution for test_longtime, TBR
+            self.sub_t = [_to_scalar(self._time[t0]),
+                          _to_scalar(self._time[t1])]
             self.t0 = self._time.index[self.sub_t[0]]
             self.t1 = self._time.index[self.sub_t[1]]
 

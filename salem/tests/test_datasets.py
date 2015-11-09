@@ -319,6 +319,15 @@ class TestGeoNetcdf(unittest.TestCase):
         np.testing.assert_allclose(reflon, mylon, atol=1e-5)
         np.testing.assert_allclose(reflat, mylat, atol=1e-5)
 
+    def test_longtime(self):
+        """There was a bug with time"""
+
+        fs = get_demo_file('test_longtime.nc')
+        c = GeoNetcdf(fs)
+        self.assertEqual(len(c.time), 2424)
+        assert_array_equal(c.time[0:2], pd.to_datetime([datetime(1801, 10, 1),
+                                                        datetime(1801, 11,
+                                                                 1)]))
 
     def test_diagnostic_vars(self):
 
