@@ -5,10 +5,11 @@ Copyright: Fabien Maussion, 2014-2015
 License: GPLv3+
 """
 from __future__ import division
-from six.moves.urllib.request import urlretrieve
+from six.moves.urllib.request import urlretrieve, urlopen
 
 # Builtins
 import os
+import io
 import shutil
 import pickle
 import zipfile
@@ -24,6 +25,7 @@ try:
     import geopandas as gpd
 except ImportError:
     pass
+from matplotlib.image import imread
 
 # Locals
 from salem import cache_dir
@@ -222,3 +224,11 @@ def read_shapefile_to_grid(fpath, grid):
     out, crs = _memory_transform(shape_cpath, grid=grid, grid_str=str(grid))
     out.crs = crs
     return out
+
+
+@memory.cache
+def joblib_read_url(url):
+    """Prevent to re-download from GoogleStaticMap if it was done before"""
+
+    fd = urlopen(url)
+    return imread(io.BytesIO(fd.read()))

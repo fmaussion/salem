@@ -376,16 +376,23 @@ class TestGoogleStaticMap(unittest.TestCase):
             return
 
         gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
-                             size_x=500, size_y=500)
-
+                             size_x=500, size_y=500, use_cache=False)
         gm.set_roi(shape=get_demo_file('Hintereisferner.shp'))
         gm.set_subset(toroi=True, margin=10)
         img = gm.get_vardata()
-
         img[np.nonzero(gm.roi == 0)] /= 2.
+
         # from scipy.misc import toimage
         # toimage(img).save(get_demo_file('hef_google_roi.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_roi.png'))
+        assert_allclose(ref, img, atol=2e-2)
+
+        gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
+                             size_x=500, size_y=500)
+        gm.set_roi(shape=get_demo_file('Hintereisferner.shp'))
+        gm.set_subset(toroi=True, margin=10)
+        img = gm.get_vardata()
+        img[np.nonzero(gm.roi == 0)] /= 2.
         assert_allclose(ref, img, atol=2e-2)
 
     def test_visible(self):
