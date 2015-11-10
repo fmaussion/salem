@@ -397,7 +397,7 @@ class GoogleCenterMap(GeoDataset):
     """Download and handle Google Static Maps (needs motionless lib)."""
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
-                 zoom=12, maptype='satellite', **kwargs):
+                 zoom=12, maptype='satellite', use_cache=True, **kwargs):
         """Open the file.
 
         Parameters
@@ -419,13 +419,17 @@ class GoogleCenterMap(GeoDataset):
 
         # done
         self.googleurl = googleurl
+        self.use_cache = use_cache
         GeoDataset.__init__(self, grid)
 
     @lazy_property
     def _img(self):
         """Download the image."""
-        fd = urlopen(self.googleurl.generate_url())
-        return imread(io.BytesIO(fd.read()))
+        if self.use_cache:
+            return utils.joblib_read_url(self.googleurl.generate_url())
+        else:
+            fd = urlopen(self.googleurl.generate_url())
+            return imread(io.BytesIO(fd.read()))
 
     def get_vardata(self, var_id=0):
         """Return and subset the image."""
