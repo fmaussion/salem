@@ -7,7 +7,7 @@ import copy
 
 import numpy as np
 try:
-    from xray.core import indexing
+    from xarray.core import indexing
 except ImportError:
     pass
 

@@ -493,12 +493,13 @@ class Grid(object):
             raise ValueError('crs not understood')
         return ret
 
-    def transform(self, x, y, crs=wgs84, nearest=False, maskout=False):
+    def transform(self, x, y, z=None, crs=wgs84, nearest=False, maskout=False):
         """Converts any coordinates into the local grid.
 
         Parameters
         ----------
         x, y: the grid coordinates of the point(s) you want to convert
+        z: ignored (but necessary since some shapes hav a z dimension)
         crs: reference system of x, y. Could be a pyproj.Proj instance or a
         Grid instance. In the latter case (x, y) are actually (i, j).
         (Default: lonlat in wgs84).

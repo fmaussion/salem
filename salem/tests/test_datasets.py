@@ -17,11 +17,11 @@ import shapely.geometry as shpg
 from numpy.testing import assert_array_equal, assert_allclose
 
 from salem import Grid
-from salem.utils import get_demo_file
+from salem.utils import get_demo_file, read_shapefile_to_grid
 from salem import wgs84
 
 from salem.datasets import GeoDataset, GeoNetcdf, GeoTiff, WRF, \
-    GoogleCenterMap, GoogleVisibleMap
+    GoogleCenterMap, GoogleVisibleMap, EsriITMIX
 
 
 class TestDataset(unittest.TestCase):
@@ -218,6 +218,12 @@ class TestGeotiff(unittest.TestCase):
         np.testing.assert_array_equal(ref, totest)
         go.set_roi()
         go.set_subset()
+
+    def test_itmix(self):
+
+        gf = get_demo_file('02_surface_Academy_1997_UTM47.asc')
+        ds = EsriITMIX(gf)
+        topo = ds.get_vardata()
 
 
 class TestGeoNetcdf(unittest.TestCase):
@@ -417,12 +423,9 @@ class TestGoogleStaticMap(unittest.TestCase):
         # from scipy.misc import toimage
         # toimage(img).save(get_demo_file('hef_google_visible.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_visible.png'))
-        assert_allclose(ref, img, atol=1e-2)
-        # import matplotlib.pyplot as plt
-        # f, (a1, a2) = plt.subplots(1,2)
-        # a1.imshow(ref)
-        # a2.imshow(img)
-        # plt.show()
+        rmsd = np.sqrt(np.mean((ref-img)**2))
+        self.assertTrue(rmsd < 1e-1)
+
         self.assertRaises(ValueError, GoogleVisibleMap, x=x, y=y, zoom=12)
 
         fw = get_demo_file('wrf_tip_d1.nc')
@@ -437,7 +440,8 @@ class TestGoogleStaticMap(unittest.TestCase):
         # from scipy.misc import toimage
         # toimage(img).save(get_demo_file('hef_google_visible_grid.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_visible_grid.png'))
-        assert_allclose(ref, img, atol=1e-2)
+        rmsd = np.sqrt(np.mean((ref-img)**2))
+        self.assertTrue(rmsd < 5e-1)
 
 
 
