@@ -8,6 +8,7 @@ License: GPLv3+
 # Builtins
 import warnings
 import io
+import os
 from six.moves.urllib.request import urlopen
 # External libs
 import pyproj
@@ -272,6 +273,56 @@ class GeoTiff(GeoDataset):
                 nxny = (src.width, src.height)
                 ul_corner = (src.bounds.left, src.bounds.top)
                 proj = pyproj.Proj(src.crs)
+                dxdy = (src.res[0], -src.res[1])
+                grid = Grid(ul_corner=ul_corner, nxny=nxny, dxdy=dxdy,
+                            pixel_ref='corner', proj=proj)
+        # done
+        self.file = file
+        GeoDataset.__init__(self, grid)
+
+    def get_vardata(self, var_id=1):
+        """Read the geotiff band.
+
+        Parameters
+        ----------
+        var_id: the variable name (here the band number)
+        """
+        wx = (self.sub_x[0], self.sub_x[1]+1)
+        wy = (self.sub_y[0], self.sub_y[1]+1)
+        with rasterio.drivers():
+            with rasterio.open(self.file) as src:
+                band = src.read(var_id, window=(wy, wx))
+        return band
+
+
+class EsriITMIX(GeoDataset):
+    """Open ITMIX geolocalised Esri ASCII images (needs rasterio)."""
+
+    def __init__(self, file):
+        """Open the file.
+
+        Parameters
+        ----------
+        file: path to the file
+        """
+
+        bname = os.path.basename(file).split('.')[0]
+        pok = bname.find('UTM')
+        if pok == -1:
+            raise ValueError(file + ' does not seem to be an ITMIX file.')
+        zone = int(bname[pok+3:])
+        south = False
+        if zone < 0:
+            south = True
+            zone = -zone
+        proj = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84',
+                           south=south)
+
+        # brutally efficient
+        with rasterio.drivers():
+            with rasterio.open(file) as src:
+                nxny = (src.width, src.height)
+                ul_corner = (src.bounds.left, src.bounds.top)
                 dxdy = (src.res[0], -src.res[1])
                 grid = Grid(ul_corner=ul_corner, nxny=nxny, dxdy=dxdy,
                             pixel_ref='corner', proj=proj)
