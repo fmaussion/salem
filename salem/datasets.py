@@ -9,12 +9,18 @@ License: GPLv3+
 import warnings
 import io
 import os
+from datetime import datetime
 from six.moves.urllib.request import urlopen
 # External libs
 import pyproj
 import numpy as np
 import salem.grids
-
+import pandas as pd
+from matplotlib.image import imread
+try:
+    import xarray as xr
+except ImportError:
+    pass
 try:
     import netCDF4
 except ImportError:
@@ -28,8 +34,6 @@ try:
     import motionless
 except ImportError:
     pass
-import pandas as pd
-from matplotlib.image import imread
 
 # Locals
 from salem import lazy_property
@@ -352,7 +356,7 @@ class GeoNetcdf(GeoDataset):
     but if it can't you can still provide the time and grid at instantiation.
     """
 
-    def __init__(self, file, grid=None, time=None):
+    def __init__(self, file, grid=None, time=None, monthbegin=False):
         """Open the file and try to understand it.
 
         Parameters
@@ -362,6 +366,9 @@ class GeoNetcdf(GeoDataset):
         GeoNetcdf, which is to try to understand the grid automatically.
         time: a time array. This will override the normal behavior of
         GeoNetcdf, which is to try to understand the time automatically.
+        monthbegin: set to true if you are sure that your data is monthly
+        and that the data provider decided to tag the date as the center of
+        the month (stupid)
         """
 
         self._nc = netCDF4.Dataset(file)
@@ -369,7 +376,7 @@ class GeoNetcdf(GeoDataset):
         if grid is None:
             grid = salem.grids.netcdf_grid(self._nc)
         if time is None:
-            time = self._netcdf_time()
+            time = self._netcdf_time(monthbegin=monthbegin)
         dn = self._nc.dimensions.keys()
         self.t_dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
         self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])
@@ -377,7 +384,7 @@ class GeoNetcdf(GeoDataset):
         self.z_dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
         GeoDataset.__init__(self, grid, time=time)
 
-    def _netcdf_time(self):
+    def _netcdf_time(self, monthbegin=False):
         """Check if the netcdf file contains a time that Salem understands."""
 
         time = None
@@ -398,15 +405,20 @@ class GeoNetcdf(GeoDataset):
             var = self._nc.variables[vt]
             time = netCDF4.num2date(var[:], var.units)
 
+            if monthbegin:
+                # sometimes monthly data is centered in the month (stupid)
+                time = [datetime(t.year, t.month, 1) for t in time]
+
         return time
 
-    def get_vardata(self, var_id=0):
+    def get_vardata(self, var_id=0, as_xarray=False):
         """Reads the data out of the netCDF file while taking into account
         time and spatial subsets.
 
         Parameters
         ----------
         var_id: the name of the variable (must be available in self.variables)
+        as_xarray: returns a DataArray object
         """
 
         v = self.variables[var_id]
@@ -423,7 +435,27 @@ class GeoNetcdf(GeoDataset):
                 it = slice(self.sub_x[0], self.sub_x[1]+1)
             item.append(it)
 
-        return v[tuple(item)]
+        out = v[tuple(item)]
+
+        if as_xarray:
+            # convert to xarray
+            dims = v.dimensions
+            coords = dict()
+            x, y = self.grid.x_coord, self.grid.y_coord
+            for d in dims:
+                if d == self.t_dim:
+                    coords[d] = self.time
+                elif d == self.y_dim:
+                    coords[d] = y
+                elif d == self.x_dim:
+                    coords[d] = x
+            attrs = v.__dict__.copy()
+            bad_keys = ['scale_factor', 'add_offset',
+                        '_FillValue', 'missing_value', 'ncvars']
+            _ = [attrs.pop(b, None) for b in bad_keys]
+            out = xr.DataArray(out, dims=dims, coords=coords, attrs=attrs)
+
+        return out
 
 
 class WRF(GeoNetcdf):
