@@ -258,6 +258,28 @@ class TestGeoNetcdf(unittest.TestCase):
         assert_allclose(nc.variables['t2m'][1:3, alat, alon],
                         np.squeeze(d.get_vardata('t2m')))
 
+    def test_xarray(self):
+        """Open ERA, get variables and stuff"""
+
+        f = get_demo_file('era_interim_tibet.nc')
+        d = GeoNetcdf(f)
+        t2 = d.get_vardata('t2m', as_xarray=True)
+
+        stat_lon = 91.1
+        stat_lat = 31.1
+        d.set_subset(corners=((stat_lon, stat_lat), (stat_lon, stat_lat)))
+        t2_sub = d.get_vardata('t2m', as_xarray=True)
+        np.testing.assert_allclose(t2_sub - t2, np.zeros(4).reshape((4,1,1)))
+
+        d.set_period(t0='2012-06-01 06:00:00', t1='2012-06-01 12:00:00')
+        t2_sub = d.get_vardata('t2m', as_xarray=True)
+        np.testing.assert_allclose(t2_sub - t2, np.zeros(2).reshape((2,1,1)))
+
+        wf = get_demo_file('wrf_cropped.nc')
+        d = WRF(wf)
+        tk = d.get_vardata('TK', as_xarray=True)
+        # TODO: the z dim is not ok
+
     def test_wrf(self):
         """Open WRF, do subsets and stuff"""
 

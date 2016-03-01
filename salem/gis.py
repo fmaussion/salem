@@ -303,15 +303,25 @@ class Grid(object):
         return np.meshgrid(x, y)
 
     @property
+    def x_coord(self):
+        """x coordinates of the grid points (no mesh)"""
+
+        return self.x0 + np.arange(self.nx) * self.dx
+
+    @property
+    def y_coord(self):
+        """y coordinates of the grid points (no mesh)"""
+
+        return self.y0 + np.arange(self.ny) * self.dy
+
+    @property
     def xy_coordinates(self):
         """Tuple of x, y coordinates of the grid points.
 
         (dependant of the grid's cornered or centered representation.)
         """
 
-        x = self.x0 + np.arange(self.nx) * self.dx
-        y = self.y0 + np.arange(self.ny) * self.dy
-        return np.meshgrid(x, y)
+        return np.meshgrid(self.x_coord, self.y_coord)
 
     @lazy_property
     def ll_coordinates(self):
