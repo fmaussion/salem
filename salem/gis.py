@@ -600,7 +600,7 @@ class Grid(object):
 
         # Transform the local grid into the input grid (backwards transform)
         # Work in center grid cause that's what we need
-        i, j = self.ij_coordinates
+        i, j = self.center_grid.ij_coordinates
         oi, oj = grid.center_grid.transform(i, j, crs=self.center_grid,
                                             nearest=use_nn, maskout=False)
         pv = np.nonzero((oi >= 0) & (oi < grid.nx) &
