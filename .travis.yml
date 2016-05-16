@@ -1,5 +1,11 @@
 language: python
 sudo: false
+# blacklist
+branches:
+  except:
+    - docs
+    - salem-dev
+    - dev
 cache:
   directories:
     - ~/.cache/pip
