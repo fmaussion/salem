@@ -8,3 +8,5 @@ joblib
 shapely
 geopandas
 rasterio
+netCDF4
+xarray
