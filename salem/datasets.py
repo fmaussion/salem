@@ -197,7 +197,7 @@ class GeoDataset(object):
         self.sub_y = sub_y
 
     def set_roi(self, shape=None, geometry=None, crs=wgs84, grid=None,
-                noerase=False):
+                corners=None, noerase=False):
         """Set a region of interest for the dataset.
 
         If set succesfully, a ROI is simply a mask of the same size as the
@@ -212,6 +212,9 @@ class GeoDataset(object):
         geometry: a shapely geometry
         crs: the crs of the geometry
         grid: a Grid object
+        corners: a ((x0, y0), (x1, y1)) tuple of the corners of the square
+        to subset the dataset to. The coordinates are not expressed in
+        wgs84, set the crs keyword
         noerase: set to true in order to add the new ROI to the previous one
         """
 
@@ -240,6 +243,13 @@ class GeoDataset(object):
         elif grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = ogrid.map_gridded_data(_tmp, grid, out=mask).filled(0)
+        elif corners is not None:
+            cgrid = self._ogrid.center_grid
+            xy0, xy1 = corners
+            x0, y0 = cgrid.transform(*xy0, crs=crs, nearest=True)
+            x1, y1 = cgrid.transform(*xy1, crs=crs, nearest=True)
+            mask[np.min([y0, y1]):np.max([y0, y1])+1,
+                 np.min([x0, x1]):np.max([x0, x1])+1] = 1
 
         self.roi = mask
 
@@ -550,3 +560,47 @@ class GoogleVisibleMap(GoogleCenterMap):
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
                                  size_y=size_y, zoom=zoom, **kwargs)
+
+
+@xr.register_dataset_accessor('salem')
+class XarrayAccessor(GeoDataset):
+    """Proof of concept for the new xarray accessors."""
+
+    def __init__(self, xarray_obj):
+        self._obj = xarray_obj
+        self.grid = salem.grids.netcdf_grid(self._obj)
+
+        dn = self._obj.dims.keys()
+        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])
+        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])
+        GeoDataset.__init__(self, self.grid)
+
+    def subset(self, shape=None, geometry=None, crs=wgs84, grid=None,
+                corners=None, margin=0):
+        """Get a subset of the dataset.
+
+        Parameters
+        ----------
+        shape: path to a shapefile
+        geometry: a shapely geometry
+        crs: the crs of the geometry
+        grid: a Grid object
+        corners: a ((x0, y0), (x1, y1)) tuple of the corners of the square
+        to subset the dataset to. The coordinates are not expressed in
+        wgs84, set the crs keyword
+        margin: when doing the subset, add a margin (can be negative!). Can
+        be used alone: set_subset(margin=-5) will remove five pixels from
+        each boundary of the dataset.
+        """
+
+        self.set_roi(shape=shape, geometry=geometry, crs=crs, grid=grid,
+                     corners=corners)
+        self.set_subset(toroi=True, margin=margin)
+
+        out_ds = self._obj[{self.x_dim : slice(self.sub_x[0], self.sub_x[1]+1),
+                            self.y_dim : slice(self.sub_y[0], self.sub_y[1]+1)}
+                          ]
+        self.set_roi()
+        self.set_subset()
+
+        return out_ds

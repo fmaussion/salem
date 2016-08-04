@@ -13,6 +13,7 @@ from matplotlib.image import imread
 import numpy as np
 import netCDF4
 import pandas as pd
+import xarray as xr
 import shapely.geometry as shpg
 from numpy.testing import assert_array_equal, assert_allclose
 
@@ -97,6 +98,12 @@ class TestDataset(unittest.TestCase):
         d.set_subset(corners=([1, 1], [1, 1]), crs=wgs84)
         self.assertEqual(gm, d.grid)
 
+        d.set_subset()
+        d.set_roi()
+        d.set_roi(corners=([1, 1], [1, 1]), crs=wgs84)
+        d.set_subset(toroi=True)
+        self.assertEqual(gm, d.grid)
+
         gm = Grid(nxny=(1, 1), dxdy=(1, 1), ll_corner=(2, 2), proj=wgs84)
         d.set_subset(corners=([2, 2], [2, 2]), crs=wgs84)
         self.assertEqual(gm, d.grid)
@@ -128,6 +135,14 @@ class TestDataset(unittest.TestCase):
         np.testing.assert_array_equal([[0,0,0],[0,0,0],[0,0,0]], d.roi)
         d.set_roi(geometry=p)
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
+
+        d.set_roi(corners=([0, 0], [2, 2]), crs=wgs84)
+        np.testing.assert_array_equal([[1, 1, 1], [1, 1, 1], [1, 1, 1]], d.roi)
+        d.set_roi()
+
+        d.set_roi(corners=([1.3, 1.3], [1.7, 1.7]), crs=wgs84)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
+        d.set_roi()
 
         nc = np.array(p.exterior.coords) + 0.1
         p = shpg.Polygon(nc)
@@ -229,7 +244,6 @@ class TestGeotiff(unittest.TestCase):
 class TestGeoNetcdf(unittest.TestCase):
 
     def test_eraint(self):
-        """Open ERA, do subsets and stuff"""
 
         f = get_demo_file('era_interim_tibet.nc')
         d = GeoNetcdf(f)
@@ -258,8 +272,7 @@ class TestGeoNetcdf(unittest.TestCase):
         assert_allclose(nc.variables['t2m'][1:3, alat, alon],
                         np.squeeze(d.get_vardata('t2m')))
 
-    def test_xarray(self):
-        """Open ERA, get variables and stuff"""
+    def test_as_xarray(self):
 
         f = get_demo_file('era_interim_tibet.nc')
         d = GeoNetcdf(f)
@@ -279,6 +292,22 @@ class TestGeoNetcdf(unittest.TestCase):
         d = WRF(wf)
         tk = d.get_vardata('TK', as_xarray=True)
         # TODO: the z dim is not ok
+
+    def test_xarray_accessor(self):
+
+        f = get_demo_file('era_interim_tibet.nc')
+        ds = xr.open_dataset(f)
+        self.assertEqual(ds.salem.x_dim, 'longitude')
+        self.assertEqual(ds.salem.y_dim, 'latitude')
+
+        lon = 91.1
+        lat = 31.1
+        dss = ds.salem.subset(corners=((lon, lat), (lon, lat)), margin=1)
+
+        self.assertEqual(len(dss.latitude), 3)
+        self.assertEqual(len(dss.longitude), 3)
+
+        np.testing.assert_almost_equal(dss.longitude, [90.0, 90.75, 91.5])
 
     def test_wrf(self):
         """Open WRF, do subsets and stuff"""
