@@ -17,14 +17,8 @@ import numpy as np
 import salem.grids
 import pandas as pd
 from matplotlib.image import imread
-try:
-    import xarray as xr
-except ImportError:
-    pass
-try:
-    import netCDF4
-except ImportError:
-    pass
+import xarray as xr
+import netCDF4
 try:
     import rasterio
     from rasterio import features

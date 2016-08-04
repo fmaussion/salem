@@ -18,10 +18,6 @@ import zipfile
 import numpy as np
 from joblib import Memory
 try:
-    import netCDF4
-except ImportError:
-    pass
-try:
     import geopandas as gpd
 except ImportError:
     pass

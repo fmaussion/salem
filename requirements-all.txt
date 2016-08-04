@@ -5,8 +5,6 @@ pyproj
 pandas
 matplotlib
 joblib
-netCDF4
 shapely
 geopandas
 rasterio
-xarray
