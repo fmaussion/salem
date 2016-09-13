@@ -376,6 +376,19 @@ class TestGeoNetcdf(unittest.TestCase):
         np.testing.assert_allclose(reflon, mylon, atol=1e-5)
         np.testing.assert_allclose(reflat, mylat, atol=1e-5)
 
+        # Test xarray
+        ds = xr.open_dataset(get_demo_file('wrf_mercator.nc'))
+        mylon, mylat = ds.salem.grid.ll_coordinates
+        np.testing.assert_allclose(reflon, mylon, atol=1e-5)
+        np.testing.assert_allclose(reflat, mylat, atol=1e-5)
+        d = GeoNetcdf(get_demo_file('wrf_tip_d1.nc'))
+        reflon = np.squeeze(d.get_vardata('XLONG'))
+        reflat = np.squeeze(d.get_vardata('XLAT'))
+        ds = xr.open_dataset(get_demo_file('wrf_tip_d1.nc'))
+        mylon, mylat = ds.salem.grid.ll_coordinates
+        np.testing.assert_allclose(reflon, mylon, atol=1e-4)
+        np.testing.assert_allclose(reflat, mylat, atol=1e-4)
+
     def test_longtime(self):
         """There was a bug with time"""
 

@@ -63,8 +63,14 @@ def _wrf_grid(nc):
     if proj is None:
         raise RuntimeError('WRF proj not understood: {}'.format(p4))
 
-    nx = len(nc.dimensions['west_east'])
-    ny = len(nc.dimensions['south_north'])
+    # Here we have to accept xarray's datasets too
+    try:
+        nx = len(nc.dimensions['west_east'])
+        ny = len(nc.dimensions['south_north'])
+    except AttributeError:
+        # maybe an xarray dataset
+        nx = nc.dims['west_east']
+        ny = nc.dims['south_north']
     if hasattr(nc, 'PROJ_ENVI_STRING'):
         # HAR
         x0 = nc.GRID_X00
