@@ -381,7 +381,6 @@ class TestGeoNetcdf(unittest.TestCase):
         mylon, mylat = ds.salem.grid.ll_coordinates
         np.testing.assert_allclose(reflon, mylon, atol=1e-5)
         np.testing.assert_allclose(reflat, mylat, atol=1e-5)
-
         d = GeoNetcdf(get_demo_file('wrf_tip_d1.nc'))
         reflon = np.squeeze(d.get_vardata('XLONG'))
         reflat = np.squeeze(d.get_vardata('XLAT'))

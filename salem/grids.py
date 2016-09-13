@@ -68,7 +68,7 @@ def _wrf_grid(nc):
         nx = len(nc.dimensions['west_east'])
         ny = len(nc.dimensions['south_north'])
     except AttributeError:
-    # maybe an xarray dataset
+        # maybe an xarray dataset
         nx = nc.dims['west_east']
         ny = nc.dims['south_north']
     if hasattr(nc, 'PROJ_ENVI_STRING'):
