@@ -34,7 +34,7 @@ rasterio, pandas, geopandas and shapely.
 
 After installing those, a simple *pip install* should suffice::
 
-    $ pip install git+https://github.com/fmaussion/salem.git#egg=Salem
+    $ pip install git+https://github.com/fmaussion/salem.git#egg=salem
 
 This will build the latest repository version. Since Salem is growing fast,
 the API is most likely to change in the future.
