@@ -1,5 +1,34 @@
+*.py[cod]
+__pycache__
+
 # PyCharm stuffs
 .idea/
 
 # coverage stuffs
 .coverage
+cover
+
+# Notebook stuffs
+examples/*checkpoints
+.ipynb_checkpoints
+
+# Tests stuffs
+salem/tests/result_images
+result_images
+
+# Packages
+*.egg
+*.egg-info
+eggs
+
+# specific
+salem/tests/tmp_*
+*.html
+docs/*-gen.rst
+docs/_build
+docs/_build_html
+docs/generated
+docs/_sources
+docs/_images
+docs/.doctrees
+salem/version.py
