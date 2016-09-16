@@ -283,13 +283,13 @@ class Grid(object):
 
         a = dict((k, self.corner_grid.__dict__[k]) for k in self._ckeys)
         b = dict((k, other.corner_grid.__dict__[k]) for k in self._ckeys)
-        p1 = self.corner_grid.__dict__['proj']
-        p2 = other.corner_grid.__dict__['proj']
-        return (a == b) & (proj_is_same(p1, p2))
+        p1 = self.corner_grid.proj
+        p2 = other.corner_grid.proj
+        return (a == b) & proj_is_same(p1, p2)
 
     @lazy_property
     def center_grid(self):
-        """Representation of the grid in center coordinates."""
+        """(Grid instance) representing the grid in center coordinates."""
         
         if self.pixel_ref == 'center':
             return self
@@ -303,7 +303,7 @@ class Grid(object):
         
     @lazy_property
     def corner_grid(self):
-        """Representation of the grid in corner coordinates."""
+        """(Grid instance) representing the grid in corner coordinates."""
 
         if self.pixel_ref == 'corner':
             return self
@@ -319,7 +319,7 @@ class Grid(object):
     def ij_coordinates(self):
         """Tuple of i, j coordinates of the grid points.
 
-        (dependant of the grid's cornered or centered representation.)
+        (dependent of the grid's cornered or centered representation.)
         """
 
         x = np.arange(self.nx)
@@ -328,13 +328,13 @@ class Grid(object):
 
     @property
     def x_coord(self):
-        """x coordinates of the grid points (no mesh)"""
+        """x coordinates of the grid points (1D, no mesh)"""
 
         return self.x0 + np.arange(self.nx) * self.dx
 
     @property
     def y_coord(self):
-        """y coordinates of the grid points (no mesh)"""
+        """y coordinates of the grid points (1D, no mesh)"""
 
         return self.y0 + np.arange(self.ny) * self.dy
 
@@ -342,7 +342,7 @@ class Grid(object):
     def xy_coordinates(self):
         """Tuple of x, y coordinates of the grid points.
 
-        (dependant of the grid's cornered or centered representation.)
+        (dependent of the grid's cornered or centered representation.)
         """
 
         return np.meshgrid(self.x_coord, self.y_coord)
@@ -351,7 +351,7 @@ class Grid(object):
     def ll_coordinates(self):
         """Tuple of longitudes, latitudes of the grid points.
 
-        (dependant of the grid's cornered or centered representation.)
+        (dependent of the grid's cornered or centered representation.)
         """
 
         x, y = self.xy_coordinates
@@ -362,7 +362,7 @@ class Grid(object):
     def xstagg_xy_coordinates(self):
         """Tuple of x, y coordinates of the X staggered grid.
 
-        (independant of the grid's cornered or centered representation.)
+        (independent of the grid's cornered or centered representation.)
         """
 
         x_s = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
@@ -373,7 +373,7 @@ class Grid(object):
     def ystagg_xy_coordinates(self):
         """Tuple of x, y coordinates of the Y staggered grid.
 
-        (independant of the grid's cornered or centered representation.)
+        (independent of the grid's cornered or centered representation.)
         """
 
         x = self.center_grid.x0 + np.arange(self.nx) * self.dx
@@ -384,7 +384,7 @@ class Grid(object):
     def xstagg_ll_coordinates(self):
         """Tuple of longitudes, latitudes of the X staggered grid.
 
-        (independant of the grid's cornered or centered representation.)
+        (independent of the grid's cornered or centered representation.)
         """
 
         x, y = self.xstagg_xy_coordinates
@@ -395,7 +395,7 @@ class Grid(object):
     def ystagg_ll_coordinates(self):
         """Tuple of longitudes, latitudes of the Y staggered grid.
 
-        (independant of the grid's cornered or centered representation.)
+        (independent of the grid's cornered or centered representation.)
         """
 
         x, y = self.ystagg_xy_coordinates
@@ -404,7 +404,8 @@ class Grid(object):
 
     @lazy_property
     def pixcorner_ll_coordinates(self):
-        """Tuple of longitudes, latitudes at the corners of the grid.
+        """Tuple of longitudes, latitudes (dims: ny+1, nx+1) at the corners of
+        the grid.
 
         Useful for cleo.Map essentially
 
@@ -438,14 +439,15 @@ class Grid(object):
 
         Parameters
         ----------
-        crs: the target coordinate reference system.
+        crs : crs
+            the target coordinate reference system.
 
         Returns
         -------
         [left, right, bottom, top] boundaries of the grid.
         """
 
-        # this is not entirely trivial
+        # this is not so trivial
         # for optimisation we will transform the boundaries only
         _i = np.hstack([np.arange(self.nx),
                         np.ones(self.ny)*self.nx,
@@ -461,14 +463,18 @@ class Grid(object):
     def regrid(self, nx=None, ny=None, factor=1):
         """Make a copy of the grid with an updated spatial resolution.
 
-        The keyword parameters are mutually exculive, because the x/y ratio
+        The keyword parameters are mutually exclusive, because the x/y ratio
         of the grid has to be preserved.
 
         Parameters
         ----------
-        nx, ny: the new number of x (y) pixels.
-        factor: multiplication factor (factor=3 will generate a grid with
-                a spatial resolution 3 times finer)
+        nx : int
+            the new number of x pixels
+        nx : int
+            the new number of y pixels
+        factor : int
+            multiplication factor (factor=3 will generate a grid with
+            a spatial resolution 3 times finer)
 
         Returns
         -------
@@ -500,9 +506,14 @@ class Grid(object):
 
         Parameters
         ----------
-        i, j: the grid coordinates of the point(s) you want to convert
-        crs: the target crs (default: self.proj)
-        nearest: (for Grid crs only) convert to the nearest grid point
+        i : array of floats
+            the grid coordinates of the point(s) you want to convert
+        j : array of floats
+            the grid coordinates of the point(s) you want to convert
+        crs: crs
+             the target crs (default: self.proj)
+        nearest: bool
+             (for Grid crs only) convert to the nearest grid point
 
         Returns
         -------
@@ -532,15 +543,22 @@ class Grid(object):
 
         Parameters
         ----------
-        x, y: the grid coordinates of the point(s) you want to convert
-        z: ignored (but necessary since some shapes hav a z dimension)
-        crs: reference system of x, y. Could be a pyproj.Proj instance or a
-        Grid instance. In the latter case (x, y) are actually (i, j).
-        (Default: lonlat in wgs84).
-        nearest: set to True if you wish to return the closest i, j coordinates
-        instead of subpixel coords.
-        maskout: set to true if you want to mask out the transformed
-        coordinates that are not within the grid.
+        x : ndarray
+            the grid coordinates of the point(s) you want to convert
+        y : ndarray
+            the grid coordinates of the point(s) you want to convert
+        z : None
+            ignored (but necessary since some shapes have a z dimension)
+        crs : crs
+            reference system of x, y. Could be a pyproj.Proj instance or a
+            Grid instance. In the latter case (x, y) are actually (i, j).
+            (Default: lonlat in wgs84).
+        nearest : bool
+            set to True if you wish to return the closest i, j coordinates
+            instead of subpixel coords.
+        maskout : bool
+            set to true if you want to mask out the transformed
+            coordinates that are not within the grid.
 
         Returns
         -------
@@ -696,14 +714,17 @@ def proj_is_same(p1, p2):
     See https://github.com/jswhit/pyproj/issues/15#issuecomment-208862786
     """
     if has_gdal:
-        # this is more robust
+        # this is more robust, but gdal is a pain
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(p1.srs)
         s2 = osr.SpatialReference()
         s2.ImportFromProj4(p2.srs)
         return s1.IsSame(s2)
     else:
-        return p1.srs == p2.srs
+        # at least we can try to sort it
+        p1 = '+'.join(sorted(p1.srs.split('+')))
+        p2 = '+'.join(sorted(p2.srs.split('+')))
+        return p1 == p2
 
 
 def transform_proj(p1, p2, x, y, nocopy=False):

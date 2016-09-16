@@ -10,6 +10,7 @@ Required dependencies
 - `numpy <http://www.numpy.org/>`__
 - `scipy <http://scipy.org/>`__
 - `pyproj <https://jswhit.github.io/pyproj/>`__
+- `netCDF4 <https://github.com/Unidata/netcdf4-python>`__
 
 Optional dependencies
 ---------------------
@@ -23,8 +24,6 @@ Because not using them is a bad idea
 For netCDF and IO
 ~~~~~~~~~~~~~~~~~
 
-- `netCDF4 <https://github.com/Unidata/netcdf4-python>`__: recommended if you
-  want to use xarray for reading or writing netCDF files
 - `scipy <http://scipy.org/>`__: used as a fallback for reading/writing netCDF3
 - `pydap <http://www.pydap.org/>`__: used as a fallback for accessing OPeNDAP
 - `h5netcdf <https://github.com/shoyer/h5netcdf>`__: an alternative library for

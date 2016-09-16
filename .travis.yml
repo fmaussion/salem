@@ -1,45 +1,45 @@
 language: python
 sudo: false
-# blacklist
+notifications:
+  email: false
+
 branches:
   except:
     - docs
     - salem-dev
+    - refactor
     - dev
-cache:
-  directories:
-    - ~/.cache/pip
-env:
-  global:
-    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
-    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
-    - NUMPY=numpy
-addons:
-  apt:
-    packages:
-      # copied those from scipy
-      - libatlas-dev
-      - libatlas-base-dev
-      - liblapack-dev
-      - gfortran
-      # copied those from rasterio
-      - libgdal1h
-      - gdal-bin
-      - libgdal-dev
-python:
-  - "2.7"
-  - "3.4"
+
+matrix:
+  fast_finish: true
+  include:
+  - python: 2.7
+    env: CONDA_ENV=py27-all
+  - python: 3.5
+    env: CONDA_ENV=py35-min
+  - python: 3.5
+    env: CONDA_ENV=py35-all
+
 before_install:
-  - pip install -U pip
-  - pip install wheel
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda-3.16.0-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget http://repo.continuum.io/miniconda/Miniconda3-3.16.0-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no --set show_channel_urls true
+  - conda update -q conda
+  - conda info -a
+
 install:
-  - travis_wait pip wheel -r requirements-all.txt
-  - travis_wait pip install -r requirements-all.txt
-  - pip install git+https://github.com/fmaussion/motionless.git
-  - pip install coveralls
-  - pip install nose
+  - conda env create --file ci/requirements-$CONDA_ENV.yml
+  - source activate test_env
   - pip install -e .
+
 script: 
-  - nosetests --with-coverage --cover-package salem --logging-level=INFO
+  - py.test salem --cov=salem --cov-report term-missing
+
 after_success:
   - coveralls

@@ -1,9 +1,0 @@
-six
-numpy
-scipy
-pyproj
-pandas
-matplotlib
-joblib
-netCDF4
-xarray
