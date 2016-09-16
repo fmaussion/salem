@@ -26,16 +26,19 @@ Salem simply adds the concept of GRID to these crs, which I always miss in
 other libraries. Grids are very useful when transforming data between two
 structured datasets, or from an unstructured dataset to a structured one.
 
-Copyright: Fabien Maussion, 2014-2015
+Copyright: Fabien Maussion, 2014-2016
 
-License: GPLv3+
+License: GPLv3
 """
+# Python 2 stuff
 from __future__ import division
 from six import string_types
+
 # Builtins
 import copy
 from functools import partial
 from collections import OrderedDict
+
 # External libs
 import pyproj
 import numpy as np
@@ -48,10 +51,16 @@ try:
     import geopandas as gpd
 except ImportError:
     pass
+try:
+    from osgeo import osr
+    has_gdal = True
+except ImportError:
+    has_gdal = False
+
 
 # Locals
-from salem import lazy_property
-from salem import wgs84
+from salem import lazy_property, wgs84
+
 
 def check_crs(crs):
     """Checks if the crs represents a valid grid, projection or ESPG string.
@@ -82,85 +91,105 @@ def check_crs(crs):
 
 
 class Grid(object):
-    """Handling of structured mapped grids.
+    """A structured grid on a map projection.
 
-    Central class in the Salem library, taking over user concerns about the
-    gridded representation of georeferenced data. A grid requires four
-    parameters at instantiation and is immutable *in principle*.  I didn't
-    implement barriers: if you want to mess with it, you can (not recommended).
+    Central class in the library, taking over user concerns about the
+    gridded representation of georeferenced data. It adds a level of
+    abstraction by defining a new coordinate system.
+
+    A grid requires georeferencing information at instantiation and is
+    immutable *in principle*. I didn't implement barriers: if you want to mess
+    with it, you can (not recommended). Note that in most cases, users won't
+    have to define the grid themselves: most georeferenced datasets contain
+    enough metadata for Salem to determine the data's grid automatically.
 
     A grid is defined by a projection, a reference point in this projection,
     a grid spacing and a number of grid points. The grid can be defined in a
     "upper left" convention (reference point at the top left corner,
     dy negative - always -). This is the python convention, but not that of all
-    datasets (for example WRF). It can also be defined in a "lower left" corner
-    convention (dy positive). The two conventions are interchangeable only
-    if the data that ships with the grid is rotated too, so the user should
-    take care of what he is doing.
+    datasets (for example, the output of the WRF model follows a down-left
+    corner convention). Therefore, grids can also be defined in a "lower left"
+    corner convention (dy positive). The use of one or the other convention
+    depends on the data, so the user should take care of what he is doing.
 
     The reference points of the grid points might be located at the corner of
     the pixel (upper left corner for example if dy is negative) or the center
-    of the pixel (most climate datasets follow this convention). The two
-    concepts are truly equivalent and each Grid instance gives access to one
-    representation or another with the "center_grid" and "corner_grid"
-    properties. Under the hood, Salem uses the representation it needs to do
+    of the pixel (most atmospheric datasets follow this convention). The two
+    concepts are truly equivalent and each grid instance gives access to one
+    representation or another ("center_grid" and "corner_grid" properties).
+    Under the hood, Salem uses the representation it needs to do
     the job by accessing either one or the other of these parameters. The user
-    in turn should now which convention he needs for his purposes: some grid
-    functions and properties are representation dependant (e.g. transform,
-    ll_coordinates) while some are not (e,g, extent, corner_ll_coordinates).
+    should know which convention he needs for his purposes: some grid
+    functions and properties are representation dependant (transform,
+    ll_coordinates, ...) while some are not (extent,
+    corner_ll_coordinates ...).
 
-    Properties
+    Attributes
     ----------
-    proj: pyproj.Proj instance
-    nx: number of grid points in the x direction
-    ny: number of grid points in the y direction
-    dx: x grid spacing (always positive)
-    dy: y grid spacing (positive if ll_corner, negative if ul_corner)
-    x0: reference point in X proj coordinates
-    y0: reference point in Y proj coordinates
-    order: 'ul_corner' or 'll_corner'
-    pixel_ref: 'center' or 'corner'
-    ij_coordinates: tuple of two (ny,nx) ndarrays with the i, j coordinates
-    of the grid points.
-    xy_coordinates: tuple of two (ny,nx) ndarrays with the x, y coordinates
-    of the grid points.
-    ll_coordinates: tuple of two (ny,nx) ndarrays with the lon,
-    lat coordinates of the grid points.
-    center_grid: the "pixel centered" representation of the instance
-    corner_grid: the "corner centered" representation of the instance
-    extent: [left, right, bottom, top] boundaries of the grid in the
-    grid's projection.
-    xstagg_xy_coordinates, ystagg_xy_coordinates: xy coordinates of the
-    staggered grid
-    xstagg_ll_coordinates, ystagg_ll_coordinates: ll coordinates of the
-    staggered grid
+    proj : pyproj.Proj instance
+        defining the grid's map projection
+    nx : int
+        number of grid points in the x direction
+    ny : int
+        number of grid points in the y direction
+    dx : float
+        x grid spacing (always positive)
+    dy : float
+        y grid spacing (positive if ll_corner, negative if ul_corner)
+    x0 : float
+        reference point in X proj coordinates
+    y0 : float
+        reference point in Y proj coordinates
+    order : str
+        'ul_corner' or 'll_corner' convention
+    pixel_ref : str
+        'center' or 'corner' convention
+    ij_coordinates
+    x_coord
+    y_coord
+    xy_coordinates
+    ll_coordinates
+    center_grid
+    corner_grid
+    extent
+    xstagg_xy_coordinates
+    ystagg_xy_coordinates
+    xstagg_ll_coordinates
+    ystagg_ll_coordinates
+    pixcorner_ll_coordinates
+
     """
 
     def __init__(self, proj=wgs84, nxny=None, dxdy=None, corner=None,
                  ul_corner=None, ll_corner=None, pixel_ref='center'):
-        """ Instantiate.
-
+        """
         Parameters
         ----------
-        proj: pyproj.Proj instance. Defaults to 'PlateCarree' in WGS84
-        nxny: (nx, ny) number of grid points
-        dxdy: (dx, dy) grid spacing in proj coordinates
-        corner: (x0, y0) cartesian coordinates (in proj) of the upper left
-        or lower left corner, depending on the sign of dy
-        ul_corner: (x0, y0) cartesian coordinates (in proj) of the upper left
-        corner.
-        ll_corner: (x0, y0) cartesian coordinates (in proj) of the lower left
-        corner.
-        pixel_ref: either 'center' or 'corner' (default: 'center'). Tells
-        the Grid object where the (x0, y0) is located in the grid point
+        proj : pyproj.Proj instance
+            defines the grid's map projection. Defaults to 'PlateCarree'
+            (wgs84)
+        nxny : (int, int)
+            (nx, ny) number of grid points
+        dxdy : (float, float)
+            (dx, dy) grid spacing in proj coordinates
+        corner : (float, float)
+            (x0, y0) cartesian coordinates (in proj) of the upper left
+             or lower left corner, depending on the sign of dy
+        ul_corner : (float, float)
+            (x0, y0) cartesian coordinates (in proj) of the upper left corner
+        ll_corner : (float, float)
+            (x0, y0) cartesian coordinates (in proj) of the lower left corner
+        pixel_ref : str
+            either 'center' or 'corner' (default: 'center'). Tells
+            the Grid object where the (x0, y0) is located in the grid point
 
-        Comments
-        --------
-        The ul_corner and ll_corner parameters are mutually exclusive.
-
-        If pixel_ref is set to 'corner', the ul_corner parameter specifies the
-        grid point's upper left corner coordinates. Equivalently, the ll_corner
-        parameter then specifies the grid point's lower left coordinate.
+        Notes
+        -----
+        The corner, ul_corner and ll_corner parameters are mutually exclusive:
+        set one and only one. If pixel_ref is set to 'corner', the ul_corner
+        parameter specifies the **corner grid point's** upper left corner
+        coordinates.  Equivalently, the ll_corner parameter then specifies the
+        **corner grid point's** lower left coordinate.
 
         Examples
         --------
@@ -179,7 +208,7 @@ class Grid(object):
         >>> lat
         array([[-0.5, -0.5, -0.5],
                [ 0.5,  0.5,  0.5]])
-        >>> g.corner_grid == g.center_grid
+        >>> g.corner_grid == g.center_grid  # the two reprs are equivalent
         True
         """
 
@@ -203,7 +232,7 @@ class Grid(object):
                           pixel_ref=pixel_ref)
 
         # Quick'n dirty solution for comparison operator
-        self._keys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'order', 'proj']
+        self._ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'order']
 
     def _check_input(self, **kwargs):
         """See which parameter combination we have and set everything."""
@@ -249,19 +278,14 @@ class Grid(object):
         Note: equality also means floating point equality, with all the
         problems that come with it.
 
-        (independant of the grid's cornered or centered representation.)
+        (independent of the grid's cornered or centered representation.)
         """
 
-        a = dict((k, self.corner_grid.__dict__[k]) for k in self._keys)
-        b = dict((k, other.corner_grid.__dict__[k]) for k in self._keys)
-        a['proj'] = '+'.join(sorted(a['proj'].srs.split('+')))
-        b['proj'] = '+'.join(sorted(b['proj'].srs.split('+')))
-        return a == b
-
-    def __str__(self):
-        a = OrderedDict((k, self.corner_grid.__dict__[k]) for k in self._keys)
-        a['proj'] = '+'.join(sorted(a['proj'].srs.split('+')))
-        return str(a)
+        a = dict((k, self.corner_grid.__dict__[k]) for k in self._ckeys)
+        b = dict((k, other.corner_grid.__dict__[k]) for k in self._ckeys)
+        p1 = self.corner_grid.__dict__['proj']
+        p2 = other.corner_grid.__dict__['proj']
+        return (a == b) & (proj_is_same(p1, p2))
 
     @lazy_property
     def center_grid(self):
@@ -666,6 +690,22 @@ class Grid(object):
         return np.ma.masked_invalid(out_data)
 
 
+def proj_is_same(p1, p2):
+    """Checks is two projections are equal.
+
+    See https://github.com/jswhit/pyproj/issues/15#issuecomment-208862786
+    """
+    if has_gdal:
+        # this is more robust
+        s1 = osr.SpatialReference()
+        s1.ImportFromProj4(p1.srs)
+        s2 = osr.SpatialReference()
+        s2.ImportFromProj4(p2.srs)
+        return s1.IsSame(s2)
+    else:
+        return p1.srs == p2.srs
+
+
 def transform_proj(p1, p2, x, y, nocopy=False):
     """Wrapper around the pyproj transform.
 
@@ -673,7 +713,7 @@ def transform_proj(p1, p2, x, y, nocopy=False):
     useless calculations. See https://github.com/jswhit/pyproj/issues/15
     """
 
-    if p1.srs == p2.srs:
+    if proj_is_same(p1, p2):
         if nocopy:
             return x, y
         else:

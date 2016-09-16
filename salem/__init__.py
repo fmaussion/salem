@@ -1,12 +1,9 @@
 """
-Salem
-=====
+Salem package
 
-Provides some GIS and data handling tools.
+Copyright: Fabien Maussion, 2014-2016
 
-Copyright: Fabien Maussion, 2014-2015
-
-License: GPLv3+
+License: GPLv3
 """
 from __future__ import division
 
@@ -26,6 +23,7 @@ except ImportError:  # pragma: no cover
                       'and  then install it in-place by running: '
                       'pip install -e .')
 
+
 def lazy_property(fn):
     """Decorator that makes a property lazy-evaluated."""
 
@@ -40,17 +38,18 @@ def lazy_property(fn):
 
     return _lazy_property
 
+# Default proj
 wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
 
 # Path to the cache directory
 cache_dir = path.join(path.expanduser('~'), '.salem_cache')
 if not path.exists(cache_dir):
-    makedirs(cache_dir)  # pragma: no cover
+    makedirs(cache_dir)
 
 # python version
 python_version = 'py3'
 if sys.version_info.major == 2:
-    python_version = 'py2'  # pragma: no cover
+    python_version = 'py2'
 
 # API
 from salem.gis import *
