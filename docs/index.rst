@@ -13,6 +13,7 @@ Documentation
 
     faq
     installing
+    gis
     plotting
     api
 

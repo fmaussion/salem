@@ -133,8 +133,46 @@ def _netcdf_lonlat_grid(nc):
     return gis.Grid(**args)
 
 
+def _netcdf_salem_grid(nc):
+    """Seek for salem coordinates."""
+
+    # Do we have some standard names as variable?
+    vns = nc.variables.keys()
+    x = utils.str_in_list(vns, utils.valid_names['x_dim'])
+    y = utils.str_in_list(vns, utils.valid_names['y_dim'])
+    if (x is None) or (y is None):
+        return None
+
+    # Proj
+    try:
+        srs = nc.pyproj_srs
+    except AttributeError:
+        srs = None
+    proj = gis.check_crs(srs)
+    if proj is None:
+        return None
+
+    # OK, get it
+    x = nc.variables[x][:]
+    y = nc.variables[y][:]
+    if len(x.shape) != 1:
+        raise RuntimeError('Coordinates not of correct shape')
+
+    # Make the grid
+    dx = x[1]-x[0]
+    dy = y[1]-y[0]
+    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy))
+    args['corner'] = (x[0], y[0])
+    return gis.Grid(**args)
+
+
 def netcdf_grid(nc):
     """Find out if the netcdf file contains a grid that Salem understands."""
+
+    # try if it is a salem file
+    out = _netcdf_salem_grid(nc)
+    if out is not None:
+        return out
 
     if hasattr(nc, 'MOAD_CEN_LAT') or hasattr(nc, 'PROJ_ENVI_STRING'):
         # WRF and HAR have some special attributes

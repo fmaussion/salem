@@ -631,14 +631,37 @@ class TestGrid(unittest.TestCase):
             args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
             g = Grid(**args)
             exp_i, exp_j = np.meshgrid(np.arange(3), np.arange(3))
-            r_i, r_j = g.ij_to_crs(xr.DataArray(exp_i, dims=['y', 'x']),
-                                   xr.DataArray(exp_j, dims=['y', 'x']))
+            exp_i, exp_j = (xr.DataArray(exp_i, dims=['y', 'x']),
+                            xr.DataArray(exp_j, dims=['y', 'x']))
+            r_i, r_j = g.ij_to_crs(exp_i, exp_j)
             assert_allclose(exp_i, r_i, atol=1e-03)
             assert_allclose(exp_j, r_j, atol=1e-03)
-            r_i, r_j = g.ij_to_crs(exp_i, exp_j, crs=proj)
-            assert_allclose(exp_i, r_i, atol=1e-03)
-            assert_allclose(exp_j, r_j, atol=1e-03)
+            self.assertTrue(r_i.dims == exp_i.dims)
 
+            # transform
+            r_i, r_j = g.transform(exp_i, exp_j, crs=proj)
+            assert_allclose(exp_i, r_i, atol=1e-03)
+            assert_allclose(exp_j, r_j, atol=1e-03)
+            # TODO: this doesn't work:
+            # self.assertTrue(r_i.dims == exp_i.dims)
+
+            # map
+            nx, ny = (3, 4)
+            data = np.arange(nx * ny).reshape((ny, nx))
+            data = xr.DataArray(data)
+
+            # Nearest Neighbor
+            args = dict(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(0, 0),
+                        proj=proj)
+            g = Grid(**args)
+            odata = g.map_gridded_data(data, g)
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data, odata, atol=1e-03)
+
+            # TODO: dataarrays have no accessor yet
+            ds = odata.to_dataset(name='var')
+            ds.attrs['pyproj_srs'] = odata.pyproj_srs
+            self.assertTrue(ds.salem.grid == g)
 
 
 class TestTransform(unittest.TestCase):
