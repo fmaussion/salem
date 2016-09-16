@@ -22,17 +22,12 @@ class SimpleNcDataSet():
     """Exploratory object to play around. For testing only."""
 
     def __init__(self, file):
-
         self.nc = netCDF4.Dataset(file)
-
-        # proj = pyproj.Proj(str(self.nc.proj4_str))
         proj = gis.check_crs(str(self.nc.proj4_str))
-
         x = self.nc.variables['x']
         y = self.nc.variables['y']
         dxdy = (x[1]-x[0], y[1]-y[0])
         nxny = (len(x), len(y))
-
         ll_corner = None
         ul_corner = None
         if dxdy[1] > 0:
@@ -42,11 +37,19 @@ class SimpleNcDataSet():
         self.grid = Grid(nxny=nxny, dxdy=dxdy, proj=proj,
                          ll_corner=ll_corner, ul_corner=ul_corner)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.close()
+
+    def close(self):
+        self.nc.close()
+
 
 class TestGrid(unittest.TestCase):
 
     def test_constructor(self):
-        """See if simple operations work well"""
 
         # It should work exact same for any projection
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
@@ -529,6 +532,12 @@ class TestGrid(unittest.TestCase):
         assert_allclose([np.min(lon), np.min(lat)], [exgx[0], exgy[0]],
                         rtol=0.1)
 
+    def test_simple_dataset(self):
+        # see if with is working
+        with SimpleNcDataSet(get_demo_file('dem_wgs84.nc')) as nc:
+            nc = SimpleNcDataSet(get_demo_file('dem_wgs84.nc'))
+            grid_from = nc.grid
+        self.assertTrue(gis.check_crs(grid_from))
 
     def test_map_real_data(self):
         """Ok now the serious stuff starts with some real data"""
@@ -618,8 +627,8 @@ class TestTransform(unittest.TestCase):
 
     def test_pyproj_trafo(self):
 
-        x = np.random.randn(1e6) * 60
-        y = np.random.randn(1e6) * 60
+        x = np.random.randn(int(1e6)) * 60
+        y = np.random.randn(int(1e6)) * 60
         t1 = time.time()
         for i in np.arange(3):
             xx, yy = pyproj.transform(wgs84, wgs84, x, y)
