@@ -1,30 +1,4 @@
-"""Projections and grid information handling.
-
-Salem handles three possible reference coordinate systems (crs). Any point
-on Earth can be defined by three parameters: (x, y, crs).
-Depending on the crs, x and y represent different quantities::
-
-    DATUM (lon, lat, datum): longitudes and latitudes are angular coordinates
-                             of a point on a specified ellipsoid (datum)
-
-    PROJ (x, y, projection): x (eastings) and y (northings) are cartesian
-                             coordinates of a point in a specified map
-                             projection (unit is _usually_ meter)
-
-    GRID (i, j, grid): on a structured grid, the (x, y) coordinates are
-                       distant of a constant (dx, dy) step. The (x, y)
-                       coordinates are therefore equivalent to a new
-                       reference frame (i, j) proportional to the (x, y)
-                       frame of a factor (dx, dy).
-
-The crs DATUM and PROJ are handled by the pyproj library. For simplicity, the
-concepts of DATUM and PROJ are interchangeable in pyproj: (lon, lat)
-coordinates are equivalent to cartesian (lon, lat) coordinates in the plate
-carree projection.
-
-Salem simply adds the concept of GRID to these crs, which I always miss in
-other libraries. Grids are very useful when transforming data between two
-structured datasets, or from an unstructured dataset to a structured one.
+"""Projections and grids
 
 Copyright: Fabien Maussion, 2014-2016
 
@@ -56,6 +30,13 @@ try:
     has_gdal = True
 except ImportError:
     has_gdal = False
+try:
+    import xarray as xr
+    from xarray import DataArray
+    has_xarray = True
+except ImportError:
+    has_xarray = False
+    DataArray = None
 
 
 # Locals
@@ -285,7 +266,7 @@ class Grid(object):
         b = dict((k, other.corner_grid.__dict__[k]) for k in self._ckeys)
         p1 = self.corner_grid.proj
         p2 = other.corner_grid.proj
-        return (a == b) & proj_is_same(p1, p2)
+        return (a == b) and proj_is_same(p1, p2)
 
     @lazy_property
     def center_grid(self):
@@ -575,8 +556,8 @@ class Grid(object):
             raise ValueError('crs not understood')
 
         # Then to local grid
-        x = (np.ma.asarray(x) - self.x0) / self.dx
-        y = (np.ma.asarray(y) - self.y0) / self.dy
+        x = (np.ma.array(x) - self.x0) / self.dx
+        y = (np.ma.array(y) - self.y0) / self.dy
 
         # See if we need to round
         if nearest:
@@ -597,35 +578,57 @@ class Grid(object):
 
         return x, y
 
-    def map_gridded_data(self, data, grid, interp='nearest', ks=3, out=None):
+    def map_gridded_data(self, data, grid=None, interp='nearest',
+                         ks=3, out=None):
         """Reprojects any structured data onto the local grid.
 
         The z and time dimensions of the data (if provided) are conserved, but
         the projected data will have the x, y dimensions of the local grid.
 
-        Currently, nearest neighbor and linear interpolation are available.
-        the dtype of the input data is guaranteed to be conserved, except for
-        int which will be converted to floats if linear interpolation is asked.
+        Currently, nearest neighbor, linear, and spline interpolation are
+        available. The dtype of the input data is guaranteed to be conserved,
+        except for int which will be converted to floats if non nearest
+        neighbor interpolation is asked.
 
         Parameters
         ----------
-        data: a ndarray of dimensions 2, 3, or 4, the two last ones being y, x.
-        grid: a Grid instance matching the data
-        interp: 'nearest' (default), 'linear', or 'spline'
-        ks: Degrees of the bivariate spline. Default is 3.
-        missing: integer value to attribute to invalid data (for integer data
-        only, floats invalids are forced to NaNs)
-        out: output array to fill instead of creating a new one (useful for
-        overwriting stuffs)
+        data : ndarray
+            an ndarray of dimensions 2, 3, or 4, the two last ones being y, x.
+        grid : Grid
+            a Grid instance matching the data
+        interp : str
+            'nearest' (default), 'linear', or 'spline'
+        ks : int
+            Degree of the bivariate spline. Default is 3.
+        missing : int
+            integer value to attribute to invalid data (for integer data
+            only, floats invalids are forced to NaNs)
+        out : ndarray
+            output array to fill instead of creating a new one (useful for
+            overwriting stuffs)
 
         Returns
         -------
         A projected ndarray of the data.
         """
 
+        if grid is None:
+            # try xarray
+            try:
+                grid = data.salem.grid
+            except:
+                pass
+
         # Input checks
         if not isinstance(grid, Grid):
             raise ValueError('grid should be a Grid instance')
+
+        if has_xarray:
+            try:
+                data = data.values
+                was_xarray = True
+            except AttributeError:
+                was_xarray = False
 
         in_shape = data.shape
         ndims = len(in_shape)
@@ -650,7 +653,10 @@ class Grid(object):
 
         # Prepare the output
         if out is not None:
-            out_data = np.ma.asarray(out)
+            if isinstance(out, DataArray):
+                out_data = out
+            else:
+                out_data = np.ma.asarray(out)
         else:
             out_shape = list(in_shape)
             out_shape[-2:] = [self.ny, self.nx]
@@ -705,13 +711,28 @@ class Grid(object):
             msg = 'interpolation not understood: {}'.format(interp)
             raise ValueError(msg)
 
-        return np.ma.masked_invalid(out_data)
+        out_data = np.ma.masked_invalid(out_data)
+
+        if was_xarray:
+            out_data = xr.DataArray(out_data, coords={'y': self.y_coord,
+                                                      'x': self.x_coord},
+                                    dims=['y', 'x'])
+            out_data.attrs['pyproj_srs'] = self.proj.srs
+
+        return out_data
 
 
 def proj_is_same(p1, p2):
-    """Checks is two projections are equal.
+    """Checks is two pyproj projections are equal.
 
     See https://github.com/jswhit/pyproj/issues/15#issuecomment-208862786
+
+    Parameters
+    ----------
+    p1 : pyproj.Proj
+        first projection
+    p2 : pyproj.Proj
+        second projection
     """
     if has_gdal:
         # this is more robust, but gdal is a pain
@@ -728,10 +749,26 @@ def proj_is_same(p1, p2):
 
 
 def transform_proj(p1, p2, x, y, nocopy=False):
-    """Wrapper around the pyproj transform.
+    """Wrapper around the pyproj.transform function.
+
+    Transform points between two coordinate systems defined by the Proj
+    instances p1 and p2.
 
     When two projections are equal, this function avoids quite a bunch of
     useless calculations. See https://github.com/jswhit/pyproj/issues/15
+
+    Parameters
+    ----------
+    p1 : pyproj.Proj
+        projection associated to x and y
+    p2 : pyproj.Proj
+        projection into which x, y must be transformed
+    x : ndarray
+        eastings
+    y : ndarray
+        northings
+    nocopy : bool
+        in case the two projections are equal, you can use nocopy if you wish
     """
 
     if proj_is_same(p1, p2):
@@ -748,13 +785,16 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
 
     Parameters
     ----------
-    geom: a shapely geometry
-    crs: the geometry's crs
-    to_crs: the desired crs
+    geom : shapely geometry
+        the geometry to transform
+    crs : crs
+        the geometry's crs
+    to_crs : crs
+        the crs into which the geometry must be transformed
 
     Returns
     -------
-    A projected geometry
+    A reprojected geometry
     """
 
     from_crs = check_crs(crs)
@@ -775,8 +815,12 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=True):
 
     Parameters
     ----------
-    gdf: geopandas dataframe (must have a crs attribute)
-    to_crs: the desired crs
+    gdf : geopandas.DataFrame
+        the dataframe to transform (must have a crs attribute)
+    to_crs : crs
+        the crs into which the dataframe must be transformed
+    inplace : bool
+        the original dataframe will be overwritten (default)
 
     Returns
     -------
