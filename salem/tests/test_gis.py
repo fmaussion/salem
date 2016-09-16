@@ -7,7 +7,6 @@ import time
 import pyproj
 import numpy as np
 import netCDF4
-import shapely.geometry as shpg
 from numpy.testing import assert_array_equal, assert_allclose
 
 from salem import Grid
@@ -16,6 +15,7 @@ from salem import utils
 import salem.gis as gis
 import salem.grids as grids
 from salem.utils import get_demo_file
+from salem.tests import requires_xarray, requires_shapely
 
 
 class SimpleNcDataSet():
@@ -161,9 +161,6 @@ class TestGrid(unittest.TestCase):
 
     def test_comparisons(self):
         """See if the grids can compare themselves"""
-
-        # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
         args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
         g1 = Grid(**args)
@@ -622,8 +619,46 @@ class TestGrid(unittest.TestCase):
         ref_data[np.where(odata == -999)] = -999
         assert_allclose(ref_data, odata.filled(-999))
 
+    @requires_xarray
+    def test_xarray_support(self):
+
+        # what happens if we use salem's funcs with xarray?
+        import xarray as xr
+
+        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+
+        for proj in projs:
+            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            g = Grid(**args)
+            exp_i, exp_j = np.meshgrid(np.arange(3), np.arange(3))
+            r_i, r_j = g.ij_to_crs(xr.DataArray(exp_i, dims=['y', 'x']),
+                                   xr.DataArray(exp_j, dims=['y', 'x']))
+            assert_allclose(exp_i, r_i, atol=1e-03)
+            assert_allclose(exp_j, r_j, atol=1e-03)
+            r_i, r_j = g.ij_to_crs(exp_i, exp_j, crs=proj)
+            assert_allclose(exp_i, r_i, atol=1e-03)
+            assert_allclose(exp_j, r_j, atol=1e-03)
+
+
 
 class TestTransform(unittest.TestCase):
+
+    def test_same_proj(self):
+
+        # this should work regardless of gdal or not:
+        p1 = pyproj.Proj('+proj=utm +zone=15 +datum=NAD83 '
+                         '+ellps=GRS80 +towgs84=0,0,0 +units=m +no_defs')
+        p2 = pyproj.Proj('+proj=utm +zone=15 +datum=NAD83 +units=m +no_defs '
+                         '+ellps=GRS80 +towgs84=0,0,0')
+        self.assertFalse(p1.srs == p2.srs)
+        self.assertTrue(gis.proj_is_same(p1, p2))
+
+        # this needs gdal
+        p1 = pyproj.Proj(init='epsg:26915')
+        p2 = pyproj.Proj( '+proj=utm +zone=15 +datum=NAD83 +units=m +no_defs '
+                          '+ellps=GRS80 +towgs84=0,0,0')
+        if gis.has_gdal:
+            self.assertTrue(gis.proj_is_same(p1, p2))
 
     def test_pyproj_trafo(self):
 
@@ -669,7 +704,10 @@ class TestTransform(unittest.TestCase):
 
         self.assertTrue(t1 > t2)
 
+    @requires_shapely
     def test_geometry(self):
+
+        import shapely.geometry as shpg
 
         g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
                  pixel_ref='corner')
