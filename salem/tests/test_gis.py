@@ -11,11 +11,9 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from salem import Grid
 from salem import wgs84
-from salem import utils
 import salem.gis as gis
-import salem.grids as grids
 from salem.utils import get_demo_file
-from salem.tests import requires_xarray, requires_shapely
+from salem.tests import requires_xarray, requires_shapely, requires_geopandas
 
 
 class SimpleNcDataSet():
@@ -619,6 +617,57 @@ class TestGrid(unittest.TestCase):
         ref_data[np.where(odata == -999)] = -999
         assert_allclose(ref_data, odata.filled(-999))
 
+    @requires_shapely
+    def test_roi(self):
+
+        import shapely.geometry as shpg
+
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+                 pixel_ref='corner')
+        p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
+        roi = g.region_of_interest(geometry=p)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
+        roi = g.region_of_interest(corners=([0, 0], [2, 2]), crs=wgs84)
+        np.testing.assert_array_equal([[1, 1, 1], [1, 1, 1], [1, 1, 1]], roi)
+
+        roi = g.region_of_interest(corners=([1.3, 1.3], [1.7, 1.7]), crs=wgs84)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
+        roi = g.region_of_interest()
+        np.testing.assert_array_equal([[0,0,0],[0,0,0],[0,0,0]], roi)
+
+        mask = [[0,0,0],[0,1,0],[0,0,0]]
+        roi = g.region_of_interest(roi=mask)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
+        nc = np.array(p.exterior.coords) + 0.1
+        p = shpg.Polygon(nc)
+        roi = g.region_of_interest(geometry=p, roi=roi)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
+        nc = np.array(p.exterior.coords) + 0.5
+        p = shpg.Polygon(nc)
+        roi = g.region_of_interest(geometry=p, roi=roi)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
+        nc = np.array(p.exterior.coords) + 0.5
+        p = shpg.Polygon(nc)
+        roi = g.region_of_interest(geometry=p, roi=roi)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,1]], roi)
+
+        g = Grid(nxny=(4, 2), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+                 pixel_ref='corner')
+        p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
+        roi = g.region_of_interest(geometry=p)
+        np.testing.assert_array_equal([[0,0,0,0],[0,1,0,0]], roi)
+
+        g = Grid(nxny=(2, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+                 pixel_ref='corner')
+        p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
+        roi = g.region_of_interest(geometry=p)
+        np.testing.assert_array_equal([[0,0], [0,1], [0,0], [0,0]], roi)
+
     @requires_xarray
     def test_xarray_support(self):
 
@@ -658,10 +707,7 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(odata.shape == data.shape)
             assert_allclose(data, odata, atol=1e-03)
 
-            # TODO: dataarrays have no accessor yet
-            ds = odata.to_dataset(name='var')
-            ds.attrs['pyproj_srs'] = odata.pyproj_srs
-            self.assertTrue(ds.salem.grid == g)
+            self.assertTrue(odata.salem.grid == g)
 
 
 class TestTransform(unittest.TestCase):
@@ -748,12 +794,14 @@ class TestTransform(unittest.TestCase):
         o = gis.transform_geometry(p, to_crs=g.proj)
         assert_allclose([_p.coords for _p in o], [_p.coords for _p in p])
 
-
+    @requires_geopandas
     def test_shape(self):
         """Is the transformation doing well?"""
 
-        so = utils.read_shapefile(get_demo_file('Hintereisferner.shp'))
-        sref = utils.read_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
+        from salem import read_shapefile
+
+        so = read_shapefile(get_demo_file('Hintereisferner.shp'))
+        sref = read_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
         st = gis.transform_geopandas(so, to_crs=sref.crs, inplace=False)
         self.assertFalse(st is so)
         assert_allclose(st.geometry[0].exterior.coords,
@@ -767,7 +815,7 @@ class TestTransform(unittest.TestCase):
                                    sref.geometry[0].exterior.coords)
 
         g = Grid(nxny=(1, 1), dxdy=(1, 1), ll_corner=(10., 46.), proj=wgs84)
-        so = utils.read_shapefile(get_demo_file('Hintereisferner.shp'))
+        so = read_shapefile(get_demo_file('Hintereisferner.shp'))
         st = gis.transform_geopandas(so, to_crs=g, inplace=False)
 
         ref = np.array(so.geometry[0].exterior.coords)
@@ -779,11 +827,11 @@ class TestGrids(unittest.TestCase):
 
     def test_mercatorgrid(self):
 
-        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
                                          extent=(2000000, 2000000))
         lon1, lat1 = grid.center_grid.ll_coordinates
         e1 = grid.extent
-        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
                                          extent=(2000000, 2000000),
                                          order='ul')
         lon2, lat2 = grid.center_grid.ll_coordinates
@@ -793,12 +841,12 @@ class TestGrids(unittest.TestCase):
         assert_allclose(lon1, lon2[::-1, :])
         assert_allclose(lat1, lat2[::-1, :])
 
-        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
                                          extent=(2000, 2000),
                                          nx=100)
         lon1, lat1 = grid.pixcorner_ll_coordinates
         e1 = grid.extent
-        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
                                          extent=(2000, 2000),
                                          order='ul',
                                          nx=100)
@@ -809,11 +857,11 @@ class TestGrids(unittest.TestCase):
         assert_allclose(lon1, lon2[::-1, :])
         assert_allclose(lat1, lat2[::-1, :])
 
-        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
                                          extent=(2000, 2000),
                                          nx=10)
         e1 = grid.extent
-        grid = grids.local_mercator_grid(center_ll=(11.38, 47.26),
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
                                          extent=(2000, 2000),
                                          order='ul',
                                          nx=9)

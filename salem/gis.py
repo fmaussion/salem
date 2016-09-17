@@ -268,6 +268,13 @@ class Grid(object):
         p2 = other.corner_grid.proj
         return (a == b) and proj_is_same(p1, p2)
 
+    def __str__(self):
+        """str representation of the grid (useful for caching)."""
+
+        a = OrderedDict((k, self.corner_grid.__dict__[k]) for k in self._ckeys)
+        a['proj'] = '+'.join(sorted(self.proj.srs.split('+')))
+        return str(a)
+
     @lazy_property
     def center_grid(self):
         """(Grid instance) representing the grid in center coordinates."""
@@ -623,12 +630,13 @@ class Grid(object):
         if not isinstance(grid, Grid):
             raise ValueError('grid should be a Grid instance')
 
+        was_xarray = False
         if has_xarray:
             try:
                 data = data.values
                 was_xarray = True
             except AttributeError:
-                was_xarray = False
+                pass
 
         in_shape = data.shape
         ndims = len(in_shape)
@@ -653,7 +661,7 @@ class Grid(object):
 
         # Prepare the output
         if out is not None:
-            if isinstance(out, DataArray):
+            if has_xarray and isinstance(out, DataArray):
                 out_data = out
             else:
                 out_data = np.ma.asarray(out)
@@ -720,6 +728,66 @@ class Grid(object):
             out_data.attrs['pyproj_srs'] = self.proj.srs
 
         return out_data
+
+    def region_of_interest(self, shape=None, geometry=None, grid=None,
+                           corners=None, crs=wgs84, roi=None):
+        """Computes a region of interest (ROI).
+
+        A ROI is simply a mask of the same size as the grid.
+
+        Parameters
+        ----------
+        shape : str
+            path to a shapefile
+        geometry : geometry
+            a shapely geometry (don't forget the crs keyword)
+        grid : Grid
+            a Grid object which extent will form the ROI
+        corners : tuple
+            a ((x0, y0), (x1, y1)) tuple of the corners of the square
+            to subset the dataset to  (don't forget the crs keyword)
+        crs : crs, default wgs84
+            coordinate reference system of the geometry and corners
+        roi : ndarray
+            add the new region_of_interest to a previous one (useful for
+            multiple geometries for example)
+        """
+
+        # Initial mask
+        if roi is not None:
+            mask = np.array(roi, dtype=np.int16)
+        else:
+            mask = np.zeros((self.ny, self.nx), dtype=np.int16)
+
+        # Several cases
+        if shape is not None:
+            from salem.sio import read_shapefile
+            import rasterio
+            gdf = read_shapefile(shape)
+            # corner grid is needed for rasterio
+            transform_geopandas(gdf, to_crs=self.corner_grid)
+            with rasterio.drivers():
+                mask = rasterio.features.rasterize(gdf.geometry, out=mask)
+        elif geometry is not None:
+            import rasterio
+            # corner grid is needed for rasterio
+            geom = transform_geometry(geometry, crs=crs,
+                                      to_crs=self.corner_grid)
+            with rasterio.drivers():
+                mask = rasterio.features.rasterize(np.atleast_1d(geom),
+                                                   out=mask)
+        elif grid is not None:
+            _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
+            mask = self.map_gridded_data(_tmp, grid, out=mask).filled(0)
+        elif corners is not None:
+            cgrid = self.center_grid
+            xy0, xy1 = corners
+            x0, y0 = cgrid.transform(*xy0, crs=crs, nearest=True)
+            x1, y1 = cgrid.transform(*xy1, crs=crs, nearest=True)
+            mask[np.min([y0, y1]):np.max([y0, y1]) + 1,
+            np.min([x0, x1]):np.max([x0, x1]) + 1] = 1
+
+        return mask
 
 
 def proj_is_same(p1, p2):
@@ -850,3 +918,81 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=True):
     out.crs = to_crs
 
     return out
+
+
+def mercator_grid(center_ll=None, extent=None, ny=600, nx=None, order='ll'):
+    """Local transverse mercator map centered on a specified point.
+
+    Parameters
+    ----------
+    center_ll : (float, float)
+        tuple of lon, lat coordinates where the map will be centered.
+    extent : (float, float)
+        tuple of eastings, northings giving the extent (in m) of the map
+    ny : int
+        number of y grid points wanted to cover the map (default: 600)
+    nx : int
+        number of x grid points wanted to cover the map (mutually exclusive
+        with y)
+    order : str
+        'll' (lower left) or 'ul' (upper left)
+
+    """
+
+    # Make a local proj
+    lon, lat = center_ll
+    proj_params = dict(proj='tmerc', lat_0=0., lon_0=lon,
+                       k=0.9996, x_0=0, y_0=0, datum='WGS84')
+    projloc = pyproj.Proj(proj_params)
+
+    # Define a spatial resolution
+    xx = extent[0]
+    yy = extent[1]
+    if nx is None:
+        nx = ny * xx / yy
+    else:
+        ny = nx * yy / xx
+
+    nx = np.rint(nx)
+    ny = np.rint(ny)
+
+    e, n = pyproj.transform(wgs84, projloc, lon, lat)
+
+    if order=='ul':
+        corner = (-xx / 2. + e, yy / 2. + n)
+        dxdy = (xx / nx, - yy / ny)
+    else:
+        corner = (-xx / 2. + e, -yy / 2. + n)
+        dxdy = (xx / nx, yy / ny)
+
+    return Grid(proj=projloc, corner=corner, nxny=(nx, ny), dxdy=dxdy,
+                pixel_ref='corner')
+
+
+def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12):
+    """Mercator map centered on a specified point (google API conventions).
+
+    Mostly useful for google maps.
+    """
+
+    # Number of pixels in an image with a zoom level of 0.
+    google_pix = 256
+    # The equitorial radius of the Earth assuming WGS-84 ellipsoid.
+    google_earth_radius = 6378137.0
+
+    # Make a local proj
+    lon, lat = center_ll
+    proj_params = dict(proj='merc', datum='WGS84')
+    projloc = pyproj.Proj(proj_params)
+
+    # Meter per pixel
+    mpix = (2 * np.pi * google_earth_radius) / google_pix / (2**zoom)
+    xx = nx * mpix
+    yy = ny * mpix
+
+    e, n = pyproj.transform(wgs84, projloc, lon, lat)
+    corner = (-xx / 2. + e, yy / 2. + n)
+    dxdy = (xx / nx, - yy / ny)
+
+    return Grid(proj=projloc, corner=corner, nxny=(nx, ny), dxdy=dxdy,
+                pixel_ref='corner')

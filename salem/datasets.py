@@ -1,32 +1,38 @@
 """This module provides a GeoDataset interface and a few implementations for
 e.g. netcdf, geotiff, WRF...
 
-Copyright: Fabien Maussion, 2014-2015
+This is kept for backwards compatibility reasons, but ideally everything should
+soon happen at the xarray level.
+
+Copyright: Fabien Maussion, 2014-2016
 
 License: GPLv3+
 """
+from __future__ import division
+
 # Builtins
-import warnings
 import io
 import os
+import warnings
 from datetime import datetime
 from six.moves.urllib.request import urlopen
+
 # External libs
 import pyproj
 import numpy as np
-import salem.grids
-import pandas as pd
-from matplotlib.image import imread
 import netCDF4
 
+
 try:
-    import xarray as xr
-    has_xarray = True
+    from matplotlib.image import imread
 except ImportError:
-    has_xarray = False
-    class xr(object):
-        def register_dataset_accessor(self, name):
-            pass
+    pass
+
+try:
+    import pandas as pd
+    import xarray as xr
+except ImportError:
+    pass
 try:
     import rasterio
     from rasterio import features
@@ -41,9 +47,7 @@ except ImportError:
 from salem import lazy_property
 from salem import Grid
 from salem import wgs84
-from salem import utils
-from salem import gis
-from salem import wrf
+from salem import utils, gis, wrf, sio
 
 
 def _to_scalar(x):
@@ -52,7 +56,6 @@ def _to_scalar(x):
         return x[0]
     except IndexError:
         return x
-
 
 
 class GeoDataset(object):
@@ -70,7 +73,6 @@ class GeoDataset(object):
 
     def __init__(self, grid, time=None):
         """Set-up the georeferencing, time is optional.
-
         Parameters:
         grid: a salem.Grid object which represents the underlying data
         time: if the data has a time dimension
@@ -88,7 +90,7 @@ class GeoDataset(object):
         self.roi = None
         self.set_roi()
 
-        # _time is a pd.Series because it's so nice to missuse the series.loc
+        # _time is a pd.Series because it's so nice to misuse the series.loc
         # flexibility (see set_period)
         if time is not None:
             if isinstance(time, pd.Series):
@@ -112,10 +114,8 @@ class GeoDataset(object):
 
     def set_period(self, t0=[0], t1=[-1]):
         """Set a period of interest for the dataset.
-
          This will be remembered at later calls to time() or GeoDataset's
          getvardata implementations.
-
          Parameters
          ----------
          t0: anything that represents a time. Could be a string (e.g
@@ -133,10 +133,8 @@ class GeoDataset(object):
 
     def set_subset(self, corners=None, crs=wgs84, toroi=False, margin=0):
         """Set a subset for the dataset.
-
          This will be remembered at later calls to GeoDataset's
          getvardata implementations.
-
          Parameters
          ----------
          corners: a ((x0, y0), (x1, y1)) tuple of the corners of the square
@@ -148,7 +146,6 @@ class GeoDataset(object):
          margin: when doing the subset, add a margin (can be negative!). Can
          be used alone: set_subset(margin=-5) will remove five pixels from
          each boundary of the dataset.
-
          TODO: shouldnt we make the toroi stuff easier to use?
          """
 
@@ -201,13 +198,10 @@ class GeoDataset(object):
     def set_roi(self, shape=None, geometry=None, crs=wgs84, grid=None,
                 corners=None, noerase=False):
         """Set a region of interest for the dataset.
-
         If set succesfully, a ROI is simply a mask of the same size as the
         dataset's grid, obtained with the .roi attribute.
-
         I haven't decided yet if the data should be masekd out when a ROI
         has been set.
-
         Parameters
         ----------
         shape: path to a shapefile
@@ -233,19 +227,19 @@ class GeoDataset(object):
 
         # Several cases
         if shape is not None:
-            gdf = utils.read_shapefile(shape)
+            gdf = sio.read_shapefile(shape)
             gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid)
             with rasterio.drivers():
                 mask = features.rasterize(gdf.geometry, out=mask)
-        elif geometry is not None:
+        if geometry is not None:
             geom = gis.transform_geometry(geometry, crs=crs,
                                           to_crs=ogrid.corner_grid)
             with rasterio.drivers():
                 mask = features.rasterize(np.atleast_1d(geom), out=mask)
-        elif grid is not None:
+        if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = ogrid.map_gridded_data(_tmp, grid, out=mask).filled(0)
-        elif corners is not None:
+        if corners is not None:
             cgrid = self._ogrid.center_grid
             xy0, xy1 = corners
             x0, y0 = cgrid.transform(*xy0, crs=crs, nearest=True)
@@ -386,7 +380,7 @@ class GeoNetcdf(GeoDataset):
         self._nc = netCDF4.Dataset(file)
         self.variables = self._nc.variables
         if grid is None:
-            grid = salem.grids.netcdf_grid(self._nc)
+            grid = sio.grid_from_dataset(self._nc)
         if time is None:
             time = self._netcdf_time(monthbegin=monthbegin)
         dn = self._nc.dimensions.keys()
@@ -503,7 +497,7 @@ class GoogleCenterMap(GeoDataset):
             raise NotImplementedError('scale not supported')
 
         # Google grid
-        grid = salem.grids.googlestatic_mercator_grid(center_ll=center_ll,
+        grid = gis.googlestatic_mercator_grid(center_ll=center_ll,
                                                 nx=size_x, ny=size_y,
                                                 zoom=zoom)
 
@@ -521,7 +515,7 @@ class GoogleCenterMap(GeoDataset):
     def _img(self):
         """Download the image."""
         if self.use_cache:
-            return utils.joblib_read_url(self.googleurl.generate_url())
+            return utils.joblib_read_img_url(self.googleurl.generate_url())
         else:
             fd = urlopen(self.googleurl.generate_url())
             return imread(io.BytesIO(fd.read()))
@@ -552,7 +546,7 @@ class GoogleVisibleMap(GoogleCenterMap):
         mc = (np.mean(lon), np.mean(lat))
         zoom = 20
         while zoom >= 0:
-            grid = salem.grids.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
+            grid = gis.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
                                                     ny=size_y, zoom=zoom)
             dx, dy = grid.transform(lon, lat, maskout=True)
             if np.any(dx.mask):
@@ -562,47 +556,3 @@ class GoogleVisibleMap(GoogleCenterMap):
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
                                  size_y=size_y, zoom=zoom, **kwargs)
-
-
-@xr.register_dataset_accessor('salem')
-class XarrayAccessor(GeoDataset):
-    """Proof of concept for the new xarray accessors."""
-
-    def __init__(self, xarray_obj):
-        self._obj = xarray_obj
-        self.grid = salem.grids.netcdf_grid(self._obj)
-
-        dn = self._obj.dims.keys()
-        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])
-        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])
-        GeoDataset.__init__(self, self.grid)
-
-    def subset(self, shape=None, geometry=None, crs=wgs84, grid=None,
-                corners=None, margin=0):
-        """Get a subset of the dataset.
-
-        Parameters
-        ----------
-        shape: path to a shapefile
-        geometry: a shapely geometry
-        crs: the crs of the geometry
-        grid: a Grid object
-        corners: a ((x0, y0), (x1, y1)) tuple of the corners of the square
-        to subset the dataset to. The coordinates are not expressed in
-        wgs84, set the crs keyword
-        margin: when doing the subset, add a margin (can be negative!). Can
-        be used alone: set_subset(margin=-5) will remove five pixels from
-        each boundary of the dataset.
-        """
-
-        self.set_roi(shape=shape, geometry=geometry, crs=crs, grid=grid,
-                     corners=corners)
-        self.set_subset(toroi=True, margin=margin)
-
-        out_ds = self._obj[{self.x_dim : slice(self.sub_x[0], self.sub_x[1]+1),
-                            self.y_dim : slice(self.sub_y[0], self.sub_y[1]+1)}
-                          ]
-        self.set_roi()
-        self.set_subset()
-
-        return out_ds

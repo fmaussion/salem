@@ -1,32 +1,23 @@
 """Some useful functions
 
-Copyright: Fabien Maussion, 2014-2015
+Copyright: Fabien Maussion, 2014-2016
 
 License: GPLv3+
 """
 from __future__ import division
-from six.moves.urllib.request import urlretrieve, urlopen
 
-# Builtins
-import os
 import io
+import json
+import os
 import shutil
-import pickle
+import time
 import zipfile
 
-# External libs
 import numpy as np
 from joblib import Memory
-try:
-    import geopandas as gpd
-except ImportError:
-    pass
-from matplotlib.image import imread
-
-# Locals
-from salem import cache_dir
-from salem import python_version
-from salem import transform_geopandas
+from salem import cache_dir, python_version
+from six.moves.urllib.error import HTTPError, URLError
+from six.moves.urllib.request import urlretrieve, urlopen
 
 # Joblib
 memory = Memory(cachedir=cache_dir, verbose=0)
@@ -45,7 +36,7 @@ valid_names['lon_var'] = ['lon', 'longitude', 'longitudes', 'lons', 'long']
 valid_names['lat_var'] = ['lat', 'latitude', 'latitudes', 'lats']
 valid_names['time_var'] = ['time', 'times']
 
-gh_zip = 'https://github.com/fmaussion/salem-sample-data/archive/master.zip'
+sample_data_gh_repo = 'fmaussion/salem-sample-data'
 
 
 def str_in_list(l1, l2):
@@ -66,7 +57,7 @@ def str_in_list(l1, l2):
         return None
 
 
-def empty_cache():  # pragma: no cover
+def empty_cache():
     """Empty salem's cache directory."""
 
     if os.path.exists(cache_dir):
@@ -74,8 +65,8 @@ def empty_cache():  # pragma: no cover
     os.makedirs(cache_dir)
 
 
-def cached_path(fpath):
-    """Checks if a file is cached and returns the corresponding path.
+def cached_shapefile_path(fpath):
+    """Checks if a shapefile is cached and returns the corresponding path.
 
     This function checks for the last time the file has changed,
     so it should be safe to use.
@@ -84,7 +75,7 @@ def cached_path(fpath):
     p, ext = os.path.splitext(fpath)
 
     if ext.lower() == '.p':
-        # No need to recache pickled files (this is for possible nested calls)
+        # No need to recache pickled files (this is for nested calls)
         return fpath
 
     if ext.lower() != '.shp':
@@ -107,26 +98,92 @@ def cached_path(fpath):
     return of
 
 
+def _urlretrieve(url, ofile, *args, **kwargs):
+    """Wrapper for urlretrieve which overwrites."""
+
+    try:
+        return urlretrieve(url, ofile, *args, **kwargs)
+    except:
+        if os.path.exists(ofile):
+            os.remove(ofile)
+        raise
+
+
 def _download_demo_files():
     """Checks if the demo data is already on the cache and downloads it.
 
-    Currently there's no check to see of the server file has changed: this
-    is bad. In the mean time, empty_cache() will ensure that the files are
-    up-to-date.
+    Borrowed from OGGM.
     """
 
+    master_sha_url = 'https://api.github.com/repos/%s/commits/master' % \
+                     sample_data_gh_repo
+    master_zip_url = 'https://github.com/%s/archive/master.zip' % \
+                     sample_data_gh_repo
     ofile = os.path.join(cache_dir, 'salem-sample-data.zip')
+    shafile = os.path.join(cache_dir, 'salem-sample-data-commit.txt')
     odir = os.path.join(cache_dir)
-    if not os.path.exists(ofile):  # pragma: no cover
-        urlretrieve(gh_zip, ofile)
-        with zipfile.ZipFile(ofile) as zf:
-            zf.extractall(odir)
 
+    # a file containing the online's file's hash and the time of last check
+    if os.path.exists(shafile):
+        with open(shafile, 'r') as sfile:
+            local_sha = sfile.read().strip()
+        last_mod = os.path.getmtime(shafile)
+    else:
+        # very first download
+        local_sha = '0000'
+        last_mod = 0
+
+    # test only every hour
+    if time.time() - last_mod > 3600:
+        write_sha = True
+        try:
+            # this might fail with HTTP 403 when server overload
+            resp = urlopen(master_sha_url)
+
+            # following try/finally is just for py2/3 compatibility
+            # https://mail.python.org/pipermail/python-list/2016-March/704073.html
+            try:
+                json_str = resp.read().decode('utf-8')
+            finally:
+                resp.close()
+            json_obj = json.loads(json_str)
+            master_sha = json_obj['sha']
+            # if not same, delete entire dir
+            if local_sha != master_sha:
+                empty_cache()
+        except (HTTPError, URLError):
+            master_sha = 'error'
+    else:
+        write_sha = False
+
+    # download only if necessary
+    if not os.path.exists(ofile):
+        _urlretrieve(master_zip_url, ofile)
+
+        # Trying to make the download more robust
+        try:
+            with zipfile.ZipFile(ofile) as zf:
+                zf.extractall(odir)
+        except zipfile.BadZipfile:
+            # try another time
+            if os.path.exists(ofile):
+                os.remove(ofile)
+            _urlretrieve(master_zip_url, ofile)
+            with zipfile.ZipFile(ofile) as zf:
+                zf.extractall(odir)
+
+    # sha did change, replace
+    if write_sha:
+        with open(shafile, 'w') as sfile:
+            sfile.write(master_sha)
+
+    # list of files for output
     out = dict()
-    sdir = os.path.join(cache_dir, 'salem-sample-data-master', 'salem-test')
+    sdir = os.path.join(cache_dir, 'salem-sample-data-master')
     for root, directories, filenames in os.walk(sdir):
         for filename in filenames:
             out[filename] = os.path.join(root, filename)
+
     return out
 
 
@@ -140,91 +197,10 @@ def get_demo_file(fname):
         return None
 
 
-def read_shapefile(fpath, cached=False):
-    """Reads a shapefile using geopandas.
-
-    Because reading a shapefile can take a long time, Salem provides a
-    caching utility (cached=True). This will save a pickle of the shapefile
-    in the cache directory ('.salem_cache' in the user directory).
-    """
-
-    _, ext = os.path.splitext(fpath)
-    # TODO: remove this crs stuff when geopandas is uptated (> 0.1.1)
-    # https://github.com/geopandas/geopandas/issues/199
-    if ext.lower() in ['.shp', '.p']:
-        if cached:
-            cpath = cached_path(fpath)
-            if os.path.exists(cpath):
-                with open(cpath, 'rb') as f:
-                    pick = pickle.load(f)
-                out = pick['gpd']
-                out.crs = pick['crs']
-            else:
-                out = read_shapefile(fpath, cached=False)
-                pick = dict(gpd=out, crs=out.crs)
-                with open(cpath, 'wb') as f:
-                    pickle.dump(pick, f)
-        else:
-            out = gpd.read_file(fpath)
-            out['min_x'] = [g.bounds[0] for g in out.geometry]
-            out['max_x'] = [g.bounds[2] for g in out.geometry]
-            out['min_y'] = [g.bounds[1] for g in out.geometry]
-            out['max_y'] = [g.bounds[3] for g in out.geometry]
-    else:
-        raise ValueError('File extension not recognised: {}'.format(ext))
-
-    return out
-
-
-@memory.cache(ignore=['grid'])
-def _memory_transform(shape_cpath, grid=None, grid_str=None):
-    """Quick solution using joblib in order to not transform many times the
-    same shape (usefull for Cleo).
-
-    Since grid is a complex object joblib seemed to have trouble with it,
-    so joblib is checking its cache according to grid_str while the job is
-    done with grid.
-    """
-
-    shape = read_shapefile(shape_cpath, cached=True)
-    e = grid.extent_in_crs(crs=shape.crs)
-    p = np.nonzero(~((shape['min_x'] > e[1]) |
-                     (shape['max_x'] < e[0]) |
-                     (shape['min_y'] > e[3]) |
-                     (shape['max_y'] < e[2])))
-    shape = shape.iloc[p]
-    shape = transform_geopandas(shape, to_crs=grid, inplace=True)
-    return shape, shape.crs
-
-
-def read_shapefile_to_grid(fpath, grid):
-    """Same as read_shapefile but the shapefile is directly transformed to
-    the desired grid. The whole thing is cached so that the second call will
-    will be much faster.
-
-    Parameters
-    ----------
-    fpath: path to the file
-    grid: the arrival grid
-    """
-
-    # ensure it is a cached pickle (copy code smell)
-    shape_cpath = cached_path(fpath)
-    if not os.path.exists(shape_cpath):
-        out = read_shapefile(fpath, cached=False)
-        pick = dict(gpd=out, crs=out.crs)
-        with open(shape_cpath, 'wb') as f:
-            pickle.dump(pick, f)
-
-    #TODO: remove this when new geopandas is out
-    out, crs = _memory_transform(shape_cpath, grid=grid, grid_str=str(grid))
-    out.crs = crs
-    return out
-
-
 @memory.cache
-def joblib_read_url(url):
+def joblib_read_img_url(url):
     """Prevent to re-download from GoogleStaticMap if it was done before"""
 
-    fd = urlopen(url)
+    from matplotlib.image import imread
+    fd = urlopen(url, timeout=10)
     return imread(io.BytesIO(fd.read()))

@@ -12,8 +12,6 @@ dependencies:
   - shapely
   - geopandas
   - rasterio
-  - pandas
-  - xarray
   - matplotlib
   - pip:
     - coveralls

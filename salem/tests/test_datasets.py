@@ -4,29 +4,45 @@ import unittest
 import warnings
 import os
 from datetime import datetime
-import matplotlib as mpl
-
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import URLError
-from matplotlib.image import imread
+
 
 import numpy as np
 import netCDF4
-import pandas as pd
-import xarray as xr
-import shapely.geometry as shpg
+
+try:
+    import matplotlib as mpl
+    from matplotlib.image import imread
+except ImportError:
+    pass
+
+try:
+    import pandas as pd
+    import xarray as xr
+except ImportError:
+    pass
+
+try:
+    import shapely.geometry as shpg
+except ImportError:
+    pass
+
+
 from numpy.testing import assert_array_equal, assert_allclose
-
 from salem import Grid
-from salem.utils import get_demo_file, read_shapefile_to_grid
+from salem.utils import get_demo_file
 from salem import wgs84
-
+from salem import wrf
 from salem.datasets import GeoDataset, GeoNetcdf, GeoTiff, WRF, \
     GoogleCenterMap, GoogleVisibleMap, EsriITMIX
+from salem.tests import requires_xarray, requires_rasterio, \
+    requires_pandas, requires_motionless, requires_geopandas
 
 
 class TestDataset(unittest.TestCase):
 
+    @requires_pandas
     def test_period(self):
         """See if simple operations work well"""
 
@@ -69,6 +85,7 @@ class TestDataset(unittest.TestCase):
 
         self.assertRaises(NotImplementedError, d.get_vardata)
 
+    @requires_rasterio
     def test_subset(self):
         """See if simple operations work well"""
 
@@ -126,56 +143,6 @@ class TestDataset(unittest.TestCase):
         self.assertRaises(RuntimeError, d.set_subset, corners=([5, 5],
                                                                [5, 5]))
 
-    def test_roi(self):
-
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
-                 pixel_ref='corner')
-        p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
-        d = GeoDataset(g)
-        np.testing.assert_array_equal([[0,0,0],[0,0,0],[0,0,0]], d.roi)
-        d.set_roi(geometry=p)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
-
-        d.set_roi(corners=([0, 0], [2, 2]), crs=wgs84)
-        np.testing.assert_array_equal([[1, 1, 1], [1, 1, 1], [1, 1, 1]], d.roi)
-        d.set_roi()
-
-        d.set_roi(corners=([1.3, 1.3], [1.7, 1.7]), crs=wgs84)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
-        d.set_roi()
-
-        nc = np.array(p.exterior.coords) + 0.1
-        p = shpg.Polygon(nc)
-        d.set_roi(geometry=p, noerase=True)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
-
-        nc = np.array(p.exterior.coords) + 0.5
-        p = shpg.Polygon(nc)
-        d.set_roi(geometry=p, noerase=True)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
-
-        nc = np.array(p.exterior.coords) + 0.5
-        p = shpg.Polygon(nc)
-        d.set_roi(geometry=p, noerase=True)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,1]], d.roi)
-
-        d.set_roi()
-        np.testing.assert_array_equal([[0,0,0],[0,0,0],[0,0,0]], d.roi)
-
-        g = Grid(nxny=(4, 2), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
-                 pixel_ref='corner')
-        p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
-        d = GeoDataset(g)
-        d.set_roi(geometry=p)
-        np.testing.assert_array_equal([[0,0,0,0],[0,1,0,0]], d.roi)
-
-        g = Grid(nxny=(2, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
-                 pixel_ref='corner')
-        p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
-        d = GeoDataset(g)
-        d.set_roi(geometry=p)
-        np.testing.assert_array_equal([[0,0], [0,1], [0,0], [0,0]], d.roi)
-
         shpf = get_demo_file('Hintereisferner.shp')
         reff = get_demo_file('hef_roi.tif')
         d = GeoTiff(reff)
@@ -187,11 +154,12 @@ class TestDataset(unittest.TestCase):
         g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
-        d = GeoDataset(g)
-        d.set_roi(geometry=p)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
+        roi = g.region_of_interest(geometry=p)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
 
-        d.set_subset(corners=([1.1,1.1], [1.9,1.9]))
+        d = GeoDataset(g)
+        d.set_roi(corners=([1.1,1.1], [1.9,1.9]))
+        d.set_subset(toroi=True)
         np.testing.assert_array_equal([[1]], d.roi)
         d.set_subset()
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
@@ -204,6 +172,7 @@ class TestDataset(unittest.TestCase):
 
 class TestGeotiff(unittest.TestCase):
 
+    @requires_rasterio
     def test_subset(self):
         """Open geotiff, do subsets and stuff"""
         go = get_demo_file('hef_srtm.tif')
@@ -234,6 +203,7 @@ class TestGeotiff(unittest.TestCase):
         go.set_roi()
         go.set_subset()
 
+    @requires_rasterio
     def test_itmix(self):
 
         gf = get_demo_file('02_surface_Academy_1997_UTM47.asc')
@@ -243,6 +213,7 @@ class TestGeotiff(unittest.TestCase):
 
 class TestGeoNetcdf(unittest.TestCase):
 
+    @requires_pandas
     def test_eraint(self):
 
         f = get_demo_file('era_interim_tibet.nc')
@@ -272,6 +243,7 @@ class TestGeoNetcdf(unittest.TestCase):
         assert_allclose(nc.variables['t2m'][1:3, alat, alon],
                         np.squeeze(d.get_vardata('t2m')))
 
+    @requires_xarray
     def test_as_xarray(self):
 
         f = get_demo_file('era_interim_tibet.nc')
@@ -293,6 +265,7 @@ class TestGeoNetcdf(unittest.TestCase):
         tk = d.get_vardata('TK', as_xarray=True)
         # TODO: the z dim is not ok
 
+    @requires_xarray
     def test_xarray_accessor(self):
 
         f = get_demo_file('era_interim_tibet.nc')
@@ -309,6 +282,8 @@ class TestGeoNetcdf(unittest.TestCase):
 
         np.testing.assert_almost_equal(dss.longitude, [90.0, 90.75, 91.5])
 
+    @requires_pandas
+    @requires_geopandas
     def test_wrf(self):
         """Open WRF, do subsets and stuff"""
 
@@ -389,6 +364,7 @@ class TestGeoNetcdf(unittest.TestCase):
         np.testing.assert_allclose(reflon, mylon, atol=1e-4)
         np.testing.assert_allclose(reflat, mylat, atol=1e-4)
 
+    @requires_pandas
     def test_longtime(self):
         """There was a bug with time"""
 
@@ -399,6 +375,7 @@ class TestGeoNetcdf(unittest.TestCase):
                                                         datetime(1801, 11,
                                                                  1)]))
 
+    @requires_pandas
     def test_diagnostic_vars(self):
 
         d = WRF(get_demo_file('wrf_tip_d1.nc'))
@@ -439,6 +416,7 @@ def internet_on():
 
 class TestGoogleStaticMap(unittest.TestCase):
 
+    @requires_motionless
     def test_center(self):
 
         if not internet_on():
@@ -469,6 +447,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         self.assertTrue(rmsd < 0.1)
         # assert_allclose(ref, img, atol=2e-2)
 
+    @requires_motionless
     def test_visible(self):
 
         if not internet_on():
@@ -512,5 +491,86 @@ class TestGoogleStaticMap(unittest.TestCase):
         self.assertTrue(rmsd < 5e-1)
 
 
+class TestWRF(unittest.TestCase):
 
+    @requires_xarray
+    def test_unstagger(self):
 
+        wf = get_demo_file('wrf_cropped.nc')
+        nc = netCDF4.Dataset(wf)
+
+        ref = nc['PH'][:]
+        ref = 0.5 * (ref[:, :-1, ...] + ref[:, 1:, ...])
+
+        # Own constructor
+        v = wrf.Unstaggerer(nc['PH'])
+        assert_allclose(v[:], ref)
+        assert_allclose(v[0:2, 2:12, ...],
+                        ref[0:2, 2:12, ...])
+        assert_allclose(v[:, 2:12, ...],
+                        ref[:, 2:12, ...])
+        assert_allclose(v[0:2, 2:12, 5:10, 15:17],
+                        ref[0:2, 2:12, 5:10, 15:17])
+        assert_allclose(v[1:2, 2:, 5:10, 15:17],
+                        ref[1:2, 2:, 5:10, 15:17])
+        assert_allclose(v[1:2, :-2, 5:10, 15:17],
+                        ref[1:2, :-2, 5:10, 15:17])
+        assert_allclose(v[1:2, 2:-4, 5:10, 15:17],
+                        ref[1:2, 2:-4, 5:10, 15:17])
+        assert_allclose(v[[0, 2], ...],
+                        ref[[0, 2], ...])
+        assert_allclose(v[..., [0, 2]],
+                        ref[..., [0, 2]])
+        # TODO: this is an issue
+        assert_allclose(v[0, ...], ref[0:0, ...])
+
+        # Under WRF
+        nc = WRF(wf)
+        assert_allclose(nc.get_vardata('PH'), ref)
+        nc.set_period(1, 2)
+        assert_allclose(nc.get_vardata('PH'), ref[1:3, ...])
+
+    @requires_xarray
+    def test_ncl_diagvars(self):
+
+        wf = get_demo_file('wrf_cropped.nc')
+        ncl_out = get_demo_file('wrf_cropped_ncl.nc')
+
+        w = WRF(wf)
+
+        nc = netCDF4.Dataset(ncl_out)
+        ref = nc.variables['TK'][:]
+        tot = w.get_vardata('TK')
+        assert_allclose(ref, tot, rtol=1e-6)
+
+        ref = nc.variables['SLP'][:]
+        tot = w.get_vardata('SLP')
+        assert_allclose(ref, tot, rtol=1e-6)
+
+    @requires_pandas
+    def test_staggeredcoords(self):
+
+        wf = get_demo_file('wrf_cropped.nc')
+        nc = GeoNetcdf(wf)
+        lon, lat = nc.grid.xstagg_ll_coordinates
+        assert_allclose(np.squeeze(nc.variables['XLONG_U'][0, ...]), lon,
+                        atol=1e-4)
+        assert_allclose(np.squeeze(nc.variables['XLAT_U'][0, ...]), lat,
+                        atol=1e-4)
+        lon, lat = nc.grid.ystagg_ll_coordinates
+        assert_allclose(np.squeeze(nc.variables['XLONG_V'][0, ...]), lon,
+                        atol=1e-4)
+        assert_allclose(np.squeeze(nc.variables['XLAT_V'][0, ...]), lat,
+                        atol=1e-4)
+
+    @requires_pandas
+    def test_har(self):
+
+        # HAR
+        hf = get_demo_file('har_d30km_y_2d_t2_2000.nc')
+        d = GeoNetcdf(hf)
+        reflon = np.squeeze(d.get_vardata('lon'))
+        reflat = np.squeeze(d.get_vardata('lat'))
+        mylon, mylat = d.grid.ll_coordinates
+        np.testing.assert_allclose(reflon, mylon, atol=1e-5)
+        np.testing.assert_allclose(reflat, mylat, atol=1e-5)
