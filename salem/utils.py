@@ -198,6 +198,23 @@ def get_demo_file(fname):
 
 
 @memory.cache
+def read_colormap(name):
+    """Reads a colormap from the custom files in Salem."""
+
+    path = get_demo_file(name + '.c3g')
+
+    out = []
+    with open(path, 'r') as file:
+        for line in file:
+            if 'rgb(' not in line:
+                continue
+            line = line.split('(')[-1].split(')')[0]
+            out.append([float(n) for n in line.split(',')])
+
+    return np.asarray(out).astype(np.float) / 256.
+
+
+@memory.cache
 def joblib_read_img_url(url):
     """Prevent to re-download from GoogleStaticMap if it was done before"""
 

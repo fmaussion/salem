@@ -12,8 +12,13 @@ dependencies:
   - shapely
   - geopandas
   - rasterio
+  - pandas
+  - xarray
   - matplotlib
+  - Pillow
+  - descartes
   - pip:
     - coveralls
     - pytest-cov
+    - pytest-mpl
     - git+https://github.com/fmaussion/motionless.git
