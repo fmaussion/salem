@@ -25,25 +25,34 @@ matrix:
     env: CONDA_ENV=py35-xr
 
 before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda-3.16.0-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
     else
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.16.0-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
-  - conda config --set always_yes yes --set changeps1 no --set show_channel_urls true
+  - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda info -a
 
 install:
-  - conda env create --file ci/requirements-$CONDA_ENV.yml
+  - conda env create --file ci/requirements-$CONDA_ENV.yml --quiet
   - source activate test_env
   - pip install -e .
 
-script: 
-  - py.test salem --cov=salem --cov-report term-missing
+script:
+  - if [[ "$CONDA_ENV" == "py35-all" ]]; then
+      py.test salem --mpl --cov=salem --cov-report term-missing;
+    else
+      if [[ "$CONDA_ENV" == "py27-all" ]]; then
+        py.test salem --mpl --cov=salem --cov-report term-missing;
+      else
+        py.test salem --cov=salem --cov-report term-missing;
+      fi
+    fi
 
 after_success:
   - coveralls

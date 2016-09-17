@@ -1,6 +1,7 @@
 from __future__ import division
 import unittest
 import os
+from salem import python_version
 
 on_travis = False
 if os.environ.get('TRAVIS') is not None:
@@ -37,10 +38,29 @@ except ImportError:
     has_motionless = False
 
 try:
+    import matplotlib
+    has_matplotlib = True
+except ImportError:
+    has_matplotlib = False
+
+try:
     import rasterio
     has_rasterio = True
 except ImportError:
     has_rasterio = False
+
+
+def requires_matplotlib_and_py3(test):
+    # Test decorator
+    msg = "requires matplotlib and py3"
+    return test if has_matplotlib and (python_version == 'py3') \
+        else unittest.skip(msg)(test)
+
+
+def requires_matplotlib(test):
+    # Test decorator
+    msg = "requires matplotlib"
+    return test if has_matplotlib else unittest.skip(msg)(test)
 
 
 def requires_motionless(test):

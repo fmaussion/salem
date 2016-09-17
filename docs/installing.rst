@@ -36,7 +36,8 @@ For plotting
 ~~~~~~~~~~~~
 
 - `matplotlib <http://matplotlib.org/>`__: required for :ref:`plotting`
-- `seaborn <https://stanford.edu/~mwaskom/software/seaborn/>`__: for nicer plots
+- `pillow <http://pillow.readthedocs.io/en/latest/installation.html>`__: required for maps
+- `descartes <https://pypi.python.org/pypi/descartes/>`__: for paths and patches
 - `motionless <https://github.com/ryancox/motionless/>`__: for google static maps
 
 
