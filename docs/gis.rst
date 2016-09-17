@@ -10,7 +10,7 @@ DATUM (lon, lat, datum)
     ellipsoid (datum)
 PROJ (x, y, projection)
     x (eastings) and y (northings) are cartesian coordinates of a point in a
-    map projection (the unit of x, y is _usually_ meter)
+    map projection (the unit of x, y is usually meter)
 
 Transformations between datums and projections is handled by several tools
 in the python ecosystem, for example `GDAL`_ or the more lightweight
@@ -23,18 +23,19 @@ GRID (i, j, Grid)
     frame.
 
 Transformations between datum and projections are handled by the pyproj
-library. For simplicity, the two concepts are interchangeable
-in pyproj: for example, (lon, lat) coordinates are equivalent to cartesian
-(lon, lat) coordinates in the plate carree projection. Since most datasets
-nowadays are defined in the WGS 84 datum, we will only be concerned about
-projections form now on.
+library. Since most datasets nowadays are defined in the WGS 84 datum,
+we will only be concerned about projections form now on[#]_.
 
-The concept of Grid added by Salem is a concept I miss in other libraries.
-Grids are very useful when transforming data between two structured datasets,
-or from an unstructured dataset to a structured one.
+.. [#] For simplicity, the two concepts are interchangeable
+in pyproj: (lon, lat) coordinates are equivalent to cartesian
+(lon, lat) coordinates in the plate carree projection.
+
+The concept of Grid added by Salem is useful when transforming data between
+two structured datasets, or from an unstructured dataset to a structured one.
 
 .. _GDAL: https://pypi.python.org/pypi/GDAL/
 .. _pyproj: https://jswhit.github.io/pyproj/
+
 
 Grids
 -----
@@ -48,13 +49,13 @@ this projection, a grid spacing and a number of grid points:
     import salem
     from salem import wgs84
 
-    grid = salem.Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+    grid = salem.Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(6, 49), proj=wgs84)
     x, y = grid.xy_coordinates
     x
     y
 
-Here, the grid is defined on the plate caree projection, so that the associated
-longitudes and latitudes are the same:
+Here, the grid is defined on the plate caree projection, so that the longitudes
+and latitudes are the same as the eastings and northings:
 
 .. ipython:: python
 
@@ -69,7 +70,8 @@ But it won't be the case for other projections, for example:
     from pyproj import Proj
     utm = Proj("+proj=utm +zone=35 +datum=WGS84 +units=m")
     utmgrid = salem.Grid(nxny=(3, 2), dxdy=(50000, 50000), ll_corner=(0, 60000), proj=utm)
+    x, y = utmgrid.xy_coordinates
     lon, lat = utmgrid.ll_coordinates
-    lon
+    y
     lat
 

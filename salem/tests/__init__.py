@@ -1,5 +1,10 @@
 from __future__ import division
 import unittest
+import os
+
+on_travis = False
+if os.environ.get('TRAVIS') is not None:
+    on_travis = True
 
 try:
     import xarray
@@ -13,6 +18,48 @@ try:
 except ImportError:
     has_shapely = False
 
+try:
+    import geopandas
+    has_geopandas = True
+except ImportError:
+    has_geopandas = False
+
+try:
+    import pandas
+    has_pandas = True
+except ImportError:
+    has_pandas = False
+
+try:
+    import motionless
+    has_motionless = True
+except ImportError:
+    has_motionless = False
+
+try:
+    import rasterio
+    has_rasterio = True
+except ImportError:
+    has_rasterio = False
+
+
+def requires_motionless(test):
+    # Test decorator
+    msg = "requires motionless"
+    return test if has_motionless else unittest.skip(msg)(test)
+
+
+def requires_pandas(test):
+    # Test decorator
+    msg = "requires pandas"
+    return test if has_pandas else unittest.skip(msg)(test)
+
+
+def requires_rasterio(test):
+    # Test decorator
+    msg = "requires rasterio"
+    return test if has_rasterio else unittest.skip(msg)(test)
+
 
 def requires_xarray(test):
     # Test decorator
@@ -24,3 +71,15 @@ def requires_shapely(test):
     # Test decorator
     msg = "requires shapely"
     return test if has_shapely else unittest.skip(msg)(test)
+
+
+def requires_geopandas(test):
+    # Test decorator
+    msg = "requires geopandas"
+    return test if has_geopandas else unittest.skip(msg)(test)
+
+
+def requires_travis(test):
+    # Test decorator
+    msg = "requires travis"
+    return test if on_travis else unittest.skip(msg)(test)

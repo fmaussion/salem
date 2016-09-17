@@ -9,6 +9,7 @@ dependencies:
   - pyproj
   - joblib
   - netCDF4
+  - pandas
   - pip:
     - coveralls
     - pytest-cov
