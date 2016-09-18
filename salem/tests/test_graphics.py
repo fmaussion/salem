@@ -48,7 +48,8 @@ def _create_dummy_shp(fname):
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
+                               tolerance=5)
 def test_extendednorm():
 
     a = np.zeros((4, 5))
@@ -467,7 +468,8 @@ def test_hef_from_array():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
+                               tolerance=5)
 def test_hef_topo_withnan():
 
     grid = mercator_grid(center_ll=(10.76, 46.798444),
@@ -576,5 +578,3 @@ def test_gmap_llconts():
 #         cb.set_label(cm);
 #
 #     plt.show()
-
-pytest.main()
