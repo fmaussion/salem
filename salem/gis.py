@@ -761,14 +761,16 @@ class Grid(object):
 
         # Several cases
         if shape is not None:
-            from salem.sio import read_shapefile
-            import rasterio
-            gdf = read_shapefile(shape)
+            import pandas as pd
+            if not isinstance(shape, pd.DataFrame):
+                from salem.sio import read_shapefile
+                shape = read_shapefile(shape)
             # corner grid is needed for rasterio
-            transform_geopandas(gdf, to_crs=self.corner_grid)
+            transform_geopandas(shape, to_crs=self.corner_grid)
+            import rasterio
             with rasterio.drivers():
-                mask = rasterio.features.rasterize(gdf.geometry, out=mask)
-        elif geometry is not None:
+                mask = rasterio.features.rasterize(shape.geometry, out=mask)
+        if geometry is not None:
             import rasterio
             # corner grid is needed for rasterio
             geom = transform_geometry(geometry, crs=crs,
@@ -776,10 +778,10 @@ class Grid(object):
             with rasterio.drivers():
                 mask = rasterio.features.rasterize(np.atleast_1d(geom),
                                                    out=mask)
-        elif grid is not None:
+        if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = self.map_gridded_data(_tmp, grid, out=mask).filled(0)
-        elif corners is not None:
+        if corners is not None:
             cgrid = self.center_grid
             xy0, xy1 = corners
             x0, y0 = cgrid.transform(*xy0, crs=crs, nearest=True)

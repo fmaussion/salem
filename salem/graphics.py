@@ -545,6 +545,7 @@ class Map(DataLevels):
 
     def set_points(self, x, y, **kwargs):
         """Shortcut for set_geometry() accepting coordinates as input."""
+        x, y = np.atleast_1d(x), np.atleast_1d(y)
         self.set_geometry(MultiPoint(np.array([x, y]).T), **kwargs)
 
     def set_text(self, x=None, y=None, text='', crs=wgs84, **kwargs):

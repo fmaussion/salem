@@ -16,10 +16,10 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 .. warning::
 
     Salem is at a very early development stage and is more a proof of
-    feasibility than a library for "everything you'll need to do with
+    feasibility than a library for "everything you'll ever have to do with
     geoscientific data". There are plenty of other tools out there (see
-    :ref:`faqtools`). Salem basically reinvents the wheel, but it might be
-    useful to you: if you use the `WRF model`_ for example, or if you like to
+    :ref:`faqtools`). Salem basically reinvents the wheel, but it might still
+    be useful to you: if you use the `WRF model`_ for example, or if you like to
     have `axis labels on lambert conformal maps`_.
 
 .. _WRF Model: http://www2.mmm.ucar.edu/wrf/users/
