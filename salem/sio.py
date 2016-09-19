@@ -382,6 +382,48 @@ class XarrayAccessor(object):
                           ]
         return out_ds
 
+    def roi(self, **kwargs):
+        """Make a region of interest (ROI) for the dataset.
+
+        All grid points outside the ROI will be masked out.
+
+        Parameters
+        ----------
+        shape : str
+            path to a shapefile
+        geometry : geometry
+            a shapely geometry (don't forget the crs keyword)
+        grid : Grid
+            a Grid object which extent will form the ROI
+        corners : tuple
+            a ((x0, y0), (x1, y1)) tuple of the corners of the square
+            to subset the dataset to  (don't forget the crs keyword)
+        crs : crs, default wgs84
+            coordinate reference system of the geometry and corners
+        roi : ndarray
+            if you have a mask ready, you can give it here
+        """
+
+        mask = self.grid.region_of_interest(**kwargs)
+        coords = {self.y_dim: self._obj[self.y_dim].values,
+                  self.x_dim: self._obj[self.x_dim].values}
+        mask = xr.DataArray(mask, coords=coords,
+                            dims=(self.y_dim, self.x_dim))
+        out = self._obj.where(mask)
+
+        # keep attrs
+        out.attrs = self._obj.attrs
+        if isinstance(out, xr.DataArray):
+            out.name = self._obj.name
+
+        # add pyproj string everywhere
+        out.attrs['pyproj_srs'] = self.grid.proj.srs
+        if isinstance(out, xr.Dataset):
+            for v in out.variables:
+                out[v].attrs = self._obj[v].attrs
+                out[v].attrs['pyproj_srs'] = self.grid.proj.srs
+        return out
+
     def get_map(self, **kwargs):
         """Make a salem.Map out of the dataset"""
 
@@ -398,7 +440,7 @@ class XarrayAccessor(object):
         else:
             obj = self._obj[name]
 
-        title = obj.name
+        title = obj.name or ''
         if obj._title_for_slice():
             title += ' (' + obj._title_for_slice() + ')'
 

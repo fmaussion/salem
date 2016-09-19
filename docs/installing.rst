@@ -63,9 +63,9 @@ For the moment, Salem can only be installed with pip::
 
 .. warning::
 
-    At the first import, Salem will create a hidden directory called ``.salem_cache``
-    in your home folder. It will be used to download Salem's
+    At the first import, Salem will create a hidden directory called
+    ``.salem_cache`` in your home folder. It will be used to download Salem's
     demo files and standard shapefiles. This directory is also used by
-    joblib to store the result of some slow operations such as reading and
+    joblib to store the result of slow operations such as reading and
     transforming shapefiles, or downloading google maps from the internet. The
     cache should not become too large, but if it does: simply delete it.
