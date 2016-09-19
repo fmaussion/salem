@@ -395,7 +395,7 @@ class Grid(object):
         """Tuple of longitudes, latitudes (dims: ny+1, nx+1) at the corners of
         the grid.
 
-        Useful for cleo.Map essentially
+        Useful for graphics.Map essentially
 
         (independant of the grid's cornered or centered representation.)
         """

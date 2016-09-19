@@ -104,19 +104,24 @@ class ExtendedNorm(mpl.colors.BoundaryNorm):
         return ret
 
 
-def get_cm(name='none'):
-    """Get a colormap defined by Cleo (more to come!)"""
+def get_cmap(name='none'):
+    """Get a colormap defined by Salem.
+
+    Currently we have: topo, dem, nrwc
+
+    see https://github.com/fmaussion/salem-sample-data/tree/master/colormaps
+    """
 
     cl = utils.read_colormap(name)
     return LinearSegmentedColormap.from_list(name, cl, N=256)
 
 
 class DataLevels(object):
-    """Object to assist you in associating the right color to your data.
+    """Assigns the right color to your data.
 
-    It is a simple object that ensures the full compatibility of the plot
+    Simple tool that ensures the full compatibility of the plot
     colors and the colorbar. It's working principle is best understood
-    with a few examples, available as a notebook in the examples directory.
+    with a few examples, available in the docs.
     """
 
     def __init__(self, data=None, levels=None, nlevels=None, vmin=None,
@@ -174,7 +179,7 @@ class DataLevels(object):
         if cm is not None:
             self.cmap = cm
         else:
-            self.cmap = mpl.colors.ListedColormap(['white'])
+            self.cmap = plt.get_cmap('viridis')
 
     def set_extend(self, extend=None):
         """Colorbar extensions: 'neither' | 'both' | 'min' | 'max'"""
@@ -204,7 +209,7 @@ class DataLevels(object):
             return levels
         else:
             if nlevels is None:
-                nlevels = 8
+                nlevels = 256
             if self.vmax == self.vmin:
                 return np.linspace(self.vmin, self.vmax+1, nlevels)
             return np.linspace(self.vmin, self.vmax, nlevels)
@@ -262,6 +267,11 @@ class DataLevels(object):
 
     def to_rgb(self):
         """Transform the data to RGB triples."""
+
+        if np.all(self.data.mask):
+            # unfortunately the functions  below can't handle this one
+            return np.zeros(self.data.shape + (4, ))
+
         return self.cmap(self.norm(self.data))
 
     def colorbarbase(self, cax, **kwargs):
@@ -278,7 +288,8 @@ class DataLevels(object):
         return mpl.colorbar.ColorbarBase(cax, extend=self.extend,
                                          cmap=self.cmap, norm=norm, **kwargs)
 
-    def append_colorbar(self, ax, position='right', size='5%', pad=0.5):
+    def append_colorbar(self, ax, position='right', size='5%', pad=0.5,
+                        **kwargs):
         """Shortcut to append a colorbar to existing axes using matplotlib's
         make_axes_locatable toolkit.
 
@@ -295,7 +306,7 @@ class DataLevels(object):
         if position in ['left', 'right']:
             orientation = 'vertical'
         cax = make_axes_locatable(ax).append_axes(position, size=size, pad=pad)
-        return self.colorbarbase(cax, orientation=orientation)
+        return self.colorbarbase(cax, orientation=orientation, **kwargs)
 
     def plot(self, ax):
         """Add a kind of plot of the data to an axis.
@@ -307,7 +318,7 @@ class DataLevels(object):
         ax.imshow(toplot, interpolation='none', origin='lower')
 
     def visualize(self, ax=None, title=None, orientation='vertical',
-                  add_values=False, addcbar=True):
+                  add_values=False, addcbar=True, cbar_title=''):
         """Quick'n dirty plot of the datalevels. Useful for debugging.
 
         Parameters
@@ -328,12 +339,14 @@ class DataLevels(object):
         self.plot(ax)
 
         # Colorbar
-        addcbar = self.vmin != self.vmax
+        addcbar = (self.vmin != self.vmax) and addcbar
         if addcbar:
             if orientation == 'horizontal':
-                self.append_colorbar(ax, "top", size=0.2, pad=0.5)
+                self.append_colorbar(ax, "top", size=0.2, pad=0.5,
+                                     label=cbar_title)
             else:
-                self.append_colorbar(ax, "right", size="5%", pad=0.2)
+                self.append_colorbar(ax, "right", size="5%", pad=0.2,
+                                     label=cbar_title)
 
         # Mini add-on
         if add_values:
@@ -360,12 +373,13 @@ class Map(DataLevels):
     to be able to plot all kind of georeferenced data on an existing map
     while being sure that the plot is accurate.
 
-    In short: cleo.Map is a higher-level, less wordy and less flexible
+    In short: the Map is a higher-level, less wordy and less flexible
     version of cartopy or basemap. It's usefulness is best shown by the
-    notebooks in the `examples` directory.
+    examples in the doc.
 
-    For worldwide maps you'd better use the two libs above, because a cleo.Map
-    is sensibly constrained by it's "squareness".
+    For worldwide maps or very flexible plots you'd better use cartopy,
+    because Salem's Map is constrained by it's objective: making
+    regional maps.
     """
 
     def __init__(self, grid, nx=500, ny=None, countries=True, **kwargs):
@@ -450,6 +464,7 @@ class Map(DataLevels):
         # Check input
         if data is None:
             self.data = np.ma.zeros((self.grid.ny, self.grid.nx))
+            self.data.mask = self.data + 1
             return
         data = self._check_data(data=data, crs=crs, interp=interp,
                                 overplot=overplot)
@@ -551,7 +566,7 @@ class Map(DataLevels):
                       rivers=False, **kwargs):
         """Add a shapefile to the plot.
 
-        Cleo is shipped with a few default settings for country borders,
+        Salem is shipped with a few default settings for country borders,
         oceans and rivers (set one at the time!)
 
         set_shapefile() without argument will reset the map to zero shapefiles.

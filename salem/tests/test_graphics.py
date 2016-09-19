@@ -16,7 +16,7 @@ try:
 except ImportError:
     pass
 
-from salem.graphics import ExtendedNorm, DataLevels, Map, get_cm, shapefiles
+from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
 from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
     read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap
 from salem.utils import get_demo_file
@@ -28,7 +28,6 @@ testdir = os.path.join(current_dir, 'tmp')
 
 
 def _create_dummy_shp(fname):
-
     if not os.path.exists(testdir):
         os.makedirs(testdir)
 
@@ -51,24 +50,23 @@ def _create_dummy_shp(fname):
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
                                tolerance=5)
 def test_extendednorm():
-
     a = np.zeros((4, 5))
-    a[0,0] = -9999
-    a[1,1] = 1.1
-    a[2,2] = 2.2
-    a[2,4] = 1.9
-    a[3,3] = 9999999
+    a[0, 0] = -9999
+    a[1, 1] = 1.1
+    a[2, 2] = 2.2
+    a[2, 4] = 1.9
+    a[3, 3] = 9999999
 
     cm = mpl.cm.get_cmap('jet')
-    bounds = [0,1,2,3]
+    bounds = [0, 1, 2, 3]
     norm = ExtendedNorm(bounds, cm.N, extend='both')
 
-    #fig, (ax1, ax2) = plt.subplots(1, 2)
+    # fig, (ax1, ax2) = plt.subplots(1, 2)
     fig = plt.figure()
     ax1 = fig.add_subplot(1, 2, 1)
     ax2 = fig.add_subplot(1, 2, 2)
     imax = ax1.imshow(a, interpolation='None', norm=norm, cmap=cm,
-                     origin='lower');
+                      origin='lower');
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes("right", size="5%", pad=0.2)
     plt.colorbar(imax, cax=cax, extend='both')
@@ -86,7 +84,6 @@ def test_extendednorm():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_datalevels():
-
     plt.close()
 
     a = np.zeros((4, 5))
@@ -101,24 +98,24 @@ def test_datalevels():
 
     # fig, axes = plt.subplots(nrows=3, ncols=2)
     fig = plt.figure()
-    ax = iter([fig.add_subplot(3, 2, i) for i in [1,2,3,4,5,6]])
+    ax = iter([fig.add_subplot(3, 2, i) for i in [1, 2, 3, 4, 5, 6]])
 
     # The extended version should be automated
-    c = DataLevels(levels=[0,1,2,3], data=a, cmap=cm)
+    c = DataLevels(levels=[0, 1, 2, 3], data=a, cmap=cm)
     c.visualize(next(ax), title='levels=[0,1,2,3]')
 
     # Without min
     a[0, 0] = 0
-    c = DataLevels(levels=[0,1,2,3], data=a, cmap=cm)
+    c = DataLevels(levels=[0, 1, 2, 3], data=a, cmap=cm)
     c.visualize(next(ax), title='modified a for no min oob')
 
     # Without max
     a[3, 3] = 0
-    c = DataLevels(levels=[0,1,2,3], data=a, cmap=cm)
+    c = DataLevels(levels=[0, 1, 2, 3], data=a, cmap=cm)
     c.visualize(next(ax), title='modified a for no max oob')
 
     # Forced bounds
-    c = DataLevels(levels=[0,1,2,3], data=a, cmap=cm, extend='both')
+    c = DataLevels(levels=[0, 1, 2, 3], data=a, cmap=cm, extend='both')
     c.visualize(next(ax), title="extend='both'")
 
     # Autom nlevels
@@ -140,7 +137,6 @@ def test_datalevels():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_datalevels_visu_h():
-
     a = np.array([-1., 0., 1.1, 1.9, 9.])
     cm = mpl.cm.get_cmap('RdYlBu_r')
 
@@ -155,11 +151,10 @@ def test_datalevels_visu_h():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_datalevels_visu_v():
-
     a = np.array([-1., 0., 1.1, 1.9, 9.])
     cm = mpl.cm.get_cmap('RdYlBu_r')
 
-    dl = DataLevels(a.reshape((5,1)), cmap=cm, levels=[0, 1, 2, 3])
+    dl = DataLevels(a.reshape((5, 1)), cmap=cm, levels=[0, 1, 2, 3])
 
     fig, ax = plt.subplots(1)
     dl.visualize(ax=ax, orientation='vertical', add_values=True)
@@ -170,7 +165,6 @@ def test_datalevels_visu_v():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_simple_map():
-
     a = np.zeros((4, 5))
     a[0, 0] = -1
     a[1, 1] = 1.1
@@ -238,7 +232,6 @@ def test_simple_map():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_contourf():
-
     a = np.zeros((4, 5))
     a[0, 0] = -1
     a[1, 1] = 1.1
@@ -274,15 +267,14 @@ def test_contourf():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_merca_map():
-
     grid = mercator_grid(center_ll=(11.38, 47.26),
                          extent=(2000000, 2000000))
 
     m1 = Map(grid)
 
     grid = mercator_grid(center_ll=(11.38, 47.26),
-                                               extent=(2000000, 2000000),
-                                               order='ul')
+                         extent=(2000000, 2000000),
+                         order='ul')
     m2 = Map(grid)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -296,7 +288,6 @@ def test_merca_map():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_merca_nolabels():
-
     grid = mercator_grid(center_ll=(11.38, 47.26),
                          extent=(2000000, 2000000))
 
@@ -313,7 +304,6 @@ def test_merca_nolabels():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_oceans():
-
     f = os.path.join(get_demo_file('wrf_tip_d1.nc'))
     grid = GeoNetcdf(f).grid
     m = Map(grid, countries=False)
@@ -330,7 +320,6 @@ def test_oceans():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_geometries():
-
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(10, 10), ll_corner=(-20, -15), proj=wgs84,
              pixel_ref='corner')
@@ -343,12 +332,12 @@ def test_geometries():
 
     s = np.array([(-5, -10), (0., -5), (-5, 0.), (-10, -5)])
     l1 = shpg.LineString(s)
-    l2 = shpg.LinearRing(s+3)
+    l2 = shpg.LinearRing(s + 3)
     c.set_geometry(l1)
     c.set_geometry(l2, color='pink', linewidth=3)
 
     s += 20
-    p = shpg.Polygon(shpg.LineString(s), [shpg.LineString(s/4 + 10)])
+    p = shpg.Polygon(shpg.LineString(s), [shpg.LineString(s / 4 + 10)])
     c.set_geometry(p, facecolor='red', edgecolor='k', linewidth=3, alpha=0.5)
 
     p1 = shpg.Point(20, 10)
@@ -371,7 +360,6 @@ def test_geometries():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_text():
-
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(10, 10), ll_corner=(-20, -15), proj=wgs84,
              pixel_ref='corner')
@@ -390,14 +378,15 @@ def test_text():
         else:
             c.set_geometry(row.geometry, text=row.CNTRY_NAME, crs=c.grid,
                            text_kwargs=dict(horizontalalignment='center',
-                           verticalalignment='center', clip_on=True,
+                                            verticalalignment='center',
+                                            clip_on=True,
                                             color='gray'), text_delta=[0, 0])
         had_c.add(row.CNTRY_NAME)
 
     c.set_points([20, 20, 10], [10, 20, 20], s=250, marker='s',
-                   c='purple', hatch='||||', text='baaaaad', text_delta=[0, 0],
-                   text_kwargs=dict(horizontalalignment='center',
-                                    verticalalignment='center', color='red'))
+                 c='purple', hatch='||||', text='baaaaad', text_delta=[0, 0],
+                 text_kwargs=dict(horizontalalignment='center',
+                                  verticalalignment='center', color='red'))
 
     fig, ax = plt.subplots(1, 1)
     c.visualize(ax=ax, addcbar=False)
@@ -415,9 +404,8 @@ def test_text():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_hef_linear():
-
     grid = mercator_grid(center_ll=(10.76, 46.798444),
-                                               extent=(10000, 7000))
+                         extent=(10000, 7000))
     c = Map(grid, countries=False)
     c.set_lonlat_contours(interval=10)
     c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
@@ -433,9 +421,8 @@ def test_hef_linear():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_hef_default_spline():
-
     grid = mercator_grid(center_ll=(10.76, 46.798444),
-                                               extent=(10000, 7000))
+                         extent=(10000, 7000))
     c = Map(grid, countries=False)
     c.set_lonlat_contours(interval=10)
     c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
@@ -450,9 +437,8 @@ def test_hef_default_spline():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_hef_from_array():
-
     grid = mercator_grid(center_ll=(10.76, 46.798444),
-                                               extent=(10000, 7000))
+                         extent=(10000, 7000))
     c = Map(grid, countries=False)
     c.set_lonlat_contours(interval=10)
     c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
@@ -471,9 +457,8 @@ def test_hef_from_array():
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
                                tolerance=5)
 def test_hef_topo_withnan():
-
     grid = mercator_grid(center_ll=(10.76, 46.798444),
-                                               extent=(10000, 7000))
+                         extent=(10000, 7000))
     c = Map(grid, countries=False)
     c.set_lonlat_contours(interval=10)
     c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
@@ -481,16 +466,13 @@ def test_hef_topo_withnan():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     mytopo = dem.get_vardata()
     h = c.set_topography(mytopo, crs=dem.grid, interp='spline')
-    c.visualize(addcbar=False, title='From array')
 
     c.set_lonlat_contours()
-    c.set_cmap(get_cm('topo'))
+    c.set_cmap(get_cmap('topo'))
     c.set_plot_params(nlevels=256)
     # Try with nan data
     h[-100:, -100:] = np.NaN
     c.set_data(h)
-    c.visualize(title='NaN')
-
     fig, ax = plt.subplots(1, 1)
     c.visualize(ax=ax, title='color with NaN')
     plt.tight_layout()
@@ -498,10 +480,8 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
-                               tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_gmap():
-
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
 
@@ -518,15 +498,13 @@ def test_gmap():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
-                               tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_gmap_transformed():
-
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     dem.set_subset(margin=-100)
 
     dem = mercator_grid(center_ll=(10.76, 46.798444),
-                                               extent=(10000, 7000))
+                        extent=(10000, 7000))
 
     i, j = dem.ij_coordinates
     g = GoogleVisibleMap(x=i, y=j, src=dem, size_x=500, size_y=400)
@@ -549,10 +527,8 @@ def test_gmap_transformed():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
-                               tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_gmap_llconts():
-
     # This was because some problems were left unnoticed by other tests
     g = GoogleCenterMap(center_ll=(11.38, 47.26), zoom=9)
     m = Map(g.grid)
@@ -565,6 +541,8 @@ def test_gmap_llconts():
     return fig
 
 
+# f = test_merca_map()
+# plt.show()
 # def test_colormaps():
 #
 #     fig = plt.figure(figsize=(8, 3))
@@ -573,7 +551,7 @@ def test_gmap_llconts():
 #            fig.add_axes([0.05, 0.15, 0.9, 0.15])]
 #
 #     for ax, cm in zip(axs, ['topo', 'dem', 'nrwc']):
-#         cb = mpl.colorbar.ColorbarBase(ax, cmap=get_cm(cm),
+#         cb = mpl.colorbar.ColorbarBase(ax, cmap=get_cmap(cm),
 #                                        orientation='horizontal')
 #         cb.set_label(cm);
 #

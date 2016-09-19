@@ -54,4 +54,6 @@ if sys.version_info.major == 2:
 # API
 from salem.gis import *
 from salem.datasets import *
-from salem.sio import read_shapefile, read_shapefile_to_grid
+from salem.sio import read_shapefile, read_shapefile_to_grid, XarrayAccessor, \
+    open_xr_dataset
+

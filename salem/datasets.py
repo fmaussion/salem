@@ -59,7 +59,7 @@ def _to_scalar(x):
 
 
 class GeoDataset(object):
-    """Interface for georeferenced datasets,
+    """Interface for georeferenced datasets.
 
     A GeoDataset is a formalism for gridded data arrays, which are usually
     stored in geotiffs or netcdf files. It provides an interface to realise
@@ -267,7 +267,7 @@ class GeoDataset(object):
 
 
 class GeoTiff(GeoDataset):
-    """Open geolocalised tiff images (needs rasterio)."""
+    """Geolocalised tiff images (needs rasterio)."""
 
     def __init__(self, file):
         """Open the file.
@@ -356,7 +356,7 @@ class EsriITMIX(GeoDataset):
 
 
 class GeoNetcdf(GeoDataset):
-    """netCDF files with geolocalisation info.
+    """NetCDF files with geolocalisation info.
 
     GeoNetcdf will try hard to understand the geoloc and time of the file,
     but if it can't you can still provide the time and grid at instantiation.
@@ -384,22 +384,34 @@ class GeoNetcdf(GeoDataset):
         if time is None:
             time = self._netcdf_time(monthbegin=monthbegin)
         dn = self._nc.dimensions.keys()
-        self.t_dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
-        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])
-        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])
-        self.z_dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
+        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
+        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
+        dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
+        self.t_dim = dim[0] if dim else None
+        dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
+        self.z_dim = dim[0] if dim else None
+
         GeoDataset.__init__(self, grid, time=time)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.close()
+
+    def close(self):
+        self._nc.close()
 
     def _netcdf_time(self, monthbegin=False):
         """Check if the netcdf file contains a time that Salem understands."""
 
         time = None
         vt = utils.str_in_list(self._nc.variables.keys(),
-                               utils.valid_names['time_var'])
+                               utils.valid_names['time_var'])[0]
         if hasattr(self._nc, 'TITLE') and 'GEOGRID' in self._nc.TITLE:
             # geogrid file
             pass
-        elif 'DateStrLen' in self._nc.dimensions:
+        elif self._nc[vt].dtype in ['|S1', '|S19']:
             # WRF file
             time = []
             for t in self._nc.variables['Times'][:]:
@@ -465,6 +477,10 @@ class GeoNetcdf(GeoDataset):
 
 
 class WRF(GeoNetcdf):
+    """WRF proof-of-concept template.
+
+    Adds unstaggered and diagnostic variables.
+    """
 
     def __init__(self, file, grid=None, time=None):
 
@@ -483,7 +499,7 @@ class WRF(GeoNetcdf):
 
 
 class GoogleCenterMap(GeoDataset):
-    """Download and handle Google Static Maps (needs motionless lib)."""
+    """Google Static Maps (needs motionless)."""
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
                  zoom=12, maptype='satellite', use_cache=True, **kwargs):
@@ -527,6 +543,7 @@ class GoogleCenterMap(GeoDataset):
 
 
 class GoogleVisibleMap(GoogleCenterMap):
+    """Google Static Maps (needs motionless)."""
 
     def __init__(self, x, y, src=wgs84, size_x=640, size_y=640, **kwargs):
 
