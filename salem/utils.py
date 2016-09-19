@@ -41,20 +41,16 @@ sample_data_gh_repo = 'fmaussion/salem-sample-data'
 
 def str_in_list(l1, l2):
     """Check if one element of l1 is in l2 and if yes, returns the name of
-    that element.
+    that element in a list (could be more than one.
 
     Examples
     --------
-    >>> print(str_in_list(['lat', 'lon'], ['time', 'times']))
-    None
-    >>> str_in_list(['Time', 'lat', 'lon'], ['time', 'times'])
-    'Time'
+    >>> print(str_in_list(['time', 'lon'], ['temp','time','prcp']))
+    ['time']
+    >>> print(str_in_list(['time', 'lon'], ['temp','time','prcp','lon']))
+    ['time', 'lon']
     """
-    vt = [i for i in l1 if i.lower() in l2]
-    if len(vt) > 0:
-        return vt[0]
-    else:
-        return None
+    return [i for i in l1 if i.lower() in l2]
 
 
 def empty_cache():

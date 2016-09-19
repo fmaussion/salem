@@ -10,9 +10,11 @@ import copy
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
-from salem.tests import requires_travis, requires_geopandas, requires_matplotlib
-from salem import utils, transform_geopandas, GeoTiff, read_shapefile
+from salem.tests import requires_travis, requires_geopandas, \
+    requires_matplotlib, requires_xarray
+from salem import utils, transform_geopandas, GeoTiff, read_shapefile, sio
 from salem import read_shapefile_to_grid, graphics, Grid, mercator_grid, wgs84
+from salem.utils import get_demo_file
 
 try:
     import matplotlib as mpl
@@ -411,3 +413,53 @@ class TestGraphics(unittest.TestCase):
 
         # Assigning wrongly shaped data should, however
         self.assertRaises(ValueError, c.set_data, np.zeros((3, 8)))
+
+
+class TestSkyIsFalling(unittest.TestCase):
+
+    @requires_matplotlib
+    def test_projplot(self):
+
+        # this caused many problems on fabien's laptop.
+        # this is just to be sure that on your system, everything is fine
+
+        import pyproj
+        import matplotlib.pyplot as plt
+
+        wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
+        fig = plt.figure()
+        plt.close()
+
+        srs = '+units=m +proj=lcc +lat_1=29.0 +lat_2=29.0 +lat_0=29.0 +lon_0=89.8'
+
+        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_in = pyproj.Proj(srs, preserve_units=True)
+
+        lon, lat = pyproj.transform(proj_in, proj_out, -2235000, -2235000)
+        np.testing.assert_allclose(lon, 70.75731, atol=1e-5)
+
+
+class TestXarray(unittest.TestCase):
+
+    @requires_geopandas  # because of the grid tests, more robust with GDAL
+    def test_wrf(self):
+        import xarray as xr
+
+        ds = sio.open_xr_dataset(get_demo_file('wrf_tip_d1.nc'))
+
+        # this is because read_dataset changes some stuff, let's see if
+        # georef still ok
+        dsxr = xr.open_dataset(get_demo_file('wrf_tip_d1.nc'))
+        assert ds.salem.grid == dsxr.salem.grid
+
+        lon, lat = ds.salem.grid.ll_coordinates
+        assert_allclose(lon, ds['lon'], atol=1e-4)
+        assert_allclose(lat, ds['lat'], atol=1e-4)
+
+        # then something strange happened
+        assert ds.isel(time=0).salem.grid == ds.salem.grid
+        assert ds.isel(time=0).T2.salem.grid == ds.salem.grid
+
+        nlon, nlat = ds.isel(time=0).T2.salem.grid.ll_coordinates
+        assert_allclose(nlon, ds['lon'], atol=1e-4)
+        assert_allclose(nlat, ds['lat'], atol=1e-4)

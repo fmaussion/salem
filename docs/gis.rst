@@ -24,11 +24,7 @@ GRID (i, j, Grid)
 
 Transformations between datum and projections are handled by the pyproj
 library. Since most datasets nowadays are defined in the WGS 84 datum,
-we will only be concerned about projections form now on[#]_.
-
-.. [#] For simplicity, the two concepts are interchangeable
-in pyproj: (lon, lat) coordinates are equivalent to cartesian
-(lon, lat) coordinates in the plate carree projection.
+from now on we will only be concerned about projections [#]_.
 
 The concept of Grid added by Salem is useful when transforming data between
 two structured datasets, or from an unstructured dataset to a structured one.
@@ -36,6 +32,11 @@ two structured datasets, or from an unstructured dataset to a structured one.
 .. _GDAL: https://pypi.python.org/pypi/GDAL/
 .. _pyproj: https://jswhit.github.io/pyproj/
 
+
+
+.. [#] in pyproj, the two concepts are often interchangeable:
+       (lon, lat) coordinates are equivalent to cartesian
+       (lon, lat) coordinates in the plate carree projection.
 
 Grids
 -----

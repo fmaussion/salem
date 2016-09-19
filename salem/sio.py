@@ -8,6 +8,7 @@ from __future__ import division
 
 import os
 import pickle
+import warnings
 
 import numpy as np
 
@@ -91,8 +92,9 @@ def _memory_transform(shape_cpath, grid=None, grid_str=None):
 
 
 def read_shapefile_to_grid(fpath, grid):
-    """Same as read_shapefile but the shapefile is directly transformed to
-    the desired grid. The whole thing is cached so that the second call will
+    """Same as read_shapefile but directly transformed to a grid.
+
+    The whole thing is cached so that the second call will
     will be much faster.
 
     Parameters
@@ -216,16 +218,25 @@ def _lonlat_grid_from_dataset(ds):
 
     # Do we have some standard names as variable?
     vns = ds.variables.keys()
-    lon = utils.str_in_list(vns, utils.valid_names['lon_var'])
-    lat = utils.str_in_list(vns, utils.valid_names['lat_var'])
-    if (lon is None) or (lat is None):
+    xc = utils.str_in_list(vns, utils.valid_names['x_dim'])
+    yc = utils.str_in_list(vns, utils.valid_names['y_dim'])
+
+    # Sometimes there are more than one coordinates, one of which might have
+    # more dims (e.g. lons in WRF files): take the first one with ndim = 1:
+    x = None
+    for xp in xc:
+        if len(ds.variables[xp].shape) == 1:
+            x = xp
+    y = None
+    for yp in yc:
+        if len(ds.variables[yp].shape) == 1:
+            y = yp
+    if (x is None) or (y is None):
         return None
 
     # OK, get it
-    lon = ds.variables[lon][:]
-    lat = ds.variables[lat][:]
-    if len(lon.shape) != 1:
-        raise RuntimeError('Coordinates not of correct shape')
+    lon = ds.variables[x][:]
+    lat = ds.variables[y][:]
 
     # Make the grid
     dx = lon[1]-lon[0]
@@ -241,12 +252,6 @@ def _salem_grid_from_dataset(ds):
     Current convention: x_coord, y_coord, pyproj_srs as attribute
     """
 
-    # Do we have some standard names as variable?
-    vns = ds.variables.keys()
-    x = utils.str_in_list(vns, utils.valid_names['x_dim'])
-    y = utils.str_in_list(vns, utils.valid_names['y_dim'])
-    if (x is None) or (y is None):
-        return None
 
     # Projection
     try:
@@ -257,11 +262,27 @@ def _salem_grid_from_dataset(ds):
     if proj is None:
         return None
 
+    # Do we have some standard names as variable?
+    vns = ds.variables.keys()
+    xc = utils.str_in_list(vns, utils.valid_names['x_dim'])
+    yc = utils.str_in_list(vns, utils.valid_names['y_dim'])
+
+    # Sometimes there are more than one coordinates, one of which might have
+    # more dims (e.g. lons in WRF files): take the first one with ndim = 1:
+    x = None
+    for xp in xc:
+        if len(ds.variables[xp].shape) == 1:
+            x = xp
+    y = None
+    for yp in yc:
+        if len(ds.variables[yp].shape) == 1:
+            y = yp
+    if (x is None) or (y is None):
+        return None
+
     # OK, get it
     x = ds.variables[x][:]
     y = ds.variables[y][:]
-    if len(x.shape) != 1:
-        raise RuntimeError('Coordinates not of correct shape')
 
     # Make the grid
     dx = x[1]-x[0]
@@ -297,7 +318,7 @@ def grid_from_dataset(ds):
 @xr.register_dataset_accessor('salem')
 @xr.register_dataarray_accessor('salem')
 class XarrayAccessor(object):
-    """Accessor for xarray DataSets.
+    """Accessor for xarray data structures.
 
     http://xarray.pydata.org/en/stable/internals.html#extending-xarray
     """
@@ -318,8 +339,8 @@ class XarrayAccessor(object):
             raise RuntimeError('dataset Grid not understood.')
 
         dn = xarray_obj.dims.keys()
-        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])
-        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])
+        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
+        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
 
     def subset(self, margin=0, **kwargs):
         """Get a subset of the dataset.
@@ -360,3 +381,68 @@ class XarrayAccessor(object):
                             self.y_dim : slice(sub_y[0], sub_y[1]+1)}
                           ]
         return out_ds
+
+    def get_map(self, **kwargs):
+        """Make a salem.Map out of the dataset"""
+
+        from salem.graphics import Map
+        return Map(self.grid, **kwargs)
+
+    def plot_on_map(self, name='', ax=None, interp='nearest', **kwargs):
+        """Make a plot of the desired variable (or dataarray)."""
+
+        map = self.get_map(**kwargs)
+
+        if isinstance(self._obj, xr.DataArray):
+            obj = self._obj
+        else:
+            obj = self._obj[name]
+
+        title = obj.name
+        if obj._title_for_slice():
+            title += ' (' + obj._title_for_slice() + ')'
+
+        cb = obj.attrs['units'] if 'units' in obj.attrs else ''
+
+        map.set_data(obj.values, interp=interp)
+        map.visualize(ax=ax, title=title, cbar_title=cb)
+        return map
+
+
+def open_xr_dataset(file):
+    """Thin wrapper around xarray's open_dataset.
+
+    This is needed because variables often have not enough georef attrs
+    to be understood alone, and datasets tend to loose their attrs with
+    operations...
+    """
+
+    ds = xr.open_dataset(file)
+
+    # did we get it? If not no need to go further
+    try:
+        grid = ds.salem.grid
+    except:
+        warnings.warn('File not recognised as Salem grid. Fall back to xarray',
+                      RuntimeWarning)
+        return ds
+
+    # maybe it's a WRF file?
+    if hasattr(ds, 'MOAD_CEN_LAT'):
+        # quick n dirty solution for now
+        from salem import GeoNetcdf
+        with GeoNetcdf(file) as geo:
+            ds['Time'] = geo.time
+            ds = ds.drop('Times')
+            ds.rename({'Time':'time', 'XLAT':'lat', 'XLONG':'lon'},
+                      inplace=True)
+            ds['west_east'] = geo.grid.x_coord
+            ds['south_north'] = geo.grid.y_coord
+
+    # add pyproj string everywhere
+    ds.attrs['pyproj_srs'] = grid.proj.srs
+    for v in ds.variables:
+        ds[v].attrs['pyproj_srs'] = grid.proj.srs
+
+    return ds
+
