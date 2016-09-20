@@ -23,6 +23,11 @@ except ImportError:
     pass
 
 try:
+    import pandas as pd
+except ImportError:
+    pass
+
+try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     from matplotlib.colors import LinearSegmentedColormap
@@ -104,16 +109,19 @@ class ExtendedNorm(mpl.colors.BoundaryNorm):
         return ret
 
 
-def get_cmap(name='none'):
-    """Get a colormap defined by Salem.
+def get_cmap(cmap='viridis'):
+    """Get a colormap from mpl, and also those defined by Salem.
 
     Currently we have: topo, dem, nrwc
 
     see https://github.com/fmaussion/salem-sample-data/tree/master/colormaps
     """
 
-    cl = utils.read_colormap(name)
-    return LinearSegmentedColormap.from_list(name, cl, N=256)
+    try:
+        return plt.get_cmap(cmap)
+    except ValueError:
+        cl = utils.read_colormap(cmap)
+        return LinearSegmentedColormap.from_list(cmap, cl, N=256)
 
 
 class DataLevels(object):
@@ -176,10 +184,7 @@ class DataLevels(object):
 
     def set_cmap(self, cm=None):
         """Set a colormap."""
-        if cm is not None:
-            self.cmap = cm
-        else:
-            self.cmap = plt.get_cmap('viridis')
+        self.cmap = get_cmap(cm or 'viridis' )
 
     def set_extend(self, extend=None):
         """Colorbar extensions: 'neither' | 'both' | 'min' | 'max'"""
@@ -413,6 +418,15 @@ class Map(DataLevels):
                     overplot=False):
         """Interpolates the data to the map grid."""
 
+        if crs is None:
+            # try xarray
+            # TODO: note that this might slow down the plotting a bit
+            # if the data already matches the grid...
+            try:
+                crs = data.salem.grid
+            except:
+                pass
+
         data = np.ma.fix_invalid(np.squeeze(data))
         shp = data.shape
         if len(shp) != 2:
@@ -603,7 +617,10 @@ class Map(DataLevels):
             return
 
         # Transform
-        shape = sio.read_shapefile_to_grid(shape, grid=self.grid)
+        if isinstance(shape, pd.DataFrame):
+            shape = gis.transform_geopandas(shape, to_crs=self.grid)
+        else:
+            shape = sio.read_shapefile_to_grid(shape, grid=self.grid)
         if len(shape) == 0:
             return
 
@@ -618,6 +635,9 @@ class Map(DataLevels):
                 else:
                     patches.append(PolygonPatch(g))
             kwargs.setdefault('facecolor', 'none')
+            if 'color' in kwargs:
+                kwargs.setdefault('edgecolor', kwargs['color'])
+                del kwargs['color']
             self._collections.append(PatchCollection(patches, **kwargs))
         elif 'LineString' in geomtype:
             lines = []

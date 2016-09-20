@@ -7,6 +7,7 @@ import time
 import warnings
 import copy
 
+import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -463,3 +464,8 @@ class TestXarray(unittest.TestCase):
         nlon, nlat = ds.isel(time=0).T2.salem.grid.ll_coordinates
         assert_allclose(nlon, ds['lon'], atol=1e-4)
         assert_allclose(nlat, ds['lat'], atol=1e-4)
+
+        # the grid should not be missunderstood as lonlat
+        t2 = ds.T2.isel(time=0) - 273.15
+        with pytest.raises(RuntimeError):
+            g = t2.salem.grid

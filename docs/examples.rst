@@ -22,7 +22,8 @@ take a time slice of the variable ``T2`` for a start:
 .. ipython:: python
 
     t2 = ds.T2.isel(time=2)
-    @savefig plot_wrf_t2.png width=5in
+
+    @savefig plot_wrf_t2.png width=80%
     t2.salem.plot_on_map()
 
 Although we are on a Lambert Conformal projection, it's possible to subset
@@ -31,7 +32,8 @@ the file using longitudes and latitudes:
 .. ipython:: python
 
     t2_sub = t2.salem.subset(corners=((77., 20.), (97., 35.)), crs=salem.wgs84)
-    @savefig plot_wrf_t2_corner_sub.png width=5in
+
+    @savefig plot_wrf_t2_corner_sub.png width=80%
     t2_sub.salem.plot_on_map()
 
 It's also possible to use geometries or shapefiles to subset your data:
@@ -41,8 +43,9 @@ It's also possible to use geometries or shapefiles to subset your data:
 
     shdf = salem.read_shapefile(get_demo_file('world_borders.shp'))
     shdf = shdf.loc[shdf['CNTRY_NAME'].isin(['Nepal', 'Bhutan'])]  # GeoPandas' GeoDataFrame
-    t2_sub = t2_sub.salem.subset(shape=shdf, margin=5)  # add 5 grid points
-    @savefig plot_wrf_t2_country_sub.png width=5in
+    t2_sub = t2_sub.salem.subset(shape=shdf, margin=2)  # add 2 grid points
+
+    @savefig plot_wrf_t2_country_sub.png width=80%
     t2_sub.salem.plot_on_map()
 
 Based on the same principle, one can mask out the useless grid points:
@@ -50,19 +53,43 @@ Based on the same principle, one can mask out the useless grid points:
 .. ipython:: python
 
     t2_roi = t2_sub.salem.roi(shape=shdf)
-    @savefig plot_wrf_t2_roi.png width=5in
+
+    @savefig plot_wrf_t2_roi.png width=80%
     smap = t2_roi.salem.plot_on_map()
+
+
+Plotting
+--------
 
 Maps can be pimped with topographical shading, points of interest,
 and more:
 
 .. ipython:: python
 
-    smap.set_topography(get_demo_file('himalaya.tif'))
+    smap = t2_roi.salem.get_map(data=t2_roi-273.15, cmap='RdYlBu_r', vmin=-14, vmax=18)
+    _ = smap.set_topography(get_demo_file('himalaya.tif'))
+    smap.set_shapefile(shape=shdf, color='grey', linewidth=3)
     smap.set_points(91.1, 29.6)
     smap.set_text(91.2, 29.7, 'Lhasa', fontsize=17)
-    @savefig plot_wrf_t2_topo.png width=5in
+
+    @savefig plot_wrf_t2_topo.png width=80%
+    smap.visualize()
+
+Maps are persistent, which is useful when you have many plots to do. Plotting
+further data on them is possible, as long
+as the geolocalisation information is shipped with the data (in that case,
+the DataArray's attributes are lost in the conversion to degrees so we have to
+set it explicitly):
+
+
+.. ipython:: python
+
+    smap.set_data(ds.T2.isel(time=1)-273.15, crs=ds.salem.grid)
+
+    @savefig plot_wrf_t2_transform.png width=80%
     smap.visualize()
 
 
+Reprojecting data
+-----------------
 
