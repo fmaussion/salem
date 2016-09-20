@@ -238,6 +238,13 @@ def _lonlat_grid_from_dataset(ds):
     lon = ds.variables[x][:]
     lat = ds.variables[y][:]
 
+    # double check for dubious variables
+    if not utils.str_in_list([x], utils.valid_names['lon_var']) or \
+            not utils.str_in_list([y], utils.valid_names['lat_var']):
+        # name not usual. see if at least the range follows some conv
+        if (np.max(np.abs(lon)) > 360.1) or (np.max(np.abs(lat)) > 90.1):
+            return None
+
     # Make the grid
     dx = lon[1]-lon[0]
     dy = lat[1]-lat[0]
