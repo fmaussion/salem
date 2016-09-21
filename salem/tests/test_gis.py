@@ -668,6 +668,13 @@ class TestGrid(unittest.TestCase):
         roi = g.region_of_interest(geometry=p)
         np.testing.assert_array_equal([[0,0], [0,1], [0,0], [0,0]], roi)
 
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+                 pixel_ref='corner')
+        g2 = Grid(nxny=(1, 1), dxdy=(0.2, 0.2), ll_corner=(1.4, 1.4),
+                  proj=wgs84, pixel_ref='corner')
+        roi = g.region_of_interest(grid=g2)
+        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
     @requires_xarray
     def test_xarray_support(self):
 
@@ -697,7 +704,7 @@ class TestGrid(unittest.TestCase):
             # map
             nx, ny = (3, 4)
             data = np.arange(nx * ny).reshape((ny, nx))
-            data = xr.DataArray(data)
+            data = xr.DataArray(data).rename({'dim_0':'y', 'dim_1':'x'})
 
             # Nearest Neighbor
             args = dict(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(0, 0),
@@ -709,6 +716,16 @@ class TestGrid(unittest.TestCase):
 
             self.assertTrue(odata.salem.grid == g)
 
+            # Transform can understand a grid
+            data.attrs['pyproj_srs'] = g.proj.srs
+            odata = g.map_gridded_data(data)
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data, odata, atol=1e-03)
+            odata = g.map_gridded_data(data, out=data)
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data, odata, atol=1e-03)
+            assert isinstance(odata, xr.DataArray)
+            self.assertTrue(odata.salem.grid == g)
 
 class TestTransform(unittest.TestCase):
 

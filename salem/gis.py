@@ -620,9 +620,8 @@ class Grid(object):
         """
 
         if grid is None:
-            # try xarray
             try:
-                grid = data.salem.grid
+                grid = data.salem.grid  # try xarray
             except:
                 pass
 
