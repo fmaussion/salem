@@ -427,8 +427,8 @@ class XarrayAccessor(object):
         out.attrs['pyproj_srs'] = self.grid.proj.srs
         if isinstance(out, xr.Dataset):
             for v in out.variables:
-                out[v].attrs = self._obj[v].attrs
-                out[v].attrs['pyproj_srs'] = self.grid.proj.srs
+                out.variables[v].attrs = self._obj.variables[v].attrs
+                out.variables[v].attrs['pyproj_srs'] = self.grid.proj.srs
         return out
 
     def get_map(self, **kwargs):
@@ -454,6 +454,7 @@ class XarrayAccessor(object):
         cb = obj.attrs['units'] if 'units' in obj.attrs else ''
 
         map.set_data(obj.values, interp=interp)
+
         map.visualize(ax=ax, title=title, cbar_title=cb)
         return map
 

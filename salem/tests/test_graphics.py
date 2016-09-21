@@ -543,16 +543,35 @@ def test_gmap_llconts():
 
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
-def test_example_docs():
+def test_plot_on_map():
+    import salem
+    from salem.utils import get_demo_file
+    ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+    t2_sub = ds.salem.subset(corners=((77., 20.), (97., 35.)), crs=salem.wgs84).T2.isel(time=2)
+    shdf = salem.read_shapefile(get_demo_file('world_borders.shp'))
+    shdf = shdf.loc[shdf['CNTRY_NAME'].isin(
+        ['Nepal', 'Bhutan'])]  # GeoPandas' GeoDataFrame
+    t2_sub = t2_sub.salem.subset(shape=shdf, margin=2)  # add 2 grid points
+    t2_roi = t2_sub.salem.roi(shape=shdf)
+    fig, ax = plt.subplots(1, 1)
+    t2_roi.salem.plot_on_map(ax=ax)
+    plt.tight_layout()
+    return fig
 
+
+@requires_matplotlib
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_example_docs():
     import salem
     from salem.utils import get_demo_file
     ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
 
     t2 = ds.T2.isel(time=2)
-    t2_sub = t2.salem.subset(corners=((77., 20.), (97., 35.)), crs=salem.wgs84)
+    t2_sub = t2.salem.subset(corners=((77., 20.), (97., 35.)),
+                             crs=salem.wgs84)
     shdf = salem.read_shapefile(get_demo_file('world_borders.shp'))
-    shdf = shdf.loc[shdf['CNTRY_NAME'].isin(['Nepal', 'Bhutan'])]  # GeoPandas' GeoDataFrame
+    shdf = shdf.loc[shdf['CNTRY_NAME'].isin(
+        ['Nepal', 'Bhutan'])]  # GeoPandas' GeoDataFrame
     t2_sub = t2_sub.salem.subset(shape=shdf, margin=2)  # add 2 grid points
     t2_roi = t2_sub.salem.roi(shape=shdf)
     smap = t2_roi.salem.get_map(data=t2_roi-273.15, cmap='RdYlBu_r', vmin=-14, vmax=18)
@@ -567,21 +586,18 @@ def test_example_docs():
     plt.tight_layout()
     return fig
 
-# test_example_docs()
-# plt.show()
 
-# f = test_merca_map()
-# plt.show()
-# def test_colormaps():
-#
-#     fig = plt.figure(figsize=(8, 3))
-#     axs = [fig.add_axes([0.05, 0.80, 0.9, 0.15]),
-#            fig.add_axes([0.05, 0.475, 0.9, 0.15]),
-#            fig.add_axes([0.05, 0.15, 0.9, 0.15])]
-#
-#     for ax, cm in zip(axs, ['topo', 'dem', 'nrwc']):
-#         cb = mpl.colorbar.ColorbarBase(ax, cmap=get_cmap(cm),
-#                                        orientation='horizontal')
-#         cb.set_label(cm);
-#
-#     plt.show()
+@requires_matplotlib
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_colormaps():
+
+    fig = plt.figure(figsize=(8, 3))
+    axs = [fig.add_axes([0.05, 0.80, 0.9, 0.15]),
+           fig.add_axes([0.05, 0.475, 0.9, 0.15]),
+           fig.add_axes([0.05, 0.15, 0.9, 0.15])]
+
+    for ax, cm in zip(axs, ['topo', 'dem', 'nrwc']):
+        cb = mpl.colorbar.ColorbarBase(ax, cmap=get_cmap(cm),
+                                       orientation='horizontal')
+        cb.set_label(cm);
+    return fig

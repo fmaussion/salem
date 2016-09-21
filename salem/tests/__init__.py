@@ -2,10 +2,22 @@ from __future__ import division
 import unittest
 import os
 from salem import python_version
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.error import URLError
 
 on_travis = False
 if os.environ.get('TRAVIS') is not None:
     on_travis = True
+
+
+def has_internet():
+    """Not so recommended it seems"""
+    try:
+        _ = urlopen('http://www.google.com', timeout=1)
+        return True
+    except URLError:
+        pass
+    return False
 
 try:
     import xarray
@@ -48,6 +60,12 @@ try:
     has_rasterio = True
 except ImportError:
     has_rasterio = False
+
+
+def requires_internet(test):
+    # Test decorator
+    msg = "requires internet"
+    return test if has_internet() else unittest.skip(msg)(test)
 
 
 def requires_matplotlib_and_py3(test):

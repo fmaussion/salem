@@ -4,8 +4,6 @@ import unittest
 import warnings
 import os
 from datetime import datetime
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import URLError
 
 
 import numpy as np
@@ -37,7 +35,7 @@ from salem import wrf
 from salem.datasets import GeoDataset, GeoNetcdf, GeoTiff, WRF, \
     GoogleCenterMap, GoogleVisibleMap, EsriITMIX
 from salem.tests import requires_xarray, requires_rasterio, \
-    requires_pandas, requires_motionless, requires_geopandas
+    requires_pandas, requires_motionless, requires_geopandas, requires_internet
 
 
 class TestDataset(unittest.TestCase):
@@ -404,24 +402,11 @@ class TestGeoNetcdf(unittest.TestCase):
         assert_array_equal(ref[:, 5:-5, 5:-5], tot)
 
 
-def internet_on():
-    """Not so recommended it seems"""
-    try:
-        _ = urlopen('http://www.google.com', timeout=1)
-        return True
-    except URLError:
-        pass
-    return False
-
-
 class TestGoogleStaticMap(unittest.TestCase):
 
+    @requires_internet
     @requires_motionless
     def test_center(self):
-
-        if not internet_on():
-            print('Internet is off, couldnt test for googlemaps')
-            return
 
         gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                              size_x=500, size_y=500, use_cache=False)
@@ -447,12 +432,9 @@ class TestGoogleStaticMap(unittest.TestCase):
         self.assertTrue(rmsd < 0.1)
         # assert_allclose(ref, img, atol=2e-2)
 
+    @requires_internet
     @requires_motionless
     def test_visible(self):
-
-        if not internet_on():
-            print('Internet is off, couldnt test for googlemaps')
-            return
 
         x = [91.176036, 92.05, 88.880927]
         y = [29.649702, 31.483333, 29.264956]
