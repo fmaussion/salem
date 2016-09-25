@@ -9,6 +9,7 @@ from __future__ import division
 import os
 import pickle
 import warnings
+import copy
 
 import numpy as np
 
@@ -322,10 +323,8 @@ def grid_from_dataset(ds):
     return _lonlat_grid_from_dataset(ds)
 
 
-@xr.register_dataset_accessor('salem')
-@xr.register_dataarray_accessor('salem')
-class XarrayAccessor(object):
-    """Accessor for xarray data structures.
+class _XarrayAccessorBase(object):
+    """Common logic for for both data structures (DataArray and Dataset).
 
     http://xarray.pydata.org/en/stable/internals.html#extending-xarray
     """
@@ -336,7 +335,7 @@ class XarrayAccessor(object):
 
         if isinstance(xarray_obj, xr.DataArray):
             xarray_obj = xarray_obj.to_dataset(name='var')
-            try:
+            try:  # maybe there was already some georef
                 xarray_obj.attrs['pyproj_srs'] = xarray_obj['var'].pyproj_srs
             except:
                 pass
@@ -348,9 +347,16 @@ class XarrayAccessor(object):
         dn = xarray_obj.dims.keys()
         self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
         self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
+        dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
+        self.t_dim = dim[0] if dim else None
+        dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
+        self.z_dim = dim[0] if dim else None
 
     def subset(self, margin=0, **kwargs):
-        """Get a subset of the dataset.
+        """subset(self, margin=0, shape=None, geometry=None, grid=None,
+                  corners=None, crs=wgs84, roi=None)
+
+        Get a subset of the dataset.
 
         Accepts all keywords of :py:func:`~Grid.roi`
 
@@ -390,7 +396,10 @@ class XarrayAccessor(object):
         return out_ds
 
     def roi(self, **kwargs):
-        """Make a region of interest (ROI) for the dataset.
+        """roi(self, shape=None, geometry=None, grid=None, corners=None,
+               crs=wgs84, roi=None)
+
+        Make a region of interest (ROI) for the dataset.
 
         All grid points outside the ROI will be masked out.
 
@@ -432,31 +441,170 @@ class XarrayAccessor(object):
         return out
 
     def get_map(self, **kwargs):
-        """Make a salem.Map out of the dataset"""
+        """Make a salem.Map out of the dataset.
+
+        All keywords are passed to :py:class:salem.Map
+        """
 
         from salem.graphics import Map
         return Map(self.grid, **kwargs)
 
-    def plot_on_map(self, name='', ax=None, interp='nearest', **kwargs):
-        """Make a plot of the desired variable (or dataarray)."""
+    def _quick_map(self, obj, ax=None, interp='nearest', **kwargs):
+        """Make a plot of a data array."""
 
-        map = self.get_map(**kwargs)
-
-        if isinstance(self._obj, xr.DataArray):
-            obj = self._obj
-        else:
-            obj = self._obj[name]
-
-        title = obj.name or ''
+        # some metadata?
+        title = self._obj.name or ''
         if obj._title_for_slice():
             title += ' (' + obj._title_for_slice() + ')'
-
         cb = obj.attrs['units'] if 'units' in obj.attrs else ''
 
+        map = self.get_map(**kwargs)
         map.set_data(obj.values, interp=interp)
-
         map.visualize(ax=ax, title=title, cbar_title=cb)
         return map
+
+    def transform(self, other, grid=None, interp='nearest', ks=3):
+        """Reprojects an other Dataset or DataArray onto this grid.
+
+        If the data provided is 3D or 4D, Salem is going to try to understand
+        as much as possible what to do with it.
+
+        Parameters
+        ----------
+        other: Dataset, DataArray or ndarray
+            the data to project onto self
+        grid: salem.Grid
+            in case the data provided does not carry enough georef info
+        interp : str
+            'nearest' (default), 'linear', or 'spline'
+        ks : int
+            Degree of the bivariate spline. Default is 3.
+
+        Returns
+        -------
+        a dataset or a dataarray
+        """
+
+        was_dataarray = False
+        if not isinstance(other, xr.Dataset):
+            try:
+                other = other.to_dataset(name=other.name)
+                was_dataarray = True
+            except AttributeError:
+                # must be a ndarray
+                rdata = self.grid.map_gridded_data(other, grid=grid,
+                                                   interp=interp, ks=ks)
+                # let's guess
+                sh = rdata.shape
+                nd = len(sh)
+                if nd == 2:
+                    dims = (self.y_dim, self.x_dim)
+                elif nd == 3:
+                    newdim = 'new_dim'
+                    if self.t_dim and sh[0] == self._obj.dims[self.t_dim]:
+                        newdim = self.t_dim
+                    if self.z_dim and sh[0] == self._obj.dims[self.z_dim]:
+                        newdim = self.z_dim
+                    dims = (newdim, self.y_dim, self.x_dim)
+                else:
+                    raise NotImplementedError('more than 3 dims not ok yet.')
+
+                coords = {}
+                for d in dims:
+                    if d in self._obj:
+                        coords[d] = self._obj[d]
+
+                out = xr.DataArray(rdata, coords=coords, dims=dims)
+                out.attrs['pyproj_srs'] = self.grid.proj.srs
+                return out
+
+        # go
+        out = xr.Dataset()
+        for v in other.data_vars:
+            var = other[v]
+            rdata = self.grid.map_gridded_data(var, interp=interp, ks=ks)
+
+            # remove old coords
+            dims = [d for d in var.dims]
+            coords = {}
+            for c in var.coords:
+                n = utils.str_in_list([c], utils.valid_names['x_dim'])
+                if n:
+                    dims = [self.x_dim if x in n else x for x in dims]
+                    continue
+                n = utils.str_in_list([c], utils.valid_names['y_dim'])
+                if n:
+                    dims = [self.y_dim if x in n else x for x in dims]
+                    continue
+                coords[c] = var.coords[c]
+            # add new ones
+            coords[self.x_dim] = self._obj[self.x_dim]
+            coords[self.y_dim] = self._obj[self.y_dim]
+
+            rdata = xr.DataArray(rdata, coords=coords, attrs=var.attrs, dims=dims)
+            rdata.attrs['pyproj_srs'] = self.grid.proj.srs
+            out[v] = rdata
+
+        if was_dataarray:
+            out = out[v]
+        return out
+
+
+@xr.register_dataarray_accessor('salem')
+class DataArrayAccessor(_XarrayAccessorBase):
+
+    def quick_map(self, ax=None, interp='nearest', **kwargs):
+        """Make a plot of the DataArray."""
+        return self._quick_map(self._obj, ax=ax, interp=interp, **kwargs)
+
+
+@xr.register_dataset_accessor('salem')
+class DatasetAccessor(_XarrayAccessorBase):
+
+    def quick_map(self, varname, ax=None, interp='nearest', **kwargs):
+        """Make a plot of a variable of the DataSet."""
+        return self._quick_map(self._obj[varname], ax=ax, interp=interp,
+                               **kwargs)
+
+    def transform_and_add(self, other, grid=None, interp='nearest', ks=3,
+                          name=None):
+        """Reprojects an other Dataset and adds it's content to the current one.
+
+        If the data provided is 3D or 4D, Salem is going to try to understand
+        as much as possible what to do with it.
+
+        Parameters
+        ----------
+        other: Dataset, DataArray or ndarray
+            the data to project onto self
+        grid: salem.Grid
+            in case the data provided does not carry enough georef info
+        interp : str
+            'nearest' (default), 'linear', or 'spline'
+        ks : int
+            Degree of the bivariate spline. Default is 3.
+        name: str or dict-like
+            how to name to new variables in self. Per default the new variables
+            are going to keep their name (it will raise an error in case of
+            conflict). Set to a str to to rename the variable (if unique) or
+            set to a dict for mapping the old names to the new names for
+            datasets.
+        """
+
+        out = self.transform(other, grid=grid, interp=interp, ks=ks)
+
+        if isinstance(out, xr.DataArray):
+            new_name = name or out.name
+            if new_name is None:
+                raise ValueError('You need to set name')
+            self._obj[new_name] = out
+        else:
+            for v in out.data_vars:
+                try:
+                    new_name = name[v]
+                except (KeyError, TypeError):
+                    new_name = v
+                self._obj[new_name] = out[v]
 
 
 def open_xr_dataset(file):
@@ -465,8 +613,28 @@ def open_xr_dataset(file):
     This is needed because variables often have not enough georef attrs
     to be understood alone, and datasets tend to loose their attrs with
     operations...
+
+    Returns:
+    --------
+    xr.Dasaset
     """
 
+    # if geotiff, use Salem
+    p, ext = os.path.splitext(file)
+    if (ext.lower() == '.tif') or (ext.lower() == '.tiff'):
+        from salem import GeoTiff
+        geo = GeoTiff(file)
+        # TODO: currently everything is loaded in memory
+        da = xr.DataArray(geo.get_vardata(),
+                          coords={'x': geo.grid.x_coord,
+                                  'y': geo.grid.y_coord},
+                          dims=['y', 'x'])
+        ds = xr.Dataset()
+        ds.attrs['pyproj_srs'] = geo.grid.proj.srs
+        ds['data'] = da
+        return ds
+
+    # otherwise rely on xarray
     ds = xr.open_dataset(file)
 
     # did we get it? If not no need to go further
@@ -491,7 +659,7 @@ def open_xr_dataset(file):
 
     # add pyproj string everywhere
     ds.attrs['pyproj_srs'] = grid.proj.srs
-    for v in ds.variables:
+    for v in ds.data_vars:
         ds[v].attrs['pyproj_srs'] = grid.proj.srs
 
     return ds

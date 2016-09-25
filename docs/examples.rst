@@ -24,7 +24,7 @@ take a time slice of the variable ``T2`` for a start:
     t2 = ds.T2.isel(time=2)
 
     @savefig plot_wrf_t2.png width=80%
-    t2.salem.plot_on_map()
+    t2.salem.quick_map()
 
 Although we are on a Lambert Conformal projection, it's possible to subset
 the file using longitudes and latitudes:
@@ -34,7 +34,7 @@ the file using longitudes and latitudes:
     t2_sub = t2.salem.subset(corners=((77., 20.), (97., 35.)), crs=salem.wgs84)
 
     @savefig plot_wrf_t2_corner_sub.png width=80%
-    t2_sub.salem.plot_on_map()
+    t2_sub.salem.quick_map()
 
 It's also possible to use geometries or shapefiles to subset your data:
 
@@ -46,7 +46,7 @@ It's also possible to use geometries or shapefiles to subset your data:
     t2_sub = t2_sub.salem.subset(shape=shdf, margin=2)  # add 2 grid points
 
     @savefig plot_wrf_t2_country_sub.png width=80%
-    t2_sub.salem.plot_on_map()
+    t2_sub.salem.quick_map()
 
 Based on the same principle, one can mask out the useless grid points:
 
@@ -55,7 +55,7 @@ Based on the same principle, one can mask out the useless grid points:
     t2_roi = t2_sub.salem.roi(shape=shdf)
 
     @savefig plot_wrf_t2_roi.png width=80%
-    smap = t2_roi.salem.plot_on_map()
+    t2_roi.salem.quick_map()
 
 
 Plotting
@@ -78,7 +78,7 @@ and more:
 Maps are persistent, which is useful when you have many plots to do. Plotting
 further data on them is possible, as long
 as the geolocalisation information is shipped with the data (in that case,
-the DataArray's attributes are lost in the conversion to degrees so we have to
+the DataArray's attributes are lost in the conversion to °C so we have to
 set it explicitly):
 
 
@@ -87,9 +87,26 @@ set it explicitly):
     smap.set_data(ds.T2.isel(time=1)-273.15, crs=ds.salem.grid)
 
     @savefig plot_wrf_t2_transform.png width=80%
-    smap.visualize()
+    smap.visualize(title='2m temp - large domain', cbar_title='°C')
 
 
 Reprojecting data
 -----------------
 
+Salem can also transform data from one grid to another:
+
+.. ipython:: python
+
+        dse = salem.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        t2_era_reproj = ds.salem.transform(dse.t2m)
+        assert t2_era_reproj.salem.grid == ds.salem.grid
+        @savefig plot_era_repr_nn.png width=80%
+        t2_era_reproj.isel(time=0).salem.quick_map()
+
+
+
+.. ipython:: python
+
+        t2_era_reproj = ds.salem.transform(dse.t2m, interp='spline')
+        @savefig plot_era_repr_spline.png width=80%
+        t2_era_reproj.isel(time=0).salem.quick_map()

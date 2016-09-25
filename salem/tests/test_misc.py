@@ -442,6 +442,24 @@ class TestSkyIsFalling(unittest.TestCase):
 
 class TestXarray(unittest.TestCase):
 
+    @requires_xarray
+    def test_era(self):
+
+        f = get_demo_file('era_interim_tibet.nc')
+        ds = sio.open_xr_dataset(f)
+        self.assertEqual(ds.salem.x_dim, 'longitude')
+        self.assertEqual(ds.salem.y_dim, 'latitude')
+
+        lon = 91.1
+        lat = 31.1
+        dss = ds.salem.subset(corners=((lon, lat), (lon, lat)), margin=1)
+
+        self.assertEqual(len(dss.latitude), 3)
+        self.assertEqual(len(dss.longitude), 3)
+
+        np.testing.assert_almost_equal(dss.longitude, [90.0, 90.75, 91.5])
+
+    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_wrf(self):
         import xarray as xr
@@ -469,3 +487,60 @@ class TestXarray(unittest.TestCase):
         t2 = ds.T2.isel(time=0) - 273.15
         with pytest.raises(RuntimeError):
             g = t2.salem.grid
+
+    @requires_xarray
+    @requires_geopandas  # because of the grid tests, more robust with GDAL
+    def test_transform_logic(self):
+
+        # This is just for the naming and dim logic, the rest is tested elsewh
+        ds1 = sio.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+        ds2 = sio.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+
+        # 2darray case
+        t2 = ds2.T2.isel(time=1)
+        with pytest.raises(ValueError):
+            ds1.salem.transform_and_add(t2.values, grid=t2.salem.grid)
+
+        ds1.salem.transform_and_add(t2.values, grid=t2.salem.grid, name='t2_2darr')
+        assert 't2_2darr' in ds1
+        assert_allclose(ds1.t2_2darr.coords['south_north'],
+                        t2.coords['south_north'])
+        assert_allclose(ds1.t2_2darr.coords['west_east'],
+                        t2.coords['west_east'])
+        assert ds1.salem.grid == ds1.t2_2darr.salem.grid
+
+        # 3darray case
+        t2 = ds2.T2
+        ds1.salem.transform_and_add(t2.values, grid=t2.salem.grid, name='t2_3darr')
+        assert 't2_3darr' in ds1
+        assert_allclose(ds1.t2_3darr.coords['south_north'],
+                        t2.coords['south_north'])
+        assert_allclose(ds1.t2_3darr.coords['west_east'],
+                        t2.coords['west_east'])
+        assert 'time' in ds1.t2_3darr.coords
+
+        # dataarray case
+        ds1.salem.transform_and_add(t2, name='NEWT2')
+        assert 'NEWT2' in ds1
+        assert_allclose(ds1.NEWT2, ds1.T2)
+        assert_allclose(ds1.t2_3darr.coords['south_north'],
+                        t2.coords['south_north'])
+        assert_allclose(ds1.t2_3darr.coords['west_east'],
+                        t2.coords['west_east'])
+        assert 'time' in ds1.t2_3darr.coords
+
+        # dataset case
+        ds1.salem.transform_and_add(ds2[['RAINC', 'RAINNC']],
+                                    name={'RAINC':'PRCPC',
+                                          'RAINNC': 'PRCPNC'})
+        assert 'PRCPC' in ds1
+        assert_allclose(ds1.PRCPC, ds1.RAINC)
+        assert 'time' in ds1.PRCPNC.coords
+
+        # what happens with external data?
+        dse = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        out = ds1.salem.transform(dse.t2m, interp='linear')
+        assert_allclose(out.coords['south_north'],
+                        t2.coords['south_north'])
+        assert_allclose(out.coords['west_east'],
+                        t2.coords['west_east'])

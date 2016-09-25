@@ -554,7 +554,7 @@ def test_plot_on_map():
     t2_sub = t2_sub.salem.subset(shape=shdf, margin=2)  # add 2 grid points
     t2_roi = t2_sub.salem.roi(shape=shdf)
     fig, ax = plt.subplots(1, 1)
-    t2_roi.salem.plot_on_map(ax=ax)
+    t2_roi.salem.quick_map(ax=ax)
     plt.tight_layout()
     return fig
 
