@@ -78,8 +78,8 @@ and more:
 Maps are persistent, which is useful when you have many plots to do. Plotting
 further data on them is possible, as long
 as the geolocalisation information is shipped with the data (in that case,
-the DataArray's attributes are lost in the conversion to °C so we have to
-set it explicitly):
+the DataArray's attributes are lost in the conversion from Kelvins to degrees
+Celsius so we have to set it explicitly):
 
 
 .. ipython:: python

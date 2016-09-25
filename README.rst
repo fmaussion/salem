@@ -6,10 +6,8 @@ Salem
 
 .. image:: https://travis-ci.org/fmaussion/salem.svg?branch=master
     :target: https://travis-ci.org/fmaussion/salem
-
 .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/fmaussion/salem?branch=master
-
 .. image:: https://readthedocs.org/projects/salem/badge/?version=latest
   :target: http://salem.readthedocs.io/en/latest/?badge=latest
 
@@ -35,7 +33,6 @@ License
 Salem is available under the open source `GNU GPLv3 license`_.
 
 .. _GNU GPLv3 license: http://www.gnu.org/licenses/gpl-3.0.en.html
-
 
 About
 -----
