@@ -208,6 +208,30 @@ class TestGeotiff(unittest.TestCase):
         ds = EsriITMIX(gf)
         topo = ds.get_vardata()
 
+    @requires_xarray
+    def test_xarray(self):
+
+        from salem import open_xr_dataset
+
+        go = get_demo_file('hef_srtm.tif')
+        gs = get_demo_file('hef_srtm_subset.tif')
+
+        geo = GeoTiff(go)
+        go = open_xr_dataset(go)
+        gs = open_xr_dataset(gs)
+
+        gos = go.salem.subset(grid=gs.salem.grid)
+
+        ref = gs['data']
+        totest = gos['data']
+        np.testing.assert_array_equal(ref.shape, (gos.salem.grid.ny, gos.salem.grid.nx))
+        np.testing.assert_array_equal(ref.shape, totest.shape)
+        np.testing.assert_array_equal(ref, totest)
+        rlon, rlat = geo.grid.ll_coordinates
+        tlon, tlat = go.salem.grid.ll_coordinates
+        assert_allclose(rlon, tlon)
+        assert_allclose(rlat, tlat)
+
 
 class TestGeoNetcdf(unittest.TestCase):
 
@@ -262,23 +286,6 @@ class TestGeoNetcdf(unittest.TestCase):
         d = WRF(wf)
         tk = d.get_vardata('TK', as_xarray=True)
         # TODO: the z dim is not ok
-
-    @requires_xarray
-    def test_xarray_accessor(self):
-
-        f = get_demo_file('era_interim_tibet.nc')
-        ds = xr.open_dataset(f)
-        self.assertEqual(ds.salem.x_dim, 'longitude')
-        self.assertEqual(ds.salem.y_dim, 'latitude')
-
-        lon = 91.1
-        lat = 31.1
-        dss = ds.salem.subset(corners=((lon, lat), (lon, lat)), margin=1)
-
-        self.assertEqual(len(dss.latitude), 3)
-        self.assertEqual(len(dss.longitude), 3)
-
-        np.testing.assert_almost_equal(dss.longitude, [90.0, 90.75, 91.5])
 
     @requires_pandas
     @requires_geopandas

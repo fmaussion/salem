@@ -28,9 +28,9 @@ Graphics
     :toctree: generated/
     :nosignatures:
 
-    graphics.get_cmap
-    graphics.DataLevels
-    graphics.Map
+    get_cmap
+    DataLevels
+    Map
 
 
 Input/output
@@ -40,18 +40,29 @@ Input/output
     :toctree: generated/
     :nosignatures:
 
+    get_demo_file
     read_shapefile
     read_shapefile_to_grid
-    XarrayAccessor
+
+
+Xarray
+======
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
     open_xr_dataset
-    utils.get_demo_file
+    DataArrayAccessor
+    DatasetAccessor
 
 
 Old-style datasets
 ==================
 
 Old-style Datasets (prior to xarray), kept for backwards compatibility
-reasons. Eventually, they will be replaced by xarray's datasets.
+reasons and because they are more lightweight. They might be replaced by
+xarray's datasets one day.
 
 .. autosummary::
     :toctree: generated/

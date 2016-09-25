@@ -30,14 +30,6 @@ try:
     has_gdal = True
 except ImportError:
     has_gdal = False
-try:
-    import xarray as xr
-    from xarray import DataArray
-    has_xarray = True
-except ImportError:
-    has_xarray = False
-    DataArray = None
-
 
 # Locals
 from salem import lazy_property, wgs84
@@ -629,13 +621,10 @@ class Grid(object):
         if not isinstance(grid, Grid):
             raise ValueError('grid should be a Grid instance')
 
-        was_xarray = False
-        if has_xarray:
-            try:
-                data = data.values
-                was_xarray = True
-            except AttributeError:
-                pass
+        try:  # in case someone gave an xarray dataarray
+            data = data.values
+        except AttributeError:
+            pass
 
         in_shape = data.shape
         ndims = len(in_shape)
@@ -652,6 +641,7 @@ class Grid(object):
 
         # Transform the local grid into the input grid (backwards transform)
         # Work in center grid cause that's what we need
+        # TODO: this stage could be optimized when many variables need transfo
         i, j = self.center_grid.ij_coordinates
         oi, oj = grid.center_grid.transform(i, j, crs=self.center_grid,
                                             nearest=use_nn, maskout=False)
@@ -660,10 +650,7 @@ class Grid(object):
 
         # Prepare the output
         if out is not None:
-            if has_xarray and isinstance(out, DataArray):
-                out_data = out
-            else:
-                out_data = np.ma.asarray(out)
+            out_data = np.ma.asarray(out)
         else:
             out_shape = list(in_shape)
             out_shape[-2:] = [self.ny, self.nx]
@@ -718,15 +705,7 @@ class Grid(object):
             msg = 'interpolation not understood: {}'.format(interp)
             raise ValueError(msg)
 
-        out_data = np.ma.masked_invalid(out_data)
-
-        if was_xarray:
-            out_data = xr.DataArray(out_data, coords={'y': self.y_coord,
-                                                      'x': self.x_coord},
-                                    dims=['y', 'x'])
-            out_data.attrs['pyproj_srs'] = self.proj.srs
-
-        return out_data
+        return np.ma.masked_invalid(out_data)
 
     def region_of_interest(self, shape=None, geometry=None, grid=None,
                            corners=None, crs=wgs84, roi=None):

@@ -316,11 +316,14 @@ class DataLevels(object):
     def plot(self, ax):
         """Add a kind of plot of the data to an axis.
 
-        More useful for child classes if you ask me but still.
+        More useful for child classes.
+
+        Returns: imshow primitive
         """
         data = np.atleast_2d(self.data)
         toplot = self.cmap(self.norm(data))
-        ax.imshow(toplot, interpolation='none', origin='lower')
+        primitive = ax.imshow(toplot, interpolation='none', origin='lower')
+        return primitive
 
     def visualize(self, ax=None, title=None, orientation='vertical',
                   add_values=False, addcbar=True, cbar_title=''):
@@ -335,10 +338,8 @@ class DataLevels(object):
         """
 
         # Do we make our own fig?
-        _do_tight_layout = False
         if ax is None:
-            fig, ax = plt.subplots(1)
-            _do_tight_layout = True
+            ax = plt.gca()
 
         # Plot
         self.plot(ax)
@@ -365,8 +366,6 @@ class DataLevels(object):
         # Details
         if title is not None:
             ax.set_title(title)
-        if _do_tight_layout:
-            fig.tight_layout()
 
 
 class Map(DataLevels):
@@ -852,10 +851,13 @@ class Map(DataLevels):
 
         It first plots the image and then adds all the cartographic
         information on top of it.
+
+        Returns: imshow primitive
         """
 
         # Image is the easiest
-        ax.imshow(self.to_rgb(), interpolation='none', origin=self.origin)
+        primitive = ax.imshow(self.to_rgb(), interpolation='none',
+                              origin=self.origin)
         ax.autoscale(False)
 
         # Stippling
@@ -920,6 +922,8 @@ class Map(DataLevels):
         else:
             ax.xaxis.set_ticks([])
             ax.yaxis.set_ticks([])
+
+        return primitive
 
 
 def plot_polygon(ax, poly, edgecolor='black', **kwargs):

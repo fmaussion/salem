@@ -3,9 +3,9 @@ Salem
 =====
 
 Salem is a `cat`_. Salem is also a small library to do some geoscientific data
-processing and plotting. Above all, it extends `xarray`_ to add geolocalised
+processing and plotting. It extends `xarray`_ to add geolocalised
 subsetting, masking, and plotting operations to xarray's `DataArray`_ and
-`DataSet`_ objects.
+`DataSet`_ structures.
 
 .. _cat: https://drive.google.com/file/d/0B-0AsTwFw61uSE0zaktOOVN5X1E/view?usp=sharing
 .. _xarray: http://xarray.pydata.org/en/stable/
@@ -17,9 +17,10 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 
     Salem is at a very early development stage and is more a proof of
     feasibility than a library for "everything you'll ever have to do with
-    geoscientific data". There are plenty of other tools out there (see
-    :ref:`faqtools`). Salem basically reinvents the wheel, but it might still
-    be useful to you: if you use the `WRF model`_ for example, or if you like to
+    geoscientific data". There are plenty of more mature tools out there (see
+    :ref:`faqtools`). Salem basically reinvents the wheel, but in the way I
+    want the wheel to be. Some might still find it useful: as an addition to
+    xarray, if you use the `WRF model`_, or if you would like to
     have `axis labels on lambert conformal maps`_.
 
 .. _WRF Model: http://www2.mmm.ucar.edu/wrf/users/
@@ -67,7 +68,7 @@ About
     GNU GPLv3
 
 :Authors:
-    Fabien Maussion
+    `Fabien Maussion <http://fabienmaussion.info/>`_
 
 :Funding:
     .. image:: http://acinn.uibk.ac.at/sites/all/themes/imgi/images/acinn_logo.png

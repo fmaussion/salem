@@ -677,7 +677,6 @@ class TestGrid(unittest.TestCase):
 
     @requires_xarray
     def test_xarray_support(self):
-
         # what happens if we use salem's funcs with xarray?
         import xarray as xr
 
@@ -704,7 +703,8 @@ class TestGrid(unittest.TestCase):
             # map
             nx, ny = (3, 4)
             data = np.arange(nx * ny).reshape((ny, nx))
-            data = xr.DataArray(data).rename({'dim_0':'y', 'dim_1':'x'})
+            data = xr.DataArray(data).rename({'dim_0': 'y', 'dim_1': 'x'})
+            data.attrs = {'test': 'attr'}
 
             # Nearest Neighbor
             args = dict(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(0, 0),
@@ -714,18 +714,12 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(odata.shape == data.shape)
             assert_allclose(data, odata, atol=1e-03)
 
-            self.assertTrue(odata.salem.grid == g)
-
             # Transform can understand a grid
             data.attrs['pyproj_srs'] = g.proj.srs
             odata = g.map_gridded_data(data)
             self.assertTrue(odata.shape == data.shape)
             assert_allclose(data, odata, atol=1e-03)
-            odata = g.map_gridded_data(data, out=data)
-            self.assertTrue(odata.shape == data.shape)
-            assert_allclose(data, odata, atol=1e-03)
-            assert isinstance(odata, xr.DataArray)
-            self.assertTrue(odata.salem.grid == g)
+
 
 class TestTransform(unittest.TestCase):
 

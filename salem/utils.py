@@ -105,7 +105,7 @@ def _urlretrieve(url, ofile, *args, **kwargs):
         raise
 
 
-def _download_demo_files():
+def download_demo_files():
     """Checks if the demo data is already on the cache and downloads it.
 
     Borrowed from OGGM.
@@ -186,7 +186,7 @@ def _download_demo_files():
 def get_demo_file(fname):
     """Returns the path to the desired demo file."""
 
-    d = _download_demo_files()
+    d = download_demo_files()
     if fname in d:
         return d[fname]
     else:
