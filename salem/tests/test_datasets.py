@@ -31,7 +31,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from salem import Grid
 from salem.utils import get_demo_file
 from salem import wgs84
-from salem import wrf
+from salem import wrftools
 from salem.datasets import GeoDataset, GeoNetcdf, GeoTiff, WRF, \
     GoogleCenterMap, GoogleVisibleMap, EsriITMIX
 from salem.tests import requires_xarray, requires_rasterio, \
@@ -492,7 +492,7 @@ class TestWRF(unittest.TestCase):
         ref = 0.5 * (ref[:, :-1, ...] + ref[:, 1:, ...])
 
         # Own constructor
-        v = wrf.Unstaggerer(nc['PH'])
+        v = wrftools.Unstaggerer(nc['PH'])
         assert_allclose(v[:], ref)
         assert_allclose(v[0:2, 2:12, ...],
                         ref[0:2, 2:12, ...])
@@ -511,7 +511,7 @@ class TestWRF(unittest.TestCase):
         assert_allclose(v[..., [0, 2]],
                         ref[..., [0, 2]])
         # TODO: this is an issue
-        assert_allclose(v[0, ...], ref[0:0, ...])
+        assert_allclose(v[0, ...], ref[0:1, ...])
 
         # Under WRF
         nc = WRF(wf)

@@ -13,10 +13,10 @@ Let's open a `WRF model`_ output file:
 
     import salem
     from salem.utils import get_demo_file
-    ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+    ds = salem.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
 
 WRF files are not trivial. The projection is hidden somewhere
-in the attributes, there are many dimensions (more on these later). Let's
+in the attributes, they are not CF compliant, etc. Let's
 take a time slice of the variable ``T2`` for a start:
 
 .. ipython:: python
@@ -87,7 +87,7 @@ Celsius so we have to set it explicitly):
     smap.set_data(ds.T2.isel(time=1)-273.15, crs=ds.salem.grid)
 
     @savefig plot_wrf_t2_transform.png width=80%
-    smap.visualize(title='2m temp - large domain', cbar_title='°C')
+    smap.visualize(title='2m temp - large domain', cbar_title='C')
 
 
 Reprojecting data

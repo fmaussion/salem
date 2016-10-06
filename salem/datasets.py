@@ -14,14 +14,12 @@ from __future__ import division
 import io
 import os
 import warnings
-from datetime import datetime
 from six.moves.urllib.request import urlopen
 
 # External libs
 import pyproj
 import numpy as np
 import netCDF4
-
 
 try:
     from matplotlib.image import imread
@@ -47,7 +45,7 @@ except ImportError:
 from salem import lazy_property
 from salem import Grid
 from salem import wgs84
-from salem import utils, gis, wrf, sio
+from salem import utils, gis, wrftools, sio
 
 
 def _to_scalar(x):
@@ -382,7 +380,7 @@ class GeoNetcdf(GeoDataset):
         if grid is None:
             grid = sio.grid_from_dataset(self._nc)
         if time is None:
-            time = self._netcdf_time(monthbegin=monthbegin)
+            time = sio.netcdf_time(self._nc, monthbegin=monthbegin)
         dn = self._nc.dimensions.keys()
         self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
         self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
@@ -401,33 +399,6 @@ class GeoNetcdf(GeoDataset):
 
     def close(self):
         self._nc.close()
-
-    def _netcdf_time(self, monthbegin=False):
-        """Check if the netcdf file contains a time that Salem understands."""
-
-        time = None
-        vt = utils.str_in_list(self._nc.variables.keys(),
-                               utils.valid_names['time_var'])[0]
-        if hasattr(self._nc, 'TITLE') and 'GEOGRID' in self._nc.TITLE:
-            # geogrid file
-            pass
-        elif self._nc[vt].dtype in ['|S1', '|S19']:
-            # WRF file
-            time = []
-            for t in self._nc.variables['Times'][:]:
-                time.append(pd.to_datetime(t.tostring().decode(),
-                                           errors='raise',
-                                           format='%Y-%m-%d_%H:%M:%S'))
-        elif vt is not None:
-            # CF time
-            var = self._nc.variables[vt]
-            time = netCDF4.num2date(var[:], var.units)
-
-            if monthbegin:
-                # sometimes monthly data is centered in the month (stupid)
-                time = [datetime(t.year, t.month, 1) for t in time]
-
-        return time
 
     def get_vardata(self, var_id=0, as_xarray=False):
         """Reads the data out of the netCDF file while taking into account
@@ -488,12 +459,12 @@ class WRF(GeoNetcdf):
 
         # Change staggered variables to unstaggered ones
         for vn, v in self.variables.items():
-            if wrf.Unstaggerer.can_do(v):
-                self.variables[vn] = wrf.Unstaggerer(v)
+            if wrftools.Unstaggerer.can_do(v):
+                self.variables[vn] = wrftools.Unstaggerer(v)
 
         # Check if we can add diagnostic variables to the pot
-        for vn in wrf.var_classes:
-            cl = getattr(wrf, vn)
+        for vn in wrftools.var_classes:
+            cl = getattr(wrftools, vn)
             if cl.can_do(self.variables):
                 self.variables[vn] = cl(self.variables)
 

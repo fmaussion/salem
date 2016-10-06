@@ -445,8 +445,7 @@ class TestXarray(unittest.TestCase):
     @requires_xarray
     def test_era(self):
 
-        f = get_demo_file('era_interim_tibet.nc')
-        ds = sio.open_xr_dataset(f)
+        ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
         self.assertEqual(ds.salem.x_dim, 'longitude')
         self.assertEqual(ds.salem.y_dim, 'latitude')
 
@@ -464,7 +463,7 @@ class TestXarray(unittest.TestCase):
     def test_wrf(self):
         import xarray as xr
 
-        ds = sio.open_xr_dataset(get_demo_file('wrf_tip_d1.nc'))
+        ds = sio.open_wrf_dataset(get_demo_file('wrf_tip_d1.nc'))
 
         # this is because read_dataset changes some stuff, let's see if
         # georef still ok
@@ -489,12 +488,55 @@ class TestXarray(unittest.TestCase):
             g = t2.salem.grid
 
     @requires_xarray
+    def test_diagvars(self):
+
+        wf = get_demo_file('wrf_cropped.nc')
+        ncl_out = get_demo_file('wrf_cropped_ncl.nc')
+
+        w = sio.open_wrf_dataset(wf)
+        nc = sio.open_xr_dataset(ncl_out)
+        print(w)
+
+        ref = nc['TK']
+        tot = w['TK']
+        assert_allclose(ref, tot, rtol=1e-6)
+
+        ref = nc['SLP']
+        tot = w['SLP']
+        tot = tot.values
+        assert_allclose(ref, tot, rtol=1e-6)
+
+        w = w.isel(time=1, south_north=slice(12, 16), west_east=slice(9, 16))
+        nc = nc.isel(Time=1, south_north=slice(12, 16), west_east=slice(9, 16))
+
+        ref = nc['TK']
+        tot = w['TK']
+        assert_allclose(ref, tot, rtol=1e-6)
+
+        ref = nc['SLP']
+        tot = w['SLP']
+        tot = tot.values
+        assert_allclose(ref, tot, rtol=1e-6)
+
+        w = w.isel(bottom_top=slice(3, 5))
+        nc = nc.isel(bottom_top=slice(3, 5))
+
+        ref = nc['TK']
+        tot = w['TK']
+        assert_allclose(ref, tot, rtol=1e-6)
+
+        ref = nc['SLP']
+        tot = w['SLP']
+        tot = tot.values
+        assert_allclose(ref, tot, rtol=1e-6)
+
+    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_transform_logic(self):
 
         # This is just for the naming and dim logic, the rest is tested elsewh
-        ds1 = sio.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
-        ds2 = sio.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+        ds1 = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+        ds2 = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
 
         # 2darray case
         t2 = ds2.T2.isel(time=1)

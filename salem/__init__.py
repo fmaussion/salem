@@ -55,7 +55,8 @@ if sys.version_info.major == 2:
 from salem.gis import *
 from salem.datasets import *
 from salem.sio import read_shapefile, read_shapefile_to_grid
-from salem.sio import open_xr_dataset, DataArrayAccessor, DatasetAccessor
+from salem.sio import open_xr_dataset, open_wrf_dataset, \
+    DataArrayAccessor, DatasetAccessor
 from salem.utils import get_demo_file
 from salem.graphics import get_cmap, DataLevels, Map
 
