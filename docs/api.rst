@@ -53,6 +53,7 @@ Xarray
     :nosignatures:
 
     open_xr_dataset
+    open_wrf_dataset
     DataArrayAccessor
     DatasetAccessor
 
@@ -61,7 +62,7 @@ Old-style datasets
 ==================
 
 Old-style Datasets (prior to xarray), kept for backwards compatibility
-reasons and because they are more lightweight. They might be replaced by
+reasons and because they are quite lightweight. They might be replaced by
 xarray's datasets one day.
 
 .. autosummary::

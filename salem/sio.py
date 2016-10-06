@@ -9,15 +9,18 @@ from __future__ import division
 import os
 import pickle
 import warnings
-import copy
+from datetime import datetime
 
 import numpy as np
+import netCDF4
 
 from salem.utils import memory, cached_shapefile_path
-from salem import gis, utils, wgs84
+from salem import gis, utils, wgs84, wrftools
 
 try:
     import xarray as xr
+    from xarray.backends.netCDF4_ import NetCDF4DataStore, close_on_error, \
+        _nc4_group
     has_xarray = True
 except ImportError:
     has_xarray = False
@@ -323,6 +326,40 @@ def grid_from_dataset(ds):
     return _lonlat_grid_from_dataset(ds)
 
 
+def netcdf_time(ncobj, monthbegin=False):
+    """Check if the netcdf file contains a time that Salem understands."""
+
+    import pandas as pd
+
+    time = None
+    vt = utils.str_in_list(ncobj.variables.keys(),
+                           utils.valid_names['time_var'])[0]
+    if hasattr(ncobj, 'TITLE') and 'GEOGRID' in ncobj.TITLE:
+        # geogrid file
+        pass
+    elif ncobj[vt].dtype in ['|S1', '|S19']:
+        # WRF file
+        time = []
+        try:
+            stimes = ncobj.variables['Times'][:].values
+        except AttributeError:
+            stimes = ncobj.variables['Times'][:]
+        for t in stimes:
+            time.append(pd.to_datetime(t.tostring().decode(),
+                                       errors='raise',
+                                       format='%Y-%m-%d_%H:%M:%S'))
+    elif vt is not None:
+        # CF time
+        var = ncobj.variables[vt]
+        time = netCDF4.num2date(var[:], var.units)
+
+        if monthbegin:
+            # sometimes monthly data is centered in the month (stupid)
+            time = [datetime(t.year, t.month, 1) for t in time]
+
+    return time
+
+
 class _XarrayAccessorBase(object):
     """Common logic for for both data structures (DataArray and Dataset).
 
@@ -607,6 +644,27 @@ class DatasetAccessor(_XarrayAccessorBase):
                 self._obj[new_name] = out[v]
 
 
+class _NetCDF4DataStore(NetCDF4DataStore):
+    """Just another way to init xarray's datastore
+    """
+    def __init__(self, filename, mode='r', format='NETCDF4', group=None,
+                 writer=None, clobber=True, diskless=False, persist=False,
+                 ds=None):
+        import netCDF4 as nc4
+        if format is None:
+            format = 'NETCDF4'
+        if ds is None:
+            ds = nc4.Dataset(filename, mode=mode, clobber=clobber,
+                             diskless=diskless, persist=persist,
+                             format=format)
+        with close_on_error(ds):
+            self.ds = _nc4_group(ds, group, mode)
+        self.format = format
+        self.is_remote = False
+        self._filename = filename
+        super(NetCDF4DataStore, self).__init__(writer)
+
+
 def open_xr_dataset(file):
     """Thin wrapper around xarray's open_dataset.
 
@@ -624,7 +682,7 @@ def open_xr_dataset(file):
     if (ext.lower() == '.tif') or (ext.lower() == '.tiff'):
         from salem import GeoTiff
         geo = GeoTiff(file)
-        # TODO: currently everything is loaded in memory
+        # TODO: currently everything is loaded in memory (baaad)
         da = xr.DataArray(geo.get_vardata(),
                           coords={'x': geo.grid.x_coord,
                                   'y': geo.grid.y_coord},
@@ -645,18 +703,6 @@ def open_xr_dataset(file):
                       RuntimeWarning)
         return ds
 
-    # maybe it's a WRF file?
-    if hasattr(ds, 'MOAD_CEN_LAT'):
-        # quick n dirty solution for now
-        from salem import GeoNetcdf
-        with GeoNetcdf(file) as geo:
-            ds['Time'] = geo.time
-            ds = ds.drop('Times')
-            ds.rename({'Time':'time', 'XLAT':'lat', 'XLONG':'lon'},
-                      inplace=True)
-            ds['west_east'] = geo.grid.x_coord
-            ds['south_north'] = geo.grid.y_coord
-
     # add pyproj string everywhere
     ds.attrs['pyproj_srs'] = grid.proj.srs
     for v in ds.data_vars:
@@ -664,3 +710,52 @@ def open_xr_dataset(file):
 
     return ds
 
+
+def open_wrf_dataset(file):
+    """Wrapper around xarray's open_dataset to make WRF files a bit better.
+
+    This is needed because variables often have not enough georef attrs
+    to be understood alone, and datasets tend to loose their attrs with
+    operations...
+
+    Returns:
+    --------
+    xr.Dasaset
+    """
+
+    nc = netCDF4.Dataset(file)
+
+    # Change staggered variables to unstaggered ones
+    for vn, v in nc.variables.items():
+        if wrftools.Unstaggerer.can_do(v):
+            nc.variables[vn] = wrftools.Unstaggerer(v)
+
+    # # Check if we can add diagnostic variables to the pot
+    for vn in wrftools.var_classes:
+        cl = getattr(wrftools, vn)
+        if cl.can_do(nc.variables):
+            nc.variables[vn] = cl(nc.variables)
+
+    # trick xarray with our custom netcdf
+    ds = xr.open_dataset(_NetCDF4DataStore(file, ds=nc))
+
+    # Convert time
+    ds['Time'] = netcdf_time(ds)
+    ds.rename({'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon'},
+              inplace=True)
+
+    # drop ugly vars
+    vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']
+    vns = [vn for vn in vns if vn in ds.variables]
+    ds = ds.drop(vns)
+
+    # add cartesian coords
+    ds['west_east'] = ds.salem.grid.x_coord
+    ds['south_north'] = ds.salem.grid.y_coord
+
+    # add pyproj string everywhere
+    ds.attrs['pyproj_srs'] = ds.salem.grid.proj.srs
+    for v in ds.data_vars:
+        ds[v].attrs['pyproj_srs'] = ds.salem.grid.proj.srs
+
+    return ds

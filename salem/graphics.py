@@ -412,6 +412,7 @@ class Map(DataLevels):
         self._shading_base()
         self._rgb = None
         self._contourf_data = None
+        self._contour_data = None
 
     def _check_data(self, data=None, crs=None, interp='nearest',
                     overplot=False):
@@ -484,7 +485,7 @@ class Map(DataLevels):
         DataLevels.set_data(self, data)
 
     def set_contourf(self, data=None, crs=None, interp='nearest', **kwargs):
-        """Adds data to contour on the map.
+        """Adds data to contourfill on the map.
 
         Parameters
         ----------
@@ -503,6 +504,27 @@ class Map(DataLevels):
         self._contourf_data = self._check_data(data=data, crs=crs,
                                                interp=interp)
         self._contourf_kw = kwargs
+
+    def set_contour(self, data=None, crs=None, interp='nearest', **kwargs):
+        """Adds data to contour on the map.
+
+        Parameters
+        ----------
+        mask: bool array (2d)
+        crs: the data coordinate reference system
+        interp: 'nearest' (default) or 'linear', the interpolation algorithm
+        kwargs: anything accepted by contour
+        """
+
+
+        # Check input
+        if data is None:
+            self._contour_data = None
+            return
+
+        self._contour_data = self._check_data(data=data, crs=crs,
+                                              interp=interp)
+        self._contour_kw = kwargs
 
     def set_geometry(self, geometry=None, crs=wgs84, text=None,
                      text_delta=(0.01, 0.01), text_kwargs=dict(), **kwargs):
@@ -608,7 +630,7 @@ class Map(DataLevels):
             kwargs.setdefault('colors', (0.08984375, 0.65625, 0.8515625))
             return self.set_shapefile(shapefiles['rivers'], **kwargs)
         if countries:
-            return self.set_shapefile(shapefiles['world_borders'])
+            return self.set_shapefile(shapefiles['world_borders'], **kwargs)
 
         # Reset?
         if shape is None:
@@ -860,7 +882,11 @@ class Map(DataLevels):
                               origin=self.origin)
         ax.autoscale(False)
 
-        # Stippling
+        # Contour
+        if self._contour_data is not None:
+            ax.contour(self._contour_data, **self._contour_kw)
+
+        # Contourfill
         if self._contourf_data is not None:
             ax.contourf(self._contourf_data, **self._contourf_kw)
 

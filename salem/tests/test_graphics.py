@@ -239,9 +239,6 @@ def test_contourf():
     a[2, 4] = 1.9
     a[3, 3] = 9
 
-    s = a * 0.
-    s[2, 2] = 1
-
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(1, -1), ul_corner=(-1, 3), proj=wgs84,
              pixel_ref='corner')
@@ -250,8 +247,17 @@ def test_contourf():
     c.set_cmap(mpl.cm.get_cmap('viridis'))
     c.set_plot_params(levels=[0, 1, 2, 3])
     c.set_data(a)
+    s = a * 0.
+    s[2, 2] = 1
     c.set_contourf(s, interp='linear', hatches=['xxx'], colors='none',
                    levels=[0.5, 1.5])
+
+    s = a * 0.
+    s[0:2, 3:] = 1
+    s[0, 4] = 2
+    c.set_contour(s, interp='linear', colors='k', linewidths=6,
+                  levels=[0.5, 1., 1.5])
+
     c.set_lonlat_contours(interval=0.5)
 
     fig, ax = plt.subplots(1)
@@ -260,6 +266,7 @@ def test_contourf():
 
     # remove it
     c.set_contourf()
+    c.set_contour()
 
     return fig
 
@@ -546,7 +553,7 @@ def test_gmap_llconts():
 def test_plot_on_map():
     import salem
     from salem.utils import get_demo_file
-    ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+    ds = salem.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
     t2_sub = ds.salem.subset(corners=((77., 20.), (97., 35.)), crs=salem.wgs84).T2.isel(time=2)
     shdf = salem.read_shapefile(get_demo_file('world_borders.shp'))
     shdf = shdf.loc[shdf['CNTRY_NAME'].isin(
@@ -564,7 +571,7 @@ def test_plot_on_map():
 def test_example_docs():
     import salem
     from salem.utils import get_demo_file
-    ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
+    ds = salem.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
 
     t2 = ds.T2.isel(time=2)
     t2_sub = t2.salem.subset(corners=((77., 20.), (97., 35.)),

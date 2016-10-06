@@ -14,6 +14,7 @@ except ImportError:
 # TODO: uniformize the interface with "nc" as solo argument everywhere,
 # not just ncvars
 
+
 class Unstaggerer(object):
     """Duck NetCDF4.Variable class which "unstaggers" WRF variables.
 
@@ -38,8 +39,25 @@ class Unstaggerer(object):
         self.ds = np.nonzero(['_stag' in d for d in dims])[0][0]
         dims[self.ds] = dims[self.ds].replace('_stag', '')
         self.dimensions = dims
+        shape = list(ncvar.shape)
+        shape[self.ds] -=1
+        self.shape = tuple(shape)
+        # this is quickndirty, but wrong
+        self.set_auto_maskandscale = ncvar.set_auto_maskandscale
+        self.ncattrs = ncvar.ncattrs
+        self.filters = ncvar.filters
+        def _chunking():
+            return self.shape
+        self.chunking = _chunking
+        for attr in self.ncattrs():
+            setattr(self, attr, getattr(ncvar, attr))
+        self.dtype = ncvar.dtype
         # Needed later
         self._ds_shape = ncvar.shape[self.ds]
+
+    def getncattr(self, name):
+        # dummy getncattrs
+        return getattr(self, name)
 
     @staticmethod
     def can_do(ncvar):
@@ -58,7 +76,7 @@ class Unstaggerer(object):
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
         for i, c in enumerate(item):
             if np.isscalar(c) and not isinstance(c, slice):
-                item[i] = slice(c, c)
+                item[i] = slice(c, c+1)
 
         start = item[self.ds].start
         stop = item[self.ds].stop
@@ -78,10 +96,7 @@ class Unstaggerer(object):
 
 
 class FakeVariable(object):
-    """Duck NetCDF4.Variable class.
-
-    Only a few (the most important) methods are implemented:
-        - __getitem__
+    """Duck NetCDF4.Variable class
     """
     def __init__(self, ncvars):
         self.name = self.__class__.__name__
@@ -91,6 +106,22 @@ class FakeVariable(object):
     def can_do():
         raise NotImplementedError()
 
+    def _copy_attrs_from(self, ncvar):
+        # copies the necessary nc attributes from a template variable
+        self.ncattrs = ncvar.ncattrs
+        self.filters = ncvar.filters
+        self.chunking = ncvar.chunking
+        for attr in self.ncattrs():
+            setattr(self, attr, getattr(ncvar, attr))
+        self.dimensions = ncvar.dimensions
+        self.dtype = ncvar.dtype
+        self.set_auto_maskandscale = ncvar.set_auto_maskandscale
+        self.shape = ncvar.shape
+
+    def getncattr(self, name):
+        # dummy getncattrs
+        return getattr(self, name)
+
     def __getitem__(self, item):
         raise NotImplementedError()
 
@@ -98,9 +129,9 @@ class FakeVariable(object):
 class T2C(FakeVariable):
     def __init__(self, ncvars):
         FakeVariable.__init__(self, ncvars)
+        self._copy_attrs_from(self.ncvars['T2'])
         self.units = 'C'
         self.description = '2m Temperature'
-        self.dimensions = self.ncvars['T2'].dimensions
 
     @staticmethod
     def can_do(ncvars):
@@ -113,9 +144,9 @@ class T2C(FakeVariable):
 class TK(FakeVariable):
     def __init__(self, ncvars):
         FakeVariable.__init__(self, ncvars)
+        self._copy_attrs_from(self.ncvars['T'])
         self.units = 'K'
         self.description = 'Temperature'
-        self.dimensions = self.ncvars['T'].dimensions
 
     @staticmethod
     def can_do(ncvars):
@@ -134,21 +165,23 @@ class TK(FakeVariable):
 class SLP(FakeVariable):
     def __init__(self, ncvars):
         FakeVariable.__init__(self, ncvars)
+        self._copy_attrs_from(self.ncvars['T2'])
         self.units = 'hPa'
         self.description = 'Sea level pressure'
-        self.dimensions = self.ncvars['T2'].dimensions
 
     @staticmethod
     def can_do(ncvars):
-        need = ['T', 'P', 'PB', 'QVAPOR', 'PH', 'PHB']
+        # t2 is for attrs (not elegant)
+        need = ['T', 'P', 'PB', 'QVAPOR', 'PH', 'PHB', 'T2']
         return np.all([n in ncvars for n in need])
 
     def __getitem__(self, item):
-        tk = self.ncvars['TK'][item]
-        p = self.ncvars['P'][item] + self.ncvars['PB'][item]
-        q = self.ncvars['QVAPOR'][item]
-        z = (self.ncvars['PH'][item] + self.ncvars['PHB'][item]) / 9.81
-        return _ncl_slp(z, tk, p, q)
+        # TODO: indexing below is inefficient
+        tk = self.ncvars['TK'][:]
+        p = self.ncvars['P'][:] + self.ncvars['PB'][:]
+        q = self.ncvars['QVAPOR'][:]
+        z = (self.ncvars['PH'][:] + self.ncvars['PHB'][:]) / 9.81
+        return _ncl_slp(z, tk, p, q)[item]
 
 # Diagnostic variable classes in a list
 var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
@@ -279,4 +312,3 @@ def _ncl_slp(z, t, p, q):
 
     # Convert to hPa in this step
     return 0.01 * (p0 * np.exp((2.*g*z_half_lowest)/(r*(t_sea_level+t_surf))))
-
