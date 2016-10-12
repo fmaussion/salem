@@ -571,9 +571,9 @@ def test_plot_on_map():
 def test_example_docs():
     import salem
     from salem.utils import get_demo_file
-    ds = salem.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+    ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
 
-    t2 = ds.T2.isel(time=2)
+    t2 = ds.T2.isel(Time=2)
     t2_sub = t2.salem.subset(corners=((77., 20.), (97., 35.)),
                              crs=salem.wgs84)
     shdf = salem.read_shapefile(get_demo_file('world_borders.shp'))
@@ -586,7 +586,7 @@ def test_example_docs():
     smap.set_shapefile(shape=shdf, color='grey', linewidth=3)
     smap.set_points(91.1, 29.6)
     smap.set_text(91.2, 29.7, 'Lhasa', fontsize=17)
-    smap.set_data(ds.T2.isel(time=1)-273.15, crs=ds.salem.grid)
+    smap.set_data(ds.T2.isel(Time=1)-273.15, crs=ds.salem.grid)
 
     fig, ax = plt.subplots(1, 1)
     smap.visualize(ax=ax)

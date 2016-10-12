@@ -34,6 +34,7 @@ except ImportError:
             return func
     xr.register_dataset_accessor = NullDecl
     xr.register_dataarray_accessor = NullDecl
+    NetCDF4DataStore = object
 
 
 def read_shapefile(fpath, cached=False):
@@ -703,6 +704,11 @@ def open_xr_dataset(file):
                       RuntimeWarning)
         return ds
 
+    # add cartesian coords for WRF
+    if 'west_east' in ds.variables:
+        ds['west_east'] = ds.salem.grid.x_coord
+        ds['south_north'] = ds.salem.grid.y_coord
+
     # add pyproj string everywhere
     ds.attrs['pyproj_srs'] = grid.proj.srs
     for v in ds.data_vars:
@@ -733,8 +739,8 @@ def open_wrf_dataset(file):
     # # Check if we can add diagnostic variables to the pot
     for vn in wrftools.var_classes:
         cl = getattr(wrftools, vn)
-        if cl.can_do(nc.variables):
-            nc.variables[vn] = cl(nc.variables)
+        if cl.can_do(nc):
+            nc.variables[vn] = cl(nc)
 
     # trick xarray with our custom netcdf
     ds = xr.open_dataset(_NetCDF4DataStore(file, ds=nc))
