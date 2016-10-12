@@ -20,11 +20,9 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
     geoscientific data". There are plenty of more mature tools out there (see
     :ref:`faqtools`). Salem basically reinvents the wheel, but in the way I
     want the wheel to be. Some might still find it useful: as an addition to
-    xarray, if you use the `WRF model`_, or if you would like to
-    have `axis labels on lambert conformal maps`_.
+    xarray, or if you use the `WRF model`_ for example.
 
 .. _WRF Model: http://www2.mmm.ucar.edu/wrf/users/
-.. _axis labels on lambert conformal maps: http://stackoverflow.com/questions/27962953/cartopy-axis-label-workaround
 
 
 Documentation
@@ -38,6 +36,7 @@ Documentation
     installing
     gis
     plotting
+    wrf
     api
 
 Get in touch

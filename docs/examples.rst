@@ -13,15 +13,13 @@ Let's open a `WRF model`_ output file:
 
     import salem
     from salem.utils import get_demo_file
-    ds = salem.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+    ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
 
-WRF files are not trivial. The projection is hidden somewhere
-in the attributes, they are not CF compliant, etc. Let's
-take a time slice of the variable ``T2`` for a start:
+Let's take a time slice of the variable ``T2`` for a start:
 
 .. ipython:: python
 
-    t2 = ds.T2.isel(time=2)
+    t2 = ds.T2.isel(Time=2)
 
     @savefig plot_wrf_t2.png width=80%
     t2.salem.quick_map()
@@ -101,7 +99,7 @@ Salem can also transform data from one grid to another:
         t2_era_reproj = ds.salem.transform(dse.t2m)
         assert t2_era_reproj.salem.grid == ds.salem.grid
         @savefig plot_era_repr_nn.png width=80%
-        t2_era_reproj.isel(time=0).salem.quick_map()
+        t2_era_reproj.isel(Time=0).salem.quick_map()
 
 
 

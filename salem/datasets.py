@@ -465,8 +465,8 @@ class WRF(GeoNetcdf):
         # Check if we can add diagnostic variables to the pot
         for vn in wrftools.var_classes:
             cl = getattr(wrftools, vn)
-            if cl.can_do(self.variables):
-                self.variables[vn] = cl(self.variables)
+            if cl.can_do(self._nc):
+                self.variables[vn] = cl(self._nc)
 
 
 class GoogleCenterMap(GeoDataset):

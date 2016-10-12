@@ -8,6 +8,7 @@ import warnings
 import copy
 
 import pytest
+import netCDF4
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -460,6 +461,35 @@ class TestXarray(unittest.TestCase):
 
     @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
+    def test_basic_wrf(self):
+        import xarray as xr
+
+        ds = sio.open_xr_dataset(get_demo_file('wrf_tip_d1.nc'))
+
+        # this is because read_dataset changes some stuff, let's see if
+        # georef still ok
+        dsxr = xr.open_dataset(get_demo_file('wrf_tip_d1.nc'))
+        assert ds.salem.grid == dsxr.salem.grid
+
+        lon, lat = ds.salem.grid.ll_coordinates
+        assert_allclose(lon, ds['XLONG'], atol=1e-4)
+        assert_allclose(lat, ds['XLAT'], atol=1e-4)
+
+        # then something strange happened
+        assert ds.isel(Time=0).salem.grid == ds.salem.grid
+        assert ds.isel(Time=0).T2.salem.grid == ds.salem.grid
+
+        nlon, nlat = ds.isel(Time=0).T2.salem.grid.ll_coordinates
+        assert_allclose(nlon, ds['XLONG'], atol=1e-4)
+        assert_allclose(nlat, ds['XLAT'], atol=1e-4)
+
+        # the grid should not be missunderstood as lonlat
+        t2 = ds.T2.isel(Time=0) - 273.15
+        with pytest.raises(RuntimeError):
+            g = t2.salem.grid
+
+    @requires_xarray
+    @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_wrf(self):
         import xarray as xr
 
@@ -495,7 +525,6 @@ class TestXarray(unittest.TestCase):
 
         w = sio.open_wrf_dataset(wf)
         nc = sio.open_xr_dataset(ncl_out)
-        print(w)
 
         ref = nc['TK']
         tot = w['TK']
@@ -529,6 +558,101 @@ class TestXarray(unittest.TestCase):
         tot = w['SLP']
         tot = tot.values
         assert_allclose(ref, tot, rtol=1e-6)
+
+    @requires_xarray
+    def test_unstagger(self):
+
+        wf = get_demo_file('wrf_cropped.nc')
+
+        w = sio.open_wrf_dataset(wf)
+        nc = sio.open_xr_dataset(wf)
+
+        nc['PH_UNSTAGG'] = nc['P']*0.
+        uns = nc['PH'].isel(bottom_top_stag=slice(0, -1)).values + \
+              nc['PH'].isel(bottom_top_stag=slice(1, len(nc.bottom_top_stag))).values
+        nc['PH_UNSTAGG'].values = uns * 0.5
+
+        assert_allclose(w['PH'], nc['PH_UNSTAGG'])
+
+        wn = w.isel(west_east=slice(4, 8))
+        ncn = nc.isel(west_east=slice(4, 8))
+        assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+        wn = w.isel(south_north=slice(4, 8), time=1)
+        ncn = nc.isel(south_north=slice(4, 8), Time=1)
+        assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+        wn = w.isel(west_east=4)
+        ncn = nc.isel(west_east=4)
+        assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+        wn = w.isel(bottom_top=4)
+        ncn = nc.isel(bottom_top=4)
+        assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+        wn = w.isel(bottom_top=0)
+        ncn = nc.isel(bottom_top=0)
+        assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+        wn = w.isel(bottom_top=-1)
+        ncn = nc.isel(bottom_top=-1)
+        assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+    @requires_xarray
+    def test_prcp(self):
+
+        wf = get_demo_file('wrfout_d01.nc')
+
+        w = sio.open_wrf_dataset(wf)
+        nc = sio.open_xr_dataset(wf)
+
+        nc['REF_PRCP_NC'] = nc['RAINNC']*0.
+        uns = nc['RAINNC'].isel(Time=slice(1, len(nc.bottom_top_stag))).values - \
+              nc['RAINNC'].isel(Time=slice(0, -1)).values
+        nc['REF_PRCP_NC'].values[1:, ...] = uns * 60 / 180.  # for three hours
+        nc['REF_PRCP_NC'].values[0, ...] = np.NaN
+
+        nc['REF_PRCP_C'] = nc['RAINC']*0.
+        uns = nc['RAINC'].isel(Time=slice(1, len(nc.bottom_top_stag))).values - \
+              nc['RAINC'].isel(Time=slice(0, -1)).values
+        nc['REF_PRCP_C'].values[1:, ...] = uns * 60 / 180.  # for three hours
+        nc['REF_PRCP_C'].values[0, ...] = np.NaN
+
+        nc['REF_PRCP'] = nc['REF_PRCP_C'] + nc['REF_PRCP_NC']
+
+        for suf in ['_NC', '_C', '']:
+
+            assert_allclose(w['PRCP' + suf], nc['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=slice(1, 3))
+            ncn = nc.isel(Time=slice(1, 3))
+            assert_allclose(wn['PRCP' + suf], ncn['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=2)
+            ncn = nc.isel(Time=2)
+            assert_allclose(wn['PRCP' + suf], ncn['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=1)
+            ncn = nc.isel(Time=1)
+            assert_allclose(wn['PRCP' + suf], ncn['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=0)
+            self.assertTrue(~np.any(np.isfinite(wn['PRCP' + suf].values)))
+
+            wn = w.isel(time=slice(1, 3), south_north=slice(50, -1))
+            ncn = nc.isel(Time=slice(1, 3), south_north=slice(50, -1))
+            assert_allclose(wn['PRCP' + suf], ncn['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=2, south_north=slice(50, -1))
+            ncn = nc.isel(Time=2, south_north=slice(50, -1))
+            assert_allclose(wn['PRCP' + suf], ncn['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=1, south_north=slice(50, -1))
+            ncn = nc.isel(Time=1, south_north=slice(50, -1))
+            assert_allclose(wn['PRCP' + suf], ncn['REF_PRCP' + suf], rtol=1e-5)
+
+            wn = w.isel(time=0, south_north=slice(50, -1))
+            self.assertTrue(~np.any(np.isfinite(wn['PRCP' + suf].values)))
 
     @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
@@ -586,3 +710,21 @@ class TestXarray(unittest.TestCase):
                         t2.coords['south_north'])
         assert_allclose(out.coords['west_east'],
                         t2.coords['west_east'])
+
+
+class TestGeogridSim(unittest.TestCase):
+
+    def test_lambert(self):
+
+        from salem.wrftools import geogrid_simulator
+
+        g = geogrid_simulator(get_demo_file('namelist_lambert.wps'))
+
+        assert len(g) == 3
+
+        for i in [1, 2, 3]:
+            fg = get_demo_file('geo_em_d0{}_lambert.nc'.format(i))
+            ds = netCDF4.Dataset(fg)
+            lon, lat = g[i-1].ll_coordinates
+            assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
+            assert_allclose(lat, ds['XLAT_M'][0, ...], atol=1e-4)

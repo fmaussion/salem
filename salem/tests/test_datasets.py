@@ -209,6 +209,7 @@ class TestGeotiff(unittest.TestCase):
         topo = ds.get_vardata()
 
     @requires_xarray
+    @requires_rasterio
     def test_xarray(self):
 
         from salem import open_xr_dataset
@@ -510,8 +511,7 @@ class TestWRF(unittest.TestCase):
                         ref[[0, 2], ...])
         assert_allclose(v[..., [0, 2]],
                         ref[..., [0, 2]])
-        # TODO: this is an issue
-        assert_allclose(v[0, ...], ref[0:1, ...])
+        assert_allclose(v[0, ...], ref[0, ...])
 
         # Under WRF
         nc = WRF(wf)

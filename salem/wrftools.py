@@ -3,16 +3,18 @@
 Diagnostic variables are simply a subclass of FakeVariable that implement
 __getitem__. See examples below.
 """
+from __future__ import division
 import copy
 
 import numpy as np
+import pyproj
 try:
+    from pandas import to_datetime
     from xarray.core import indexing
 except ImportError:
     pass
 
-# TODO: uniformize the interface with "nc" as solo argument everywhere,
-# not just ncvars
+from salem import lazy_property, wgs84, gis
 
 
 class Unstaggerer(object):
@@ -42,16 +44,20 @@ class Unstaggerer(object):
         shape = list(ncvar.shape)
         shape[self.ds] -=1
         self.shape = tuple(shape)
-        # this is quickndirty, but wrong
+
+        # this is quickndirty, and probably wrong
         self.set_auto_maskandscale = ncvar.set_auto_maskandscale
         self.ncattrs = ncvar.ncattrs
         self.filters = ncvar.filters
+
         def _chunking():
             return self.shape
         self.chunking = _chunking
+
         for attr in self.ncattrs():
             setattr(self, attr, getattr(ncvar, attr))
         self.dtype = ncvar.dtype
+
         # Needed later
         self._ds_shape = ncvar.shape[self.ds]
 
@@ -72,35 +78,32 @@ class Unstaggerer(object):
     def __getitem__(self, item):
         """Override __getitem__."""
 
-        # Horrible logic here. I;ll have to go back to this when I'm smarter
+        # take care of ellipsis and other strange indexes
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
-        for i, c in enumerate(item):
-            if np.isscalar(c) and not isinstance(c, slice):
-                item[i] = slice(c, c+1)
 
-        start = item[self.ds].start
-        stop = item[self.ds].stop
-        if start is None:
-            start = 0
-        if stop is None:
-            stop = self._ds_shape
+        # Slice to change
+        sl = item[self.ds]
+        if np.isscalar(sl) and not isinstance(sl, slice):
+            sl = slice(sl, sl+1)
+
+        # Ok, get the indexes right
+        start = sl.start or 0
+        stop = sl.stop or self._ds_shape
         if stop < 0:
             stop += self._ds_shape-1
         stop = np.clip(stop+1, 0, self._ds_shape)
-        tc1 = slice(start+1, stop)
-        tc0 = slice(start, stop-1)
-        item1 = copy.deepcopy(item)
-        item[self.ds] = tc0
-        item1[self.ds] = tc1
-        return 0.5*(self.ncvar[item] + self.ncvar[item1])
+        itemr = copy.deepcopy(item)
+        item[self.ds] = slice(start, stop-1)
+        itemr[self.ds] = slice(start+1, stop)
+        return 0.5*(self.ncvar[item] + self.ncvar[itemr])
 
 
 class FakeVariable(object):
     """Duck NetCDF4.Variable class
     """
-    def __init__(self, ncvars):
+    def __init__(self, nc):
         self.name = self.__class__.__name__
-        self.ncvars = ncvars
+        self.nc = nc
 
     @staticmethod
     def can_do():
@@ -127,64 +130,188 @@ class FakeVariable(object):
 
 
 class T2C(FakeVariable):
-    def __init__(self, ncvars):
-        FakeVariable.__init__(self, ncvars)
-        self._copy_attrs_from(self.ncvars['T2'])
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['T2'])
         self.units = 'C'
         self.description = '2m Temperature'
 
     @staticmethod
-    def can_do(ncvars):
-        return 'T2' in ncvars
+    def can_do(nc):
+        return 'T2' in nc.variables
 
     def __getitem__(self, item):
-        return self.ncvars['T2'][item] - 273.15
+        return self.nc.variables['T2'][item] - 273.15
+
+
+class AccumulatedVariable(FakeVariable):
+    """Common logic for all accumulated variables."""
+
+    def __init__(self, nc, accvn):
+        FakeVariable.__init__(self, nc)
+        self.accvn = accvn
+        self._copy_attrs_from(nc.variables[self.accvn])
+        # Needed later
+        self._nel = nc.variables[self.accvn].shape[0]
+
+    @lazy_property
+    def _factor(self):
+        # easy would be to have time step as variable
+        vars = self.nc.variables
+        if 'XTIME' in vars:
+            raise NotImplementedError('Not tested yet')
+            dt_minutes = vars['XTIME'][1] - vars['XTIME'][0]
+        else:
+            # ok, parse time
+            time = []
+            stimes = vars['Times'][0:2]
+            for t in stimes:
+                time.append(to_datetime(t.tostring().decode(),
+                                        errors='raise',
+                                        format='%Y-%m-%d_%H:%M:%S'))
+            dt_minutes = time[1] - time[0]
+            dt_minutes = dt_minutes.seconds / 60
+
+        return 60 / dt_minutes
+
+    @staticmethod
+    def can_do(nc):
+        return False
+
+    def __getitem__(self, item):
+
+        # take care of ellipsis and other strange indexes
+        item = list(indexing.expanded_indexer(item, len(self.dimensions)))
+
+        # time is always going to be first dim I hope
+        sl = item[0]
+        if np.isscalar(sl) and not isinstance(sl, slice):
+            sl = slice(sl, sl+1)
+
+        # Ok, get the indexes right
+        start = sl.start or 0
+        stop = sl.stop or self._nel
+        if stop < 0:
+            stop += self._nel-1
+        start -= 1
+        do_nan = False
+        if start < 0:
+            do_nan = True
+        itemr = copy.deepcopy(item)
+        item[0] = slice(start, stop-1)
+        itemr[0] = slice(start+1, stop)
+
+        # done
+        var = self.nc.variables[self.accvn]
+        if do_nan:
+            item[0] = slice(0, stop-1)
+            out = var[itemr]
+            out[1:, ...] -= var[item]
+            out[0, ...] = np.NaN
+        else:
+            out = var[itemr]
+            out -= var[item]
+        return out * self._factor
+
+
+class PRCP_NC(AccumulatedVariable):
+
+    def __init__(self, nc):
+        AccumulatedVariable.__init__(self, nc, 'RAINNC')
+        self.units = 'mm h-1'
+        self.description = 'Precipitation rate from grid scale physics'
+
+    @staticmethod
+    def can_do(nc):
+        return 'RAINNC' in nc.variables
+
+
+class PRCP_C(AccumulatedVariable):
+
+    def __init__(self, nc):
+        AccumulatedVariable.__init__(self, nc, 'RAINC')
+        self.units = 'mm h-1'
+        self.description = 'Precipitation rate from cumulus physics'
+
+    @staticmethod
+    def can_do(nc):
+        return 'RAINC' in nc.variables
+
+
+class PRCP(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['RAINC'])
+        self.units = 'mm h-1'
+        self.description = 'Total precipitation rate'
+
+    @staticmethod
+    def can_do(nc):
+        return 'RAINC' in nc.variables and 'RAINNC' in nc.variables
+
+    def __getitem__(self, item):
+        return self.nc.variables['PRCP_NC'][item] + \
+               self.nc.variables['PRCP_C'][item]
 
 
 class TK(FakeVariable):
-    def __init__(self, ncvars):
-        FakeVariable.__init__(self, ncvars)
-        self._copy_attrs_from(self.ncvars['T'])
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['T'])
         self.units = 'K'
         self.description = 'Temperature'
 
     @staticmethod
-    def can_do(ncvars):
+    def can_do(nc):
         need = ['T', 'P', 'PB']
-        return np.all([n in ncvars for n in need])
+        return np.all([n in nc.variables for n in need])
 
     def __getitem__(self, item):
         p1000mb = 100000.
         r_d = 287.04
         cp = 7 * r_d / 2.
-        t = self.ncvars['T'][item] + 300.
-        p = self.ncvars['P'][item] + self.ncvars['PB'][item]
+        t = self.nc.variables['T'][item] + 300.
+        p = self.nc.variables['P'][item] + self.nc.variables['PB'][item]
         return (p/p1000mb)**(r_d/cp) * t
 
 
 class SLP(FakeVariable):
-    def __init__(self, ncvars):
-        FakeVariable.__init__(self, ncvars)
-        self._copy_attrs_from(self.ncvars['T2'])
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['T2'])
         self.units = 'hPa'
         self.description = 'Sea level pressure'
+        dims = list(nc.variables['T'].dimensions)
+        self.ds = np.nonzero(['bottom_top' in d for d in dims])[0][0]
+        self._ds_shape = nc.variables['T'].shape[self.ds]
 
     @staticmethod
-    def can_do(ncvars):
+    def can_do(nc):
         # t2 is for attrs (not elegant)
         need = ['T', 'P', 'PB', 'QVAPOR', 'PH', 'PHB', 'T2']
-        return np.all([n in ncvars for n in need])
+        return np.all([n in nc.variables for n in need])
 
     def __getitem__(self, item):
-        # TODO: indexing below is inefficient
-        tk = self.ncvars['TK'][:]
-        p = self.ncvars['P'][:] + self.ncvars['PB'][:]
-        q = self.ncvars['QVAPOR'][:]
-        z = (self.ncvars['PH'][:] + self.ncvars['PHB'][:]) / 9.81
-        return _ncl_slp(z, tk, p, q)[item]
+
+        # take care of ellipsis and other strange indexes
+        item = list(indexing.expanded_indexer(item, len(self.dimensions)))
+
+        # add a slice in the 4th dim
+        item.insert(self.ds, slice(0, self._ds_shape+1))
+        item = tuple(item)
+
+        # get data
+        vars = self.nc.variables
+        tk = vars['TK'][item]
+        p = vars['P'][item] + vars['PB'][item]
+        q = vars['QVAPOR'][item]
+        z = (vars['PH'][item] + vars['PHB'][item]) / 9.81
+        return _ncl_slp(z, tk, p, q)
 
 # Diagnostic variable classes in a list
 var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
+var_classes.extend([cls.__name__ for cls in
+                    vars()['AccumulatedVariable'].__subclasses__()])
 
 
 def _ncl_slp(z, t, p, q):
@@ -312,3 +439,118 @@ def _ncl_slp(z, t, p, q):
 
     # Convert to hPa in this step
     return 0.01 * (p0 * np.exp((2.*g*z_half_lowest)/(r*(t_sea_level+t_surf))))
+
+
+def geogrid_simulator(fpath):
+    """Emulates geogrid.exe, which is useful when defining new WRF domains.
+
+    Parameters
+    ----------
+    fpath: str
+       path to a namelist.wps file
+
+    Returns
+    -------
+    a list of Grids corresponding to the domains defined in the namelist
+    """
+
+    with open(fpath) as f:
+        lines = f.readlines()
+
+    pargs = dict()
+    for l in lines:
+        s = l.split('=')
+        if len(s) < 2:
+            continue
+        s0 = s[0].strip().upper()
+        s1 = list(filter(None, s[1].strip().replace('\n', '').split(',')))
+
+        if s0 == 'PARENT_ID':
+            parent_id = [int(s) for s in s1]
+        if s0 == 'PARENT_GRID_RATIO':
+            parent_ratio = [int(s) for s in s1]
+        if s0 == 'I_PARENT_START':
+            i_parent_start = [int(s) for s in s1]
+        if s0 == 'J_PARENT_START':
+            j_parent_start = [int(s) for s in s1]
+        if s0 == 'E_WE':
+            e_we = [int(s) for s in s1]
+        if s0 == 'E_SN':
+            e_sn = [int(s) for s in s1]
+        if s0 == 'DX':
+            dx = float(s1[0])
+        if s0 == 'DY':
+            dy = float(s1[0])
+        if s0 == 'MAP_PROJ':
+            map_proj = s1[0].replace("'", '').strip().upper()
+        if s0 == 'REF_LAT':
+            pargs['lat_0'] = float(s1[0])
+        if s0 == 'REF_LON':
+            pargs['lon_0'] = float(s1[0])
+        if s0 == 'TRUELAT1':
+            pargs['lat_1'] = float(s1[0])
+        if s0 == 'TRUELAT2':
+            pargs['lat_2'] = float(s1[0])
+        if s0 == 'STAND_LON':
+            pargs['center_lon'] = float(s1[0])
+
+    # define projection
+    if map_proj == 'LAMBERT':
+        pwrf = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
+             '+lat_0={lat_0} +lon_0={lon_0} ' \
+             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = pwrf.format(**pargs)
+    elif map_proj == 'MERCATOR':
+        pwrf = '+proj=merc +lat_ts={lat_1} ' \
+             '+lon_0={center_lon} ' \
+             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = pwrf.format(**pargs)
+    else:
+        raise NotImplementedError('WRF proj not implemented yet: '
+                                  '{}'.format(map_proj))
+    pwrf = gis.check_crs(pwrf)
+
+    # get easting and northings from dom center (probably unnecessary here)
+    e, n = pyproj.transform(wgs84, pwrf, pargs['lon_0'], pargs['lat_0'])
+
+    # LL corner
+    nx, ny = e_we[0]-1, e_sn[0]-1
+    x0 = -(nx-1) / 2. * dx + e  # -2 because of staggered grid
+    y0 = -(ny-1) / 2. * dy + n
+
+    # parent grid
+    grid = gis.Grid(nxny=(nx, ny), ll_corner=(x0, y0), dxdy=(dx, dy),
+                    proj=pwrf)
+
+    # child grids
+    out = [grid]
+    for ips, jps, pid, ratio, we, sn in zip(i_parent_start, j_parent_start,
+                                            parent_id, parent_ratio,
+                                            e_we, e_sn):
+        if ips == 1:
+            continue
+        ips -= 1
+        jps -= 1
+        we -= 1
+        sn -= 1
+        nx = we / ratio
+        ny = sn / ratio
+        if nx != (we / ratio):
+            raise RuntimeError('e_we and ratios are incompatible: '
+                               '(e_we - 1) / ratio must be integer!')
+        if ny != (sn / ratio):
+            raise RuntimeError('e_sn and ratios are incompatible: '
+                               '(e_sn - 1) / ratio must be integer!')
+
+        prevgrid = out[pid - 1]
+        xx, yy = prevgrid.corner_grid.x_coord, prevgrid.corner_grid.y_coord
+        dx = prevgrid.dx / ratio
+        dy = prevgrid.dy / ratio
+        grid = gis.Grid(nxny=(we, sn),
+                        ll_corner=(xx[ips], yy[jps]),
+                        dxdy=(dx, dy),
+                        pixel_ref='corner',
+                        proj=pwrf)
+        out.append(grid.center_grid)
+
+    return out

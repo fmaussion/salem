@@ -28,6 +28,8 @@ CLASSIFIERS = [
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License ' +
         'v3 or later (GPLv3+)',
+        'Topic :: Scientific/Engineering :: Atmospheric Science',
+        'Topic :: Scientific/Engineering :: GIS',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
@@ -35,16 +37,9 @@ CLASSIFIERS = [
         'Programming Language :: Python :: 3.5',
     ]
 
-DESCRIPTION = 'Geoscientific data analysis and map projections'
-LONG_DESCRIPTION = """
-The project is currently in intense development. Get in touch with us if
-you want to contribute.
-
-Links
------
-- HTML documentation: http://salem.readthedocs.io
-- Source code: https://github.com/fmaussion/salem
-"""
+DESCRIPTION = 'Geoscientific data I/O and map projections'
+with open('README.rst') as file:
+    LONG_DESCRIPTION = file.read()
 
 # code to extract and write the version copied from pandas
 FULLVERSION = VERSION
