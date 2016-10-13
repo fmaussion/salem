@@ -828,16 +828,41 @@ class Map(DataLevels):
         self._shading_base(dx - dy, relief_factor=relief_factor)
         return z
 
-    def set_rgb(self, img=None, crs=None):
-        """Manually force to a rgb img"""
+    def set_rgb(self, img=None, crs=None, interp='nearest',
+                natural_earth=None):
+        """Manually force to a rgb img
+
+        Parameters
+        ----------
+        img : array
+            the image to plot
+        crs : Grid
+            the image reference system
+        interp : str, default 'nearest'
+            'nearest', 'linear', or 'spline'
+        natural_earth : str
+           'lr' or 'hr' (low res or high res) natural earth background img
+        """
+
+        if natural_earth is not None:
+            from matplotlib.image import imread
+            with warnings.catch_warnings():
+                # DecompressionBombWarning
+                warnings.simplefilter("ignore")
+                img = imread(utils.get_natural_earth_file(natural_earth))
+            ny, nx = img.shape[0], img.shape[1]
+            dx, dy = 360. / nx, 180. / ny
+            grid = Grid(nxny=(nx, ny), dxdy=(dx, -dy), ul_corner=(-180., 90.),
+                        pixel_ref='corner').center_grid
+            return self.set_rgb(img, grid, interp='linear')
 
         if (len(img.shape) != 3) or (img.shape[-1] != 3):
-            raise ValueError('img should be of shape (x, y, 3)')
+            raise ValueError('img should be of shape (y, x, 3)')
 
         # Unefficient but by far easiest right now
         out = []
         for i in [0, 1, 2]:
-            out.append(self._check_data(img[..., i], crs=crs))
+            out.append(self._check_data(img[..., i], crs=crs, interp=interp))
         self._rgb = np.dstack(out)
 
     def to_rgb(self):

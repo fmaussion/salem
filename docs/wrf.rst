@@ -1,7 +1,9 @@
 .. _wrf:
 
-WRF data
-========
+.. currentmodule:: salem
+
+WRF tools
+=========
 
 Let's open a `WRF model`_ output file with xarray first:
 
@@ -34,7 +36,6 @@ to the dimension names, they contain so-called `staggered`_ variables
 
 Salem defines a special parser for these files:
 
-
 .. ipython:: python
 
     import salem
@@ -50,3 +51,30 @@ This parser greatly simplifies the file structure:
 .. ipython:: python
 
     ds
+
+
+
+Geogrid simulator
+-----------------
+
+Salem comes with a small tool which is handy when it comes to define new WRF
+domains. It parses the WPS configuration file (`namelist.wps`_) and generates
+the grids and maps corresponding to each domain.
+
+.. _namelist.wps: http://www2.mmm.ucar.edu/wrf/OnLineTutorial/Basics/GEOGRID/geogrid_namelist.htm
+
+:py:func:`~geogrid_simulator` will search for the ``&geogrid`` section of the
+file and parse it:
+
+.. ipython:: python
+
+    fpath = get_demo_file('namelist_mercator.wps')
+    with open(fpath, 'r') as f:  # this is just to show the file
+        print(f.read())
+
+    from salem import geogrid_simulator
+    g, maps = geogrid_simulator(fpath, do_maps=True)
+
+    maps[0].set_rgb(natural_earth='lr')  # add a background image
+    @savefig plot_geo_simu.png width=100%
+    maps[0].visualize(title='Domains 1 to 4')
