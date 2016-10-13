@@ -608,3 +608,19 @@ def test_colormaps():
                                        orientation='horizontal')
         cb.set_label(cm);
     return fig
+
+
+@requires_matplotlib
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_geogrid_simulator():
+
+    from salem.wrftools import geogrid_simulator
+    g, maps = geogrid_simulator(get_demo_file('namelist_mercator.wps'),
+                             do_maps=True)
+    assert len(g) == 4
+
+    fig, axs = plt.subplots(2, 2)
+    axs = np.asarray(axs).flatten()
+    for m, ax in zip(maps, axs):
+        m.plot(ax=ax)
+    return fig
