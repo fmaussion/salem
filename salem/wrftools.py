@@ -441,17 +441,22 @@ def _ncl_slp(z, t, p, q):
     return 0.01 * (p0 * np.exp((2.*g*z_half_lowest)/(r*(t_sea_level+t_surf))))
 
 
-def geogrid_simulator(fpath):
+def geogrid_simulator(fpath, do_maps=False):
     """Emulates geogrid.exe, which is useful when defining new WRF domains.
 
     Parameters
     ----------
     fpath: str
        path to a namelist.wps file
+    do_maps: bool
+       if you want the simulator to return you maps of the grids as well
 
     Returns
     -------
-    a list of Grids corresponding to the domains defined in the namelist
+    (grids, maps) with:
+        - grids: a list of Grids corresponding to the domains
+          defined in the namelist
+        - maps: a list of maps corresponding to the grids (if do_maps==True)
     """
 
     with open(fpath) as f:
@@ -491,8 +496,6 @@ def geogrid_simulator(fpath):
             pargs['lat_1'] = float(s1[0])
         if s0 == 'TRUELAT2':
             pargs['lat_2'] = float(s1[0])
-        if s0 == 'STAND_LON':
-            pargs['center_lon'] = float(s1[0])
 
     # define projection
     if map_proj == 'LAMBERT':
@@ -502,7 +505,7 @@ def geogrid_simulator(fpath):
         pwrf = pwrf.format(**pargs)
     elif map_proj == 'MERCATOR':
         pwrf = '+proj=merc +lat_ts={lat_1} ' \
-             '+lon_0={center_lon} ' \
+             '+lon_0={lon_0} ' \
              '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         pwrf = pwrf.format(**pargs)
     else:
@@ -553,4 +556,24 @@ def geogrid_simulator(fpath):
                         proj=pwrf)
         out.append(grid.center_grid)
 
-    return out
+    maps = None
+    if do_maps:
+        from salem import Map
+        import shapely.geometry as shpg
+
+        maps = []
+        for i, g in enumerate(out):
+            m = Map(g)
+
+            for j in range(i+1, len(out)):
+                cg = out[j]
+                left, right, bottom, top = cg.extent
+
+                s = np.array([(left, bottom), (right, bottom),
+                              (right, top), (left, top)])
+                l1 = shpg.LinearRing(s)
+                m.set_geometry(l1, crs=cg.proj, linewidth=(len(out)-j))
+
+            maps.append(m)
+
+    return out, maps

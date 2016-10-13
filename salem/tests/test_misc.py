@@ -718,12 +718,27 @@ class TestGeogridSim(unittest.TestCase):
 
         from salem.wrftools import geogrid_simulator
 
-        g = geogrid_simulator(get_demo_file('namelist_lambert.wps'))
+        g, m = geogrid_simulator(get_demo_file('namelist_lambert.wps'))
 
         assert len(g) == 3
 
         for i in [1, 2, 3]:
             fg = get_demo_file('geo_em_d0{}_lambert.nc'.format(i))
+            ds = netCDF4.Dataset(fg)
+            lon, lat = g[i-1].ll_coordinates
+            assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
+            assert_allclose(lat, ds['XLAT_M'][0, ...], atol=1e-4)
+
+    def test_mercator(self):
+
+        from salem.wrftools import geogrid_simulator
+
+        g, m = geogrid_simulator(get_demo_file('namelist_mercator.wps'))
+
+        assert len(g) == 4
+
+        for i in [1, 2, 3, 4]:
+            fg = get_demo_file('geo_em_d0{}_mercator.nc'.format(i))
             ds = netCDF4.Dataset(fg)
             lon, lat = g[i-1].ll_coordinates
             assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
