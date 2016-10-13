@@ -82,7 +82,7 @@ Celsius so we have to set it explicitly):
 
 .. ipython:: python
 
-    smap.set_data(ds.T2.isel(time=1)-273.15, crs=ds.salem.grid)
+    smap.set_data(ds.T2.isel(Time=1)-273.15, crs=ds.salem.grid)
 
     @savefig plot_wrf_t2_transform.png width=80%
     smap.visualize(title='2m temp - large domain', cbar_title='C')
@@ -107,4 +107,4 @@ Salem can also transform data from one grid to another:
 
         t2_era_reproj = ds.salem.transform(dse.t2m, interp='spline')
         @savefig plot_era_repr_spline.png width=80%
-        t2_era_reproj.isel(time=0).salem.quick_map()
+        t2_era_reproj.isel(Time=0).salem.quick_map()

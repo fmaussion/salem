@@ -103,7 +103,13 @@ def _urlretrieve(url, ofile, *args, **kwargs):
     except:
         if os.path.exists(ofile):
             os.remove(ofile)
-        raise
+        # try to make the thing more robust with a second shot
+        try:
+            return urlretrieve(url, ofile, *args, **kwargs)
+        except:
+            if os.path.exists(ofile):
+                os.remove(ofile)
+            raise
 
 
 def download_demo_files():
@@ -204,6 +210,9 @@ def get_natural_earth_file(res='lr'):
     res : str
        'lr' or 'hr' (low res or high res)
     """
+
+    if not os.path.exists(download_dir):
+        os.makedirs(download_dir)
 
     if res == 'lr':
         urlpath = nearth_base + '8192/textures/2_no_clouds_8k.jpg'
