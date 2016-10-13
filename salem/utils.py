@@ -15,7 +15,7 @@ import zipfile
 
 import numpy as np
 from joblib import Memory
-from salem import cache_dir, python_version
+from salem import cache_dir, download_dir, python_version
 from six.moves.urllib.error import HTTPError, URLError
 from six.moves.urllib.request import urlretrieve, urlopen
 
@@ -37,6 +37,7 @@ valid_names['lat_var'] = ['lat', 'latitude', 'latitudes', 'lats']
 valid_names['time_var'] = ['time', 'times']
 
 sample_data_gh_repo = 'fmaussion/salem-sample-data'
+nearth_base = 'http://naturalearth.springercarto.com/ne3_data/'
 
 
 def str_in_list(l1, l2):
@@ -191,6 +192,31 @@ def get_demo_file(fname):
         return d[fname]
     else:
         return None
+
+
+def get_natural_earth_file(res='lr'):
+    """Returns the path to the desired natural earth file.
+
+    http://www.shadedrelief.com/natural3/pages/textures.html
+
+    Parameters
+    ----------
+    res : str
+       'lr' or 'hr' (low res or high res)
+    """
+
+    if res == 'lr':
+        urlpath = nearth_base + '8192/textures/2_no_clouds_8k.jpg'
+    elif res == 'hr':
+        urlpath = nearth_base + '16200/textures/2_no_clouds_16k.jpg'
+    ofile = os.path.join(download_dir, 'natural_earth_' + res+ '.jpg')
+
+    # download only if necessary
+    if not os.path.exists(ofile):
+        print('Downloading Natural Earth ' + res + '...')
+        _urlretrieve(urlpath, ofile)
+
+    return ofile
 
 
 @memory.cache

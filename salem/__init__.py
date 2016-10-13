@@ -45,6 +45,9 @@ wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
 cache_dir = path.join(path.expanduser('~'), '.salem_cache')
 if not path.exists(cache_dir):
     makedirs(cache_dir)
+download_dir = path.join(cache_dir, 'downloads')
+if not path.exists(download_dir):
+    makedirs(download_dir)
 
 # python version
 python_version = 'py3'

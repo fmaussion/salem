@@ -621,6 +621,7 @@ def test_geogrid_simulator():
 
     fig, axs = plt.subplots(2, 2)
     axs = np.asarray(axs).flatten()
-    for m, ax in zip(maps, axs):
+    for i, (m, ax) in enumerate(zip(maps, axs)):
+        m.set_rgb(natural_earth='lr')
         m.plot(ax=ax)
     return fig
