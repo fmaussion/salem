@@ -717,7 +717,7 @@ class TestXarray(unittest.TestCase):
         from salem.wrftools import var_classes
 
         # TODO: these tests are qualitative and should be compared against ncl
-        f = '/home/mowglie/wrf_d01_allvars_cropped.nc'
+        f = get_demo_file('wrf_d01_allvars_cropped.nc')
         ds = sio.open_wrf_dataset(f)
 
         # making a repr was causing trouble because of the small chunks
@@ -737,6 +737,7 @@ class TestXarray(unittest.TestCase):
 
 class TestGeogridSim(unittest.TestCase):
 
+    @requires_geopandas
     def test_lambert(self):
 
         from salem.wrftools import geogrid_simulator
@@ -752,6 +753,7 @@ class TestGeogridSim(unittest.TestCase):
             assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
             assert_allclose(lat, ds['XLAT_M'][0, ...], atol=1e-4)
 
+    @requires_geopandas
     def test_mercator(self):
 
         from salem.wrftools import geogrid_simulator
