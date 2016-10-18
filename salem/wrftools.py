@@ -159,7 +159,6 @@ class AccumulatedVariable(FakeVariable):
         # easy would be to have time step as variable
         vars = self.nc.variables
         if 'XTIME' in vars:
-            raise NotImplementedError('Not tested yet')
             dt_minutes = vars['XTIME'][1] - vars['XTIME'][0]
         else:
             # ok, parse time
@@ -176,7 +175,7 @@ class AccumulatedVariable(FakeVariable):
 
     @staticmethod
     def can_do(nc):
-        return False
+        return nc.dimensions['Time'].size > 1
 
     def __getitem__(self, item):
 
@@ -223,7 +222,7 @@ class PRCP_NC(AccumulatedVariable):
 
     @staticmethod
     def can_do(nc):
-        return 'RAINNC' in nc.variables
+        return AccumulatedVariable.can_do(nc) and 'RAINNC' in nc.variables
 
 
 class PRCP_C(AccumulatedVariable):
@@ -235,7 +234,7 @@ class PRCP_C(AccumulatedVariable):
 
     @staticmethod
     def can_do(nc):
-        return 'RAINC' in nc.variables
+        return AccumulatedVariable.can_do(nc) and 'RAINC' in nc.variables
 
 
 class PRCP(FakeVariable):
@@ -247,11 +246,27 @@ class PRCP(FakeVariable):
 
     @staticmethod
     def can_do(nc):
-        return 'RAINC' in nc.variables and 'RAINNC' in nc.variables
+        return AccumulatedVariable.can_do(nc) and \
+               'RAINC' in nc.variables and 'RAINNC' in nc.variables
 
     def __getitem__(self, item):
         return self.nc.variables['PRCP_NC'][item] + \
                self.nc.variables['PRCP_C'][item]
+
+
+class THETA(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['T'])
+        self.units = 'K'
+        self.description = 'Potential temperature'
+
+    @staticmethod
+    def can_do(nc):
+        return 'T' in nc.variables
+
+    def __getitem__(self, item):
+        return self.nc.variables['T'][item] + 300.
 
 
 class TK(FakeVariable):
@@ -263,8 +278,7 @@ class TK(FakeVariable):
 
     @staticmethod
     def can_do(nc):
-        need = ['T', 'P', 'PB']
-        return np.all([n in nc.variables for n in need])
+        return np.all([n in nc.variables for n in ['T', 'P', 'PB']])
 
     def __getitem__(self, item):
         p1000mb = 100000.
@@ -273,6 +287,36 @@ class TK(FakeVariable):
         t = self.nc.variables['T'][item] + 300.
         p = self.nc.variables['P'][item] + self.nc.variables['PB'][item]
         return (p/p1000mb)**(r_d/cp) * t
+
+
+class PRESSURE(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['P'])
+        self.units = 'hPa'
+        self.description = 'Full model pressure'
+
+    @staticmethod
+    def can_do(nc):
+        return np.all([n in nc.variables for n in ['P', 'PB']])
+
+    def __getitem__(self, item):
+        return self.nc.variables['P'][item] + self.nc.variables['PB'][item]
+
+
+class GEOPOTENTIAL(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['PH'])
+        self.units = 'm2 s-2'
+        self.description = 'Full model geopotential'
+
+    @staticmethod
+    def can_do(nc):
+        return np.all([n in nc.variables for n in ['PH', 'PHB']])
+
+    def __getitem__(self, item):
+        return self.nc.variables['PH'][item] + self.nc.variables['PHB'][item]
 
 
 class SLP(FakeVariable):
@@ -295,7 +339,12 @@ class SLP(FakeVariable):
 
         # take care of ellipsis and other strange indexes
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
-
+        # we need the empty dims for _ncl_slp() to work
+        squeezax = []
+        for i, c in enumerate(item):
+            if np.isscalar(c) and not isinstance(c, slice):
+                item[i] = slice(c, c+1)
+                squeezax.append(i)
         # add a slice in the 4th dim
         item.insert(self.ds, slice(0, self._ds_shape+1))
         item = tuple(item)
@@ -306,12 +355,13 @@ class SLP(FakeVariable):
         p = vars['P'][item] + vars['PB'][item]
         q = vars['QVAPOR'][item]
         z = (vars['PH'][item] + vars['PHB'][item]) / 9.81
-        return _ncl_slp(z, tk, p, q)
+        return np.squeeze(_ncl_slp(z, tk, p, q), axis=squeezax)
 
 # Diagnostic variable classes in a list
 var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
 var_classes.extend([cls.__name__ for cls in
                     vars()['AccumulatedVariable'].__subclasses__()])
+var_classes.remove('AccumulatedVariable')
 
 
 def _ncl_slp(z, t, p, q):
@@ -386,7 +436,7 @@ def _ncl_slp(z, t, p, q):
 
     p0 = p[0, ...]
 
-    level = np.zeros((nx, ny), dtype=np.int) - 1
+    level = np.zeros((ny, nx), dtype=np.int) - 1
     for k in np.arange(nz):
         pok = np.nonzero((p[k, ...] < (p0 - pconst)) & (level == -1))
         level[pok] = k
@@ -441,7 +491,7 @@ def _ncl_slp(z, t, p, q):
     return 0.01 * (p0 * np.exp((2.*g*z_half_lowest)/(r*(t_sea_level+t_surf))))
 
 
-def geogrid_simulator(fpath, do_maps=False):
+def geogrid_simulator(fpath, do_maps=True):
     """Emulates geogrid.exe, which is useful when defining new WRF domains.
 
     Parameters

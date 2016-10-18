@@ -161,6 +161,7 @@ def download_demo_files():
 
     # download only if necessary
     if not os.path.exists(ofile):
+        print('Downloading salem-sample-data...')
         _urlretrieve(master_zip_url, ofile)
 
         # Trying to make the download more robust

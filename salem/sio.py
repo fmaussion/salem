@@ -675,7 +675,7 @@ def open_xr_dataset(file):
 
     Returns:
     --------
-    xr.Dasaset
+    xr.Dataset
     """
 
     # if geotiff, use Salem
@@ -726,7 +726,7 @@ def open_wrf_dataset(file):
 
     Returns:
     --------
-    xr.Dasaset
+    xr.Dataset
     """
 
     nc = netCDF4.Dataset(file)
@@ -736,7 +736,7 @@ def open_wrf_dataset(file):
         if wrftools.Unstaggerer.can_do(v):
             nc.variables[vn] = wrftools.Unstaggerer(v)
 
-    # # Check if we can add diagnostic variables to the pot
+    # Check if we can add diagnostic variables to the pot
     for vn in wrftools.var_classes:
         cl = getattr(wrftools, vn)
         if cl.can_do(nc):

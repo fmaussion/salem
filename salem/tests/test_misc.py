@@ -711,6 +711,29 @@ class TestXarray(unittest.TestCase):
         assert_allclose(out.coords['west_east'],
                         t2.coords['west_east'])
 
+    @requires_xarray
+    def test_full_wrf_wfile(self):
+
+        from salem.wrftools import var_classes
+
+        # TODO: these tests are qualitative and should be compared against ncl
+        f = '/home/mowglie/wrf_d01_allvars_cropped.nc'
+        ds = sio.open_wrf_dataset(f)
+
+        # making a repr was causing trouble because of the small chunks
+        _ = ds.__repr__()
+
+        # just check that the data is here
+        var_classes = copy.deepcopy(var_classes)
+        for vn in var_classes:
+            _ = ds[vn].values
+            dss = ds.isel(west_east=slice(2, 6), south_north=slice(2, 5),
+                          bottom_top=slice(0, 15))
+            _ = dss[vn].values
+            dss = ds.isel(west_east=1, south_north=2,
+                          bottom_top=3,  time=2)
+            _ = dss[vn].values
+
 
 class TestGeogridSim(unittest.TestCase):
 
