@@ -57,7 +57,7 @@ This parser greatly simplifies the file structure:
 Geogrid simulator
 -----------------
 
-Salem comes with a small tool which is handy when it comes to define new WRF
+Salem provides a small tool which comes handy when defining new WRF
 domains. It parses the WPS configuration file (`namelist.wps`_) and generates
 the grids and maps corresponding to each domain.
 
@@ -73,7 +73,7 @@ file and parse it:
         print(f.read())
 
     from salem import geogrid_simulator
-    g, maps = geogrid_simulator(fpath, do_maps=True)
+    g, maps = geogrid_simulator(fpath)
 
     maps[0].set_rgb(natural_earth='lr')  # add a background image
     @savefig plot_geo_simu.png width=100%
