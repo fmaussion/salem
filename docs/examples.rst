@@ -99,7 +99,7 @@ Salem can also transform data from one grid to another:
         t2_era_reproj = ds.salem.transform(dse.t2m)
         assert t2_era_reproj.salem.grid == ds.salem.grid
         @savefig plot_era_repr_nn.png width=80%
-        t2_era_reproj.isel(Time=0).salem.quick_map()
+        t2_era_reproj.isel(time=0).salem.quick_map()
 
 
 
@@ -107,4 +107,4 @@ Salem can also transform data from one grid to another:
 
         t2_era_reproj = ds.salem.transform(dse.t2m, interp='spline')
         @savefig plot_era_repr_spline.png width=80%
-        t2_era_reproj.isel(Time=0).salem.quick_map()
+        t2_era_reproj.isel(time=0).salem.quick_map()

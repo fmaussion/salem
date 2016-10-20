@@ -3,6 +3,7 @@ __pycache__
 
 # PyCharm stuffs
 .idea/
+.cache/
 
 # coverage stuffs
 .coverage
@@ -15,6 +16,7 @@ examples/*checkpoints
 # Tests stuffs
 salem/tests/result_images
 result_images
+sandbox.py
 
 # Packages
 *.egg
