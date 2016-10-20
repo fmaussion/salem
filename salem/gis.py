@@ -125,11 +125,6 @@ class Grid(object):
     center_grid
     corner_grid
     extent
-    xstagg_xy_coordinates
-    ystagg_xy_coordinates
-    xstagg_ll_coordinates
-    ystagg_ll_coordinates
-    pixcorner_ll_coordinates
 
     """
 

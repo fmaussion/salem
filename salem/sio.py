@@ -491,15 +491,15 @@ class _XarrayAccessorBase(object):
         """Make a plot of a data array."""
 
         # some metadata?
-        title = self._obj.name or ''
+        title = obj.name or ''
         if obj._title_for_slice():
             title += ' (' + obj._title_for_slice() + ')'
         cb = obj.attrs['units'] if 'units' in obj.attrs else ''
 
-        map = self.get_map(**kwargs)
-        map.set_data(obj.values, interp=interp)
-        map.visualize(ax=ax, title=title, cbar_title=cb)
-        return map
+        smap = self.get_map(**kwargs)
+        smap.set_data(obj.values, interp=interp)
+        smap.visualize(ax=ax, title=title, cbar_title=cb)
+        return smap
 
     def transform(self, other, grid=None, interp='nearest', ks=3):
         """Reprojects an other Dataset or DataArray onto this grid.

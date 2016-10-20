@@ -2,15 +2,6 @@
 
 .. currentmodule:: salem
 
-
-
-.. ipython:: python
-   :suppress:
-
-    import matplotlib.pyplot as plt
-    plt.rcParams['figure.figsize'] = (7, 2)
-    import numpy as np
-
 Plotting
 ========
 
@@ -19,6 +10,16 @@ Color handling with DataLevels
 
 :py:class:`~DataLevels` is the base class for handling colors. It is there to
 ensure that there will never be a mismatch between data and assigned colors.
+
+
+.. ipython:: python
+   :suppress:
+
+    import matplotlib.pyplot as plt
+    plt.rcParams['figure.figsize'] = (7, 2)
+    import numpy as np
+    f = plt.figure(figsize=(7, 3))
+
 
 .. ipython:: python
 
@@ -99,21 +100,33 @@ Maps
 georeferencing aspects to the plot. A Map is initalised with a
 :py:class:`~Grid`:
 
-
-.. ipython:: python
-
-    from salem import mercator_grid, Map, get_demo_file
-    grid = mercator_grid(center_ll=(10.76, 46.79), extent=(2e6, 1e6))
-    smap = Map(grid)
-    @savefig map_central_europe.png width=100%
-    smap.visualize(addcbar=False)
-
-
 .. ipython:: python
    :suppress:
 
-    import matplotlib.pyplot as plt
-    plt.rcParams['figure.figsize'] = (6, 4)
+    plt.rcParams['figure.figsize'] = (7, 3)
+    f = plt.figure(figsize=(7, 3))
+
+
+.. ipython:: python
+
+    from salem import mercator_grid, Map, get_demo_file, open_xr_dataset
+    grid = mercator_grid(center_ll=(10.76, 46.79), extent=(9e5, 4e5))
+    emap = Map(grid)
+    @savefig map_central_europe.png width=100%
+    emap.visualize(addcbar=False)
+
+The map image has it's own pixel resolution (set with the keywords ``nx`` or
+``ny``), and the cartographic information is simply overlayed on it. When asked
+to plot data, the map will automatically transform it to the map projection:
+
+
+.. ipython:: python
+
+    ds = open_xr_dataset(get_demo_file('histalp_avg_1961-1990.nc'))
+    emap.set_data(ds.prcp)
+    @savefig map_histalp.png width=100%
+    emap.visualize()
+
 
 Add topographical shading to a map
 ----------------------------------
@@ -121,11 +134,17 @@ Add topographical shading to a map
 You can add topographical shading to a map with DEM files:
 
 .. ipython:: python
+   :suppress:
 
-    from salem import mercator_grid, Map, get_demo_file
+    plt.rcParams['figure.figsize'] = (6, 4)
+    f = plt.figure(figsize=(6, 4))
+
+.. ipython:: python
+
+    grid = mercator_grid(center_ll=(10.76, 46.79), extent=(18000, 14000))
     smap = Map(grid, countries=False)
     smap.set_topography(get_demo_file('hef_srtm.tif'));
-    @savefig topo_shading_simple.png width=100%
+    @savefig topo_shading_simple.png width=80%
     smap.visualize(addcbar=False, title='Topographical shading')
 
 Note that you can also use the topography data to make a colourful plot:
@@ -135,6 +154,5 @@ Note that you can also use the topography data to make a colourful plot:
     z = smap.set_topography(get_demo_file('hef_srtm.tif'))
     smap.set_data(z)
     smap.set_cmap('topo')
-    @savefig topo_shading_color.png width=100%
+    @savefig topo_shading_color.png width=80%
     smap.visualize(title='Topography', cbar_title='m a.s.l.')
-

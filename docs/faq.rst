@@ -6,7 +6,7 @@ Frequently Asked Questions
 Is your library mature for production code?
 -------------------------------------------
 
-In one word: NO. The API is still approximate at times, and it will probably
+No. The API is not always as clever as I wish it would, and it will probably
 change in the future. It is quite well tested though, at least for the cases
 I encounter in my daily work.
 
@@ -65,14 +65,14 @@ that salem's :py:class:`~salem.Grid` object would be able to provide the right
 info to cartopy with a little bit of coding. Contributions welcome!
 
 On the other hand I kind of like how Salem's :py:class:`~salem.Map`
-output looks, and (since I've coded it), I trust it, find it nice and easy to
+output looks, and I find it nice and easy to
 use. But that, of course, might not be your opinion. Other advantages of Salem's
-Maps are their persistency (usefull if you want to plot various data on the
-same map several times), their internal optimisations based on caching, and
-the ability to plot lon-lat orientation grids on virtually any map projection.
+Maps are their persistence (usefull if you want to plot data on the
+same map several times), their internal optimisations based on disk cache, and
+the ability to add lon-lat orientation grids to virtually any map projection.
 
 
-What's this "salem_cache" directory in my home folder?
+What's this ".salem_cache" directory in my home folder?
 ------------------------------------------------------
 
 At the first import, Salem will create a hidden directory called

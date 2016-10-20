@@ -52,6 +52,35 @@ This parser greatly simplifies the file structure:
 
     ds
 
+Note that some dimensions / coordinates have been renamed, new variables have
+been defined, and the staggered dimensions have disappeared.
+
+
+Diagnostic variables
+--------------------
+
+Salem adds a layer between xarray and the underlying NetCDF file. This layer
+computes new variables "on the fly" or, in the case of staggered variables,
+"unstaggers" them:
+
+.. ipython:: python
+
+    ds.U
+
+This computation is done only on demand (just like a normal
+NetCDF variable), this new layer is therefore relatively cheap.
+
+In addition to unstaggering, Salem adds a number of "diagnostic" variables
+to the dataset. Some are convenient (like ``T2C``, temperature in Celsius
+instead of Kelvins), but others are more complex (e.g. ``SLP`` for sea-level
+pressure, or ``PRCP`` which computes step-wize total precipitation out of the
+accumulated fields). For a list of diagnostic variables (and TODOs!), refer to
+:issue:`18`.
+
+.. ipython:: python
+
+    @savefig plot_wrf_diag.png width=80%
+    ds.PRCP.isel(time=-1).salem.quick_map(cmap='Purples', vmax=5)
 
 
 Geogrid simulator

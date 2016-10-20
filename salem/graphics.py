@@ -295,8 +295,9 @@ class DataLevels(object):
 
     def append_colorbar(self, ax, position='right', size='5%', pad=0.5,
                         **kwargs):
-        """Shortcut to append a colorbar to existing axes using matplotlib's
-        make_axes_locatable toolkit.
+        """Appends a colorbar to existing axes
+
+        It uses matplotlib's make_axes_locatable toolkit.
 
         Parameters
         ----------
@@ -327,7 +328,7 @@ class DataLevels(object):
 
     def visualize(self, ax=None, title=None, orientation='vertical',
                   add_values=False, addcbar=True, cbar_title=''):
-        """Quick'n dirty plot of the datalevels. Useful for debugging.
+        """Quick plot, useful for debugging.
 
         Parameters
         ----------
@@ -382,7 +383,7 @@ class Map(DataLevels):
     examples in the doc.
 
     For worldwide maps or very flexible plots you'd better use cartopy,
-    because Salem's Map is constrained by it's objective: making
+    because Salem's Map is constrained by it's primary objective: plotting
     regional maps.
     """
 
@@ -528,9 +529,9 @@ class Map(DataLevels):
 
     def set_geometry(self, geometry=None, crs=wgs84, text=None,
                      text_delta=(0.01, 0.01), text_kwargs=dict(), **kwargs):
-        """Adds any Shapely geometry to the map (including polygons,
-        points, etc.) If called without arguments, it removes all previous
-        geometries.
+        """Adds any Shapely geometry to the map.
+
+        If called without arguments, it removes all previous geometries.
 
         Parameters
         ----------
@@ -542,11 +543,13 @@ class Map(DataLevels):
         when annotating points. units are percentage of data coordinates.
         text_kwargs: the keyword arguments to pass to the test() function
         kwargs: any keyword associated with the geometrie's plotting function::
+
             - Point: all keywords accepted by scatter(): marker, s, edgecolor,
              facecolor...
             - Line: all keywords accepted by plot(): color, linewidth...
             - Polygon: all keywords accepted by PathPatch(): color, edgecolor,
              facecolor, linestyle, linewidth, alpha...
+
         """
 
         # Reset?
