@@ -33,6 +33,7 @@ Documentation
 
     examples
     faq
+    whats-new
     installing
     gis
     plotting

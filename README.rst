@@ -10,6 +10,8 @@ Salem
   :target: https://coveralls.io/github/fmaussion/salem?branch=master
 .. image:: https://readthedocs.org/projects/salem/badge/?version=latest
   :target: http://salem.readthedocs.io/en/latest/?badge=latest
+.. image:: https://zenodo.org/badge/42607422.svg
+   :target: https://zenodo.org/badge/latestdoi/42607422
 
 
 Salem is a `cat`_. Salem is also a small library to do some geoscientific data
