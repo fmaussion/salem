@@ -8,8 +8,8 @@ Salem
     :target: https://travis-ci.org/fmaussion/salem
 .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/fmaussion/salem?branch=master
-.. image:: https://readthedocs.org/projects/salem/badge/?version=latest
-  :target: http://salem.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/salem/badge/?version=stable
+  :target: http://salem.readthedocs.io/en/stable/?badge=stable
 .. image:: https://zenodo.org/badge/42607422.svg
    :target: https://zenodo.org/badge/latestdoi/42607422
 
