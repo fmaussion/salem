@@ -2,7 +2,7 @@ What's New
 ==========
 
 
-v0.1.0 (unreleased)
+v0.1.0 (22 October 2016)
 -------------------
 
 Big refactoring (:pull:`15`), partly backwards incompatible (mostly renaming).
