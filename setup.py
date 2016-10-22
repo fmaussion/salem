@@ -9,9 +9,9 @@ from os import path, walk
 import importlib
 
 MAJOR = 0
-MINOR = 0
-MICRO = 9
-ISRELEASED = True
+MINOR = 1
+MICRO = 0
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
