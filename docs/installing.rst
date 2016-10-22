@@ -54,7 +54,11 @@ install its dependencies with `conda`_ and `conda-forge`_::
     conda config --add channels conda-forge
     conda install <package-name>
 
-For the moment, Salem can only be installed via pip::
+Currently, Salem can only be installed via pip::
+
+    pip install salem
+
+If you want to install the latest master::
 
     pip install git+https://github.com/fmaussion/salem.git
 
