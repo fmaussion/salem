@@ -139,6 +139,17 @@ class TestIO(unittest.TestCase):
                         df2.geometry[0].exterior.coords)
 
 
+    @requires_xarray
+    def test_notimevar(self):
+
+        import xarray as xr
+        da = xr.DataArray(np.arange(12).reshape(3, 4), dims=['lat', 'lon'])
+        ds = da.to_dataset('var')
+
+        t = sio.netcdf_time(ds)
+        assert t is None
+
+
 class TestColors(unittest.TestCase):
 
     @requires_matplotlib
