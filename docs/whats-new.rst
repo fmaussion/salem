@@ -2,8 +2,17 @@ What's New
 ==========
 
 
-v0.1.0 (22 October 2016)
+v0.1.1 (Unreleased)
 -------------------
+
+Bug fixes
+~~~~~~~~~
+
+- GeoNetCDF files without time variable should now open without error
+
+
+v0.1.0 (22 October 2016)
+------------------------
 
 Big refactoring (:pull:`15`), partly backwards incompatible (mostly renaming).
 Improved xarray accessors, WRF tools, merged `Cleo`_ into the codebase,

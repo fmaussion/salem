@@ -333,8 +333,13 @@ def netcdf_time(ncobj, monthbegin=False):
     import pandas as pd
 
     time = None
-    vt = utils.str_in_list(ncobj.variables.keys(),
-                           utils.valid_names['time_var'])[0]
+    try:
+        vt = utils.str_in_list(ncobj.variables.keys(),
+                               utils.valid_names['time_var'])[0]
+    except IndexError:
+        # no time variable
+        return None
+
     if hasattr(ncobj, 'TITLE') and 'GEOGRID' in ncobj.TITLE:
         # geogrid file
         pass
