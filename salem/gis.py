@@ -57,7 +57,10 @@ def check_crs(crs):
         try:
             out = pyproj.Proj(crs)
         except RuntimeError:
-            out = None
+            try:
+                out = pyproj.Proj(init=crs)
+            except RuntimeError:
+                out = None
     else:
         out = None
     return out

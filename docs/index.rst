@@ -35,6 +35,7 @@ Documentation
     faq
     whats-new
     installing
+    xarray
     gis
     plotting
     wrf

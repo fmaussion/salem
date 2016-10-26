@@ -11,7 +11,7 @@ Required dependencies
 - Python 2.7 or 3+ (Py3 `recommended <https://python3statement.github.io/>`__)
 - `numpy <http://www.numpy.org/>`__ (of course)
 - `scipy <http://scipy.org/>`__: for its interpolation tools, among other things
-- `pyproj <https://jswhit.github.io/pyproj/>`__: for map projections
+- `pyproj <https://jswhit.github.io/pyproj/>`__: for map projections transformations
 - `netCDF4 <https://github.com/Unidata/netcdf4-python>`__: to read most geoscientific files
 - `joblib <https://pythonhosted.org/joblib/>`__: for it's `Memory`_ class
 - `six <https://pythonhosted.org/six//>`__: for Py2 compatibility
@@ -25,16 +25,16 @@ Because not using them is a bad idea
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - `pandas <http://pandas.pydata.org/>`__: working with labeled data
-- `xarray <https://jswhit.github.io/pyproj/>`__: pandas in N-dimensions
+- `xarray <https://jswhit.github.io/pyproj/>`__ (0.8 or later): pandas in N-dimensions
 
 For vector and raster operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-(rasterio and geopandas require GDAL)
-
-- `rasterio <https://mapbox.github.io/rasterio//>`__: for geotiff files
+- `rasterio <https://mapbox.github.io/rasterio/>`__: for geotiff files
 - `shapely <https://pypi.python.org/pypi/Shapely>`__: geometric objects
 - `geopandas <http://geopandas.org/>`__: geospatial data with pandas
+
+(rasterio and geopandas both require GDAL)
 
 For plotting
 ~~~~~~~~~~~~
