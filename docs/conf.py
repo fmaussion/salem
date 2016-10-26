@@ -46,11 +46,20 @@ extensions = [
     'sphinx.ext.viewcode',
     'IPython.sphinxext.ipython_directive',
     'IPython.sphinxext.ipython_console_highlighting',
+    'sphinx_gallery.gen_gallery',
 ]
 
 extlinks = {'issue': ('https://github.com/fmaussion/salem/issues/%s', 'GH'),
             'pull': ('https://github.com/fmaussion/salem/pull/%s', 'PR'),
             }
+
+sphinx_gallery_conf = {
+    # path to your examples scripts
+    'examples_dirs': 'examples',
+    # path where to save gallery generated examples
+    'gallery_dirs': 'auto_examples'
+}
+
 
 autosummary_generate = True
 

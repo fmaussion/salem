@@ -395,7 +395,7 @@ class _XarrayAccessorBase(object):
         dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
         self.z_dim = dim[0] if dim else None
 
-    def subset(self, margin=0, **kwargs):
+    def subset(self, margin=0, ds=None, **kwargs):
         """subset(self, margin=0, shape=None, geometry=None, grid=None,
                   corners=None, crs=wgs84, roi=None)
 
@@ -405,6 +405,8 @@ class _XarrayAccessorBase(object):
 
         Parameters
         ----------
+        ds : Dataset or DataArray
+            form the ROI from the extent of the Dataset or DataArray
         shape : str
             path to a shapefile
         geometry : geometry
@@ -423,6 +425,10 @@ class _XarrayAccessorBase(object):
             be used a single keyword, too: set_subset(margin=-5) will remove
             five pixels from each boundary of the dataset.
         """
+
+        if ds is not None:
+            grid = ds.salem.grid
+            kwargs.setdefault('grid', grid)
 
         mask = self.grid.region_of_interest(**kwargs)
         if not kwargs:

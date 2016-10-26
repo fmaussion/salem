@@ -39,7 +39,9 @@ Documentation
     gis
     plotting
     wrf
+    auto_examples/index
     api
+
 
 Get in touch
 ------------
