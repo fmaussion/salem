@@ -444,7 +444,7 @@ class _XarrayAccessorBase(object):
                           ]
         return out_ds
 
-    def roi(self, **kwargs):
+    def roi(self, ds=None, **kwargs):
         """roi(self, shape=None, geometry=None, grid=None, corners=None,
                crs=wgs84, roi=None)
 
@@ -454,6 +454,8 @@ class _XarrayAccessorBase(object):
 
         Parameters
         ----------
+        ds : Dataset or DataArray
+            form the ROI from the extent of the Dataset or DataArray
         shape : str
             path to a shapefile
         geometry : geometry
@@ -468,6 +470,10 @@ class _XarrayAccessorBase(object):
         roi : ndarray
             if you have a mask ready, you can give it here
         """
+
+        if ds is not None:
+            grid = ds.salem.grid
+            kwargs.setdefault('grid', grid)
 
         mask = self.grid.region_of_interest(**kwargs)
         coords = {self.y_dim: self._obj[self.y_dim].values,

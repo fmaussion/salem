@@ -5,9 +5,16 @@ What's New
 v0.1.1 (Unreleased)
 -------------------
 
+Enhancements
+~~~~~~~~~~~~
+
+- General documentation enhancements
+- New ``ds`` keyword to the accessors ``subset()`` and ``roi()`` methods
+
 Bug fixes
 ~~~~~~~~~
 
+- Remove use to deprecated ``rasterio.drivers()``
 - GeoNetCDF files without time variable should now open without error
 
 
