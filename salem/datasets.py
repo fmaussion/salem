@@ -227,12 +227,12 @@ class GeoDataset(object):
         if shape is not None:
             gdf = sio.read_shapefile(shape)
             gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid)
-            with rasterio.drivers():
+            with rasterio.Env():
                 mask = features.rasterize(gdf.geometry, out=mask)
         if geometry is not None:
             geom = gis.transform_geometry(geometry, crs=crs,
                                           to_crs=ogrid.corner_grid)
-            with rasterio.drivers():
+            with rasterio.Env():
                 mask = features.rasterize(np.atleast_1d(geom), out=mask)
         if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
@@ -276,7 +276,7 @@ class GeoTiff(GeoDataset):
         """
 
         # brutally efficient
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(file) as src:
                 nxny = (src.width, src.height)
                 ul_corner = (src.bounds.left, src.bounds.top)
@@ -297,7 +297,7 @@ class GeoTiff(GeoDataset):
         """
         wx = (self.sub_x[0], self.sub_x[1]+1)
         wy = (self.sub_y[0], self.sub_y[1]+1)
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(self.file) as src:
                 band = src.read(var_id, window=(wy, wx))
         return band
@@ -327,7 +327,7 @@ class EsriITMIX(GeoDataset):
                            south=south)
 
         # brutally efficient
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(file) as src:
                 nxny = (src.width, src.height)
                 ul_corner = (src.bounds.left, src.bounds.top)
@@ -347,7 +347,7 @@ class EsriITMIX(GeoDataset):
         """
         wx = (self.sub_x[0], self.sub_x[1]+1)
         wy = (self.sub_y[0], self.sub_y[1]+1)
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(self.file) as src:
                 band = src.read(var_id, window=(wy, wx))
         return band
