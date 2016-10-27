@@ -57,7 +57,10 @@ def check_crs(crs):
         try:
             out = pyproj.Proj(crs)
         except RuntimeError:
-            out = None
+            try:
+                out = pyproj.Proj(init=crs)
+            except RuntimeError:
+                out = None
     else:
         out = None
     return out
@@ -741,14 +744,14 @@ class Grid(object):
             # corner grid is needed for rasterio
             transform_geopandas(shape, to_crs=self.corner_grid)
             import rasterio
-            with rasterio.drivers():
+            with rasterio.Env():
                 mask = rasterio.features.rasterize(shape.geometry, out=mask)
         if geometry is not None:
             import rasterio
             # corner grid is needed for rasterio
             geom = transform_geometry(geometry, crs=crs,
                                       to_crs=self.corner_grid)
-            with rasterio.drivers():
+            with rasterio.Env():
                 mask = rasterio.features.rasterize(np.atleast_1d(geom),
                                                    out=mask)
         if grid is not None:

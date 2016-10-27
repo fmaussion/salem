@@ -387,20 +387,32 @@ class Map(DataLevels):
     regional maps.
     """
 
-    def __init__(self, grid, nx=500, ny=None, countries=True, **kwargs):
+    def __init__(self, grid, nx=500, ny=None, factor=None,
+                 countries=True, **kwargs):
         """Make a new map.
 
         Parameters
         ----------
-        grid: a salem.Grid instance defining the map
-        nx: x resolution (in pixels) of the map
-        ny: y resolution (in pixels) of the map (ignored if nx is set)
-        countries: automatically add country borders to the map (you can do
-        it later with a call to set_shapefile)
-        kwards: all keywords accepted by DataLevels
+        grid : salem.Grid
+          the grid defining the map
+        nx : int
+          x resolution (in pixels) of the map
+        ny : int
+          y resolution (in pixels) of the map (ignored if nx is set)
+        factor : float
+          shortcut to keep the same image resolution as the grid
+        countries : bool
+          automatically add country borders to the map (you can do
+          it later with a call to set_shapefile)
+        kwargs: **
+          all keywords accepted by DataLevels
         """
 
-        self.grid = grid.center_grid.regrid(nx=nx, ny=ny)
+        if factor is not None:
+            nx = None
+            ny = None
+
+        self.grid = grid.center_grid.regrid(nx=nx, ny=ny, factor=factor)
         self.origin = 'lower' if self.grid.order == 'll' else 'upper'
 
         DataLevels.__init__(self, **kwargs)
@@ -698,9 +710,11 @@ class Map(DataLevels):
                             **kwargs):
         """Add longitude and latitude contours to the map.
 
+        Calling it with interval=0. remove all conours.
+
         Parameters
         ----------
-        interval: interval (in degrees) between the contours (same for lon
+        interval : interval (in degrees) between the contours (same for lon
         and lat)
         xinterval: set a different interval for lons
         yinterval: set a different interval for lats
@@ -716,14 +730,22 @@ class Map(DataLevels):
         if yinterval is None:
             yinterval = interval
 
-        # Change XY into interval coordinates, and back after rounding
-        xx, yy = self.grid.pixcorner_ll_coordinates
-        _xx = xx / xinterval
-        _yy = yy / yinterval
-        mm_x = [np.ceil(np.min(_xx)), np.floor(np.max(_xx))]
-        mm_y = [np.ceil(np.min(_yy)), np.floor(np.max(_yy))]
-        self.xtick_levs = (mm_x[0] + np.arange(mm_x[1]-mm_x[0]+1)) * xinterval
-        self.ytick_levs = (mm_y[0] + np.arange(mm_y[1]-mm_y[0]+1)) * yinterval
+        if xinterval == 0:
+            # no contour
+            self.xtick_levs = []
+            self.ytick_levs = []
+            add_tick_labels = False
+        else:
+            # Change XY into interval coordinates, and back after rounding
+            xx, yy = self.grid.pixcorner_ll_coordinates
+            _xx = xx / xinterval
+            _yy = yy / yinterval
+            mm_x = [np.ceil(np.min(_xx)), np.floor(np.max(_xx))]
+            mm_y = [np.ceil(np.min(_yy)), np.floor(np.max(_yy))]
+            self.xtick_levs = (mm_x[0] + np.arange(mm_x[1]-mm_x[0]+1)) * \
+                              xinterval
+            self.ytick_levs = (mm_y[0] + np.arange(mm_y[1]-mm_y[0]+1)) * \
+                              yinterval
 
         # Decide on float format
         d = np.array(['4', '3', '2', '1', '0'])
@@ -799,6 +821,8 @@ class Map(DataLevels):
 
         if topo is None:
             self._shading_base()
+            return
+
         kwargs.setdefault('interp', 'spline')
 
         if isinstance(topo, six.string_types):
@@ -844,7 +868,8 @@ class Map(DataLevels):
         interp : str, default 'nearest'
             'nearest', 'linear', or 'spline'
         natural_earth : str
-           'lr' or 'hr' (low res or high res) natural earth background img
+           'lr', 'mr' or 'hr' (low res, medium or high res)
+           natural earth background img
         """
 
         if natural_earth is not None:

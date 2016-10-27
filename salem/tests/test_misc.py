@@ -461,6 +461,9 @@ class TestXarray(unittest.TestCase):
         self.assertEqual(ds.salem.x_dim, 'longitude')
         self.assertEqual(ds.salem.y_dim, 'latitude')
 
+        dss = ds.salem.subset(ds=ds)
+        self.assertEqual(dss.salem.grid, ds.salem.grid)
+
         lon = 91.1
         lat = 31.1
         dss = ds.salem.subset(corners=((lon, lat), (lon, lat)), margin=1)

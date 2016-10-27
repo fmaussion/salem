@@ -227,12 +227,12 @@ class GeoDataset(object):
         if shape is not None:
             gdf = sio.read_shapefile(shape)
             gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid)
-            with rasterio.drivers():
+            with rasterio.Env():
                 mask = features.rasterize(gdf.geometry, out=mask)
         if geometry is not None:
             geom = gis.transform_geometry(geometry, crs=crs,
                                           to_crs=ogrid.corner_grid)
-            with rasterio.drivers():
+            with rasterio.Env():
                 mask = features.rasterize(np.atleast_1d(geom), out=mask)
         if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
@@ -276,7 +276,7 @@ class GeoTiff(GeoDataset):
         """
 
         # brutally efficient
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(file) as src:
                 nxny = (src.width, src.height)
                 ul_corner = (src.bounds.left, src.bounds.top)
@@ -297,7 +297,7 @@ class GeoTiff(GeoDataset):
         """
         wx = (self.sub_x[0], self.sub_x[1]+1)
         wy = (self.sub_y[0], self.sub_y[1]+1)
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(self.file) as src:
                 band = src.read(var_id, window=(wy, wx))
         return band
@@ -327,7 +327,7 @@ class EsriITMIX(GeoDataset):
                            south=south)
 
         # brutally efficient
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(file) as src:
                 nxny = (src.width, src.height)
                 ul_corner = (src.bounds.left, src.bounds.top)
@@ -347,7 +347,7 @@ class EsriITMIX(GeoDataset):
         """
         wx = (self.sub_x[0], self.sub_x[1]+1)
         wy = (self.sub_y[0], self.sub_y[1]+1)
-        with rasterio.drivers():
+        with rasterio.Env():
             with rasterio.open(self.file) as src:
                 band = src.read(var_id, window=(wy, wx))
         return band
@@ -470,14 +470,32 @@ class WRF(GeoNetcdf):
 
 
 class GoogleCenterMap(GeoDataset):
-    """Google Static Maps (needs motionless)."""
+    """Google static map centered on a point.
+
+    Needs motionless.
+    """
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
                  zoom=12, maptype='satellite', use_cache=True, **kwargs):
-        """Open the file.
+        """Initialize
 
         Parameters
         ----------
+        center_ll : tuple
+          tuple of lon, lat center of the map
+        size_x : int
+          image size
+        size_y : int
+          image size
+        zoom int
+          google zoom level (https://developers.google.com/maps/documentation/
+          static-maps/intro#Zoomlevels)
+        maptype : str, default: 'satellite'
+          'roadmap', 'satellite', 'hybrid', 'terrain'
+        use_cache : bool, default: True
+          store the downloaded image in the cache to avoid future downloads
+        kwargs : **
+          any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
         """
 
         if 'scale' in kwargs:
@@ -514,19 +532,44 @@ class GoogleCenterMap(GeoDataset):
 
 
 class GoogleVisibleMap(GoogleCenterMap):
-    """Google Static Maps (needs motionless)."""
+    """Google static map automatically sized and zoomed to a selected region.
 
-    def __init__(self, x, y, src=wgs84, size_x=640, size_y=640, **kwargs):
+    It's usually more practical to use than GoogleCenterMap.
+    """
 
-        if 'zoom' in kwargs:
-            raise ValueError('zoom kwarg not accepted.')
+    def __init__(self, x, y, crs=wgs84, size_x=640, size_y=640,
+                 maptype='satellite', use_cache=True, **kwargs):
+        """Initialize
+
+        Parameters
+        ----------
+        x : array
+          x coordinates of the points to include on the map
+        y : array
+          y coordinates of the points to include on the map
+        crs : proj or Grid
+          coordinate reference system of x, y
+        size_x : int
+          image size
+        size_y : int
+          image size
+        maptype : str, default: 'satellite'
+          'roadmap', 'satellite', 'hybrid', 'terrain'
+        use_cache : bool, default: True
+          store the downloaded image in the cache to avoid future downloads
+        kwargs : **
+          any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
+        """
+
+        if 'zoom' in kwargs or 'center_ll' in kwargs:
+            raise ValueError('incompatible kwargs.')
 
         # Transform to lonlat
-        src = gis.check_crs(src)
-        if isinstance(src, pyproj.Proj):
-            lon, lat = gis.transform_proj(src, wgs84, x, y)
-        elif isinstance(src, Grid):
-            lon, lat = src.ij_to_crs(x, y, crs=wgs84)
+        crs = gis.check_crs(crs)
+        if isinstance(crs, pyproj.Proj):
+            lon, lat = gis.transform_proj(crs, wgs84, x, y)
+        elif isinstance(crs, Grid):
+            lon, lat = crs.ij_to_crs(x, y, crs=wgs84)
         else:
             raise NotImplementedError()
 
@@ -535,7 +578,7 @@ class GoogleVisibleMap(GoogleCenterMap):
         zoom = 20
         while zoom >= 0:
             grid = gis.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
-                                                    ny=size_y, zoom=zoom)
+                                                  ny=size_y, zoom=zoom)
             dx, dy = grid.transform(lon, lat, maskout=True)
             if np.any(dx.mask):
                 zoom -= 1
@@ -543,4 +586,5 @@ class GoogleVisibleMap(GoogleCenterMap):
                 break
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
-                                 size_y=size_y, zoom=zoom, **kwargs)
+                                 size_y=size_y, zoom=zoom, maptype=maptype,
+                                 use_cache=use_cache, **kwargs)

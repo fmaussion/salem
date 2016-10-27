@@ -26,9 +26,10 @@ memory = Memory(cachedir=cache_dir, verbose=0)
 valid_names = dict()
 valid_names['x_dim'] = ['west_east', 'lon', 'longitude', 'longitudes', 'lons',
                         'xlong', 'xlong_m', 'dimlon', 'x', 'lon_3', 'long',
-                        'phony_dim_0']
+                        'phony_dim_0', 'eastings', 'easting']
 valid_names['y_dim'] = ['south_north', 'lat', 'latitude', 'latitudes', 'lats',
-                        'xlat', 'xlat_m', 'dimlat', 'y','lat_3', 'phony_dim_1']
+                        'xlat', 'xlat_m', 'dimlat', 'y','lat_3', 'phony_dim_1',
+                        'northings', 'northing']
 valid_names['z_dim'] = ['levelist','level', 'pressure', 'press', 'zlevel', 'z']
 valid_names['t_dim'] = ['time', 'times', 'xtime']
 
@@ -216,6 +217,8 @@ def get_natural_earth_file(res='lr'):
         os.makedirs(download_dir)
 
     if res == 'lr':
+        return get_demo_file('natural_earth_lr.jpg')
+    elif res == 'mr':
         urlpath = nearth_base + '8192/textures/2_no_clouds_8k.jpg'
     elif res == 'hr':
         urlpath = nearth_base + '16200/textures/2_no_clouds_16k.jpg'

@@ -35,10 +35,13 @@ Documentation
     faq
     whats-new
     installing
+    xarray
     gis
     plotting
     wrf
+    auto_examples/index
     api
+
 
 Get in touch
 ------------

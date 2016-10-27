@@ -4,14 +4,16 @@
 Salem
 =====
 
+.. image:: https://badge.fury.io/py/salem.svg
+    :target: https://badge.fury.io/py/salem
 .. image:: https://travis-ci.org/fmaussion/salem.svg?branch=master
     :target: https://travis-ci.org/fmaussion/salem
 .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
-  :target: https://coveralls.io/github/fmaussion/salem?branch=master
+    :target: https://coveralls.io/github/fmaussion/salem?branch=master
 .. image:: https://readthedocs.org/projects/salem/badge/?version=stable
-  :target: http://salem.readthedocs.io/en/stable/?badge=stable
+    :target: http://salem.readthedocs.io/en/stable/?badge=stable
 .. image:: https://zenodo.org/badge/42607422.svg
-   :target: https://zenodo.org/badge/latestdoi/42607422
+    :target: https://zenodo.org/badge/latestdoi/42607422
 
 
 Salem is a `cat`_. Salem is also a small library to do some geoscientific data
