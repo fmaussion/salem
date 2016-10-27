@@ -26,6 +26,7 @@ eggs
 # specific
 salem/tests/tmp_*
 *.html
+build/
 docs/*-gen.rst
 docs/_build
 docs/_build_html
@@ -33,4 +34,6 @@ docs/generated
 docs/_sources
 docs/_images
 docs/.doctrees
+docs/auto_examples
+docs/modules
 salem/version.py

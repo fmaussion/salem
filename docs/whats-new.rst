@@ -2,13 +2,13 @@ What's New
 ==========
 
 
-v0.1.1 (Unreleased)
--------------------
+v0.1.1 (27 October 2016)
+------------------------
 
 Enhancements
 ~~~~~~~~~~~~
 
-- General doc improvements
+- Some doc improvements
 - New ``ds`` keyword to the accessors ``subset()`` and ``roi()`` methods
 
 Bug fixes
