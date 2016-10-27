@@ -37,6 +37,7 @@ before_install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
+  - pip install pyyaml
 
 install:
   - conda env create --file ci/requirements-$CONDA_ENV.yml --quiet
