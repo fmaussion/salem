@@ -468,7 +468,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         fw = get_demo_file('wrf_tip_d1.nc')
         d = GeoNetcdf(fw)
         i, j = d.grid.ij_coordinates
-        g = GoogleVisibleMap(x=i, y=j, src=d.grid, size_x=500, size_y=500)
+        g = GoogleVisibleMap(x=i, y=j, crs=d.grid, size_x=500, size_y=500)
         img = g.get_vardata()
         mask = g.grid.map_gridded_data(i*0+1, d.grid)
 

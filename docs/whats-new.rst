@@ -8,12 +8,14 @@ v0.1.1 (Unreleased)
 Enhancements
 ~~~~~~~~~~~~
 
-- General documentation enhancements
+- General doc improvements
 - New ``ds`` keyword to the accessors ``subset()`` and ``roi()`` methods
 
 Bug fixes
 ~~~~~~~~~
 
+- Natural Earth file `lr` (low-res) now shipped with sample-data, `mr` and `hr`
+  can still be downloaded if needed
 - Remove use to deprecated ``rasterio.drivers()``
 - GeoNetCDF files without time variable should now open without error
 

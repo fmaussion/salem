@@ -3,7 +3,7 @@
 Recipes
 =======
 
-Plot examples
--------------
+Plotting
+--------
 
-General-purpose examples
+How to make nice looking plots.

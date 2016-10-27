@@ -217,6 +217,8 @@ def get_natural_earth_file(res='lr'):
         os.makedirs(download_dir)
 
     if res == 'lr':
+        return get_demo_file('natural_earth_lr.jpg')
+    elif res == 'mr':
         urlpath = nearth_base + '8192/textures/2_no_clouds_8k.jpg'
     elif res == 'hr':
         urlpath = nearth_base + '16200/textures/2_no_clouds_16k.jpg'

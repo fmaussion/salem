@@ -1,24 +1,44 @@
 # -*- coding: utf-8 -*-
 """
-==============
-Add topography
-==============
+===================
+Topographic shading
+===================
 
-Here we add topography to the plot.
+How to add topographic shading to a plot.
 
 """
 
 from salem import mercator_grid, Map, get_demo_file
 import matplotlib.pyplot as plt
 
-grid = mercator_grid(center_ll=(10.76, 46.798444),
-                     extent=(10000, 7000))
-c = Map(grid, countries=False)
-c.set_lonlat_contours(interval=10)
-c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
-c.set_topography(get_demo_file('hef_srtm.tif'))
+# prepare the figure
 
-fig, ax = plt.subplots(1, 1)
-c.visualize(ax=ax, addcbar=False, title='Default: spline deg 3')
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 7))
+
+# map extent
+grid = mercator_grid(center_ll=(10.76, 46.79), extent=(18000, 14000))
+sm = Map(grid, countries=False)
+sm.set_lonlat_contours(interval=0)
+
+# add topography
+fpath = get_demo_file('hef_srtm.tif')
+sm.set_topography(fpath)
+sm.visualize(ax=ax1, addcbar=False, title='relief_factor=0.7 (default)')
+
+# stronger shading
+sm.set_topography(fpath, relief_factor=1.4)
+sm.visualize(ax=ax2, addcbar=False, title='relief_factor=1.4')
+
+# add color shading
+z = sm.set_topography(fpath)
+sm.set_data(z)
+sm.set_cmap('topo')
+sm.visualize(ax=ax3, title='Color with shading', addcbar=False)
+
+# color without topo shading
+sm.set_topography()
+sm.visualize(ax=ax4, title='Color without shading', addcbar=False)
+
+# make it nice
 plt.tight_layout()
 plt.show()

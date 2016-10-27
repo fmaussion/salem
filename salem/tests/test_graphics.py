@@ -431,7 +431,7 @@ def test_hef_default_spline():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
     c = Map(grid, countries=False)
-    c.set_lonlat_contours(interval=10)
+    c.set_lonlat_contours(interval=0)
     c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
     c.set_topography(get_demo_file('hef_srtm.tif'))
 
@@ -447,7 +447,7 @@ def test_hef_from_array():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
     c = Map(grid, countries=False)
-    c.set_lonlat_contours(interval=10)
+    c.set_lonlat_contours(interval=0)
     c.set_shapefile(get_demo_file('Hintereisferner_UTM.shp'))
 
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
@@ -492,7 +492,7 @@ def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
 
-    m = Map(g.grid, countries=False, nx=640)
+    m = Map(g.grid, countries=False, factor=1)
     m.set_lonlat_contours(interval=0.025)
     m.set_shapefile(get_demo_file('Hintereisferner.shp'),
                     linewidths=2, edgecolor='darkred')
@@ -514,7 +514,7 @@ def test_gmap_transformed():
                         extent=(10000, 7000))
 
     i, j = dem.ij_coordinates
-    g = GoogleVisibleMap(x=i, y=j, src=dem, size_x=500, size_y=400)
+    g = GoogleVisibleMap(x=i, y=j, crs=dem, size_x=500, size_y=400)
     img = g.get_vardata()
 
     m = Map(dem, countries=False)
