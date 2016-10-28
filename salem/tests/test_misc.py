@@ -631,6 +631,18 @@ class TestXarray(unittest.TestCase):
         assert_allclose(wcrop['ws_ref'], wcrop['WS'])
 
     @requires_xarray
+    def test_diagvars(self):
+
+        wf = get_demo_file('wrf_d01_allvars_cropped.nc')
+        w = sio.open_wrf_dataset(wf)
+
+        # ws
+        w['ws_ref'] = np.sqrt(w['U']**2 + w['V']**2)
+        assert_allclose(w['ws_ref'], w['WS'])
+        wcrop = w.isel(west_east=slice(4, 8), bottom_top=4)
+        assert_allclose(wcrop['ws_ref'], wcrop['WS'])
+
+    @requires_xarray
     def test_prcp(self):
 
         wf = get_demo_file('wrfout_d01.nc')
