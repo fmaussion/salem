@@ -532,7 +532,7 @@ class TestXarray(unittest.TestCase):
             g = t2.salem.grid
 
     @requires_xarray
-    def test_diagvars(self):
+    def test_ncl_diagvars(self):
 
         wf = get_demo_file('wrf_cropped.nc')
         ncl_out = get_demo_file('wrf_cropped_ncl.nc')
@@ -611,6 +611,18 @@ class TestXarray(unittest.TestCase):
         wn = w.isel(bottom_top=-1)
         ncn = nc.isel(bottom_top=-1)
         assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+    @requires_xarray
+    def test_diagvars(self):
+
+        wf = get_demo_file('wrf_d01_allvars_cropped.nc')
+        w = sio.open_wrf_dataset(wf)
+
+        # ws
+        w['ws_ref'] = np.sqrt(w['U']**2 + w['V']**2)
+        assert_allclose(w['ws_ref'], w['WS'])
+        wcrop = w.isel(west_east=slice(4, 8), bottom_top=4)
+        assert_allclose(wcrop['ws_ref'], wcrop['WS'])
 
     @requires_xarray
     def test_prcp(self):

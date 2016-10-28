@@ -82,9 +82,11 @@ class Unstaggerer(object):
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
 
         # Slice to change
+        was_scalar = False
         sl = item[self.ds]
         if np.isscalar(sl) and not isinstance(sl, slice):
             sl = slice(sl, sl+1)
+            was_scalar = True
 
         # Ok, get the indexes right
         start = sl.start or 0
@@ -93,8 +95,12 @@ class Unstaggerer(object):
             stop += self._ds_shape-1
         stop = np.clip(stop+1, 0, self._ds_shape)
         itemr = copy.deepcopy(item)
-        item[self.ds] = slice(start, stop-1)
-        itemr[self.ds] = slice(start+1, stop)
+        if was_scalar:
+            item[self.ds] = start
+            itemr[self.ds] = start+1
+        else:
+            item[self.ds] = slice(start, stop-1)
+            itemr[self.ds] = slice(start+1, stop)
         return 0.5*(self.ncvar[item] + self.ncvar[itemr])
 
 
@@ -287,6 +293,23 @@ class TK(FakeVariable):
         t = self.nc.variables['T'][item] + 300.
         p = self.nc.variables['P'][item] + self.nc.variables['PB'][item]
         return (p/p1000mb)**(r_d/cp) * t
+
+
+class WS(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['U'])
+        self.units = 'm s-1'
+        self.description = 'Horizontal wind speed'
+
+    @staticmethod
+    def can_do(nc):
+        return np.all([n in nc.variables for n in ['U', 'V']])
+
+    def __getitem__(self, item):
+        ws = self.nc.variables['U'][item]**2
+        ws += self.nc.variables['V'][item]**2
+        return np.sqrt(ws)
 
 
 class PRESSURE(FakeVariable):
