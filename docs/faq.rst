@@ -55,23 +55,6 @@ and Salem will be further developed with this model in mind.
 .. _conda-forge: http://conda-forge.github.io/
 
 
-Why aren't you using Xarray/Cartopy for your maps?
---------------------------------------------------
-
-This is actually a good question, and I think that there are no obstacle for
-Salem to use it's geolocation information to plot gridded data on cartopy's
-maps. I never really got to understand how cartopy really works, but I'm sure
-that salem's :py:class:`~salem.Grid` object would be able to provide the right
-info to cartopy with a little bit of coding. Contributions welcome!
-
-On the other hand I kind of like how Salem's :py:class:`~salem.Map`
-output looks, and I find it nice and easy to
-use. But that, of course, might not be your opinion. Other advantages of Salem's
-Maps are their persistence (usefull if you want to plot data on the
-same map several times), their internal optimisations based on disk cache, and
-the ability to add lon-lat orientation grids to virtually any map projection.
-
-
 What's this ".salem_cache" directory in my home folder?
 ------------------------------------------------------
 

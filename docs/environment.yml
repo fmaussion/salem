@@ -17,6 +17,7 @@ dependencies:
   - matplotlib
   - Pillow
   - descartes
+  - cartopy
   - numpydoc
   - ipython=4.0.1
   - sphinx

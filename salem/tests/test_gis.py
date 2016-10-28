@@ -13,7 +13,8 @@ from salem import Grid
 from salem import wgs84
 import salem.gis as gis
 from salem.utils import get_demo_file
-from salem.tests import requires_xarray, requires_shapely, requires_geopandas
+from salem.tests import requires_xarray, requires_shapely, requires_geopandas, \
+    requires_cartopy, requires_rasterio
 
 
 class SimpleNcDataSet():
@@ -878,3 +879,75 @@ class TestGrids(unittest.TestCase):
                                          nx=9)
         e2 = grid.extent
         assert_allclose(e1, e2)
+
+
+def fuzzy_proj_tester(p1, p2, atol=1e-16):
+
+    d1 = dict()
+    d2 = dict()
+    for d, p in zip((d1, d2), (p1, p2)):
+        for s in p.srs.split('+'):
+            s = s.split('=')
+            if len(s) != 2:
+                continue
+            k = s[0].strip()
+            v = s[1].strip()
+            try:
+                v = float(v)
+            except:
+                pass
+            d[k] = v
+
+    for k in d1.keys():
+        if k in d2:
+            if d1[k] == d2[k]:
+                # strings
+                continue
+            else:
+                assert_allclose(d1[k], d2[k], atol=atol)
+
+
+class TestCartopy(unittest.TestCase):
+
+    @requires_cartopy
+    @requires_rasterio
+    def test_to_cartopy(self):
+
+        import cartopy.crs as ccrs
+        from salem import GeoNetcdf, GeoTiff
+
+        grid = gis.mercator_grid(center_ll=(11.38, 47.26),
+                                 extent=(2000000, 2000000))
+        p = gis.proj_to_cartopy(grid.proj)
+        assert isinstance(p, ccrs.TransverseMercator)
+        fuzzy_proj_tester(grid.proj, pyproj.Proj(p.proj4_params))
+
+        ds = GeoNetcdf(get_demo_file('wrfout_d01.nc'))
+        p = gis.proj_to_cartopy(ds.grid.proj)
+        assert isinstance(p, ccrs.LambertConformal)
+        fuzzy_proj_tester(ds.grid.proj, pyproj.Proj(p.proj4_params))
+
+        ds = GeoNetcdf(get_demo_file('wrf_mercator.nc'))
+        p = gis.proj_to_cartopy(ds.grid.proj)
+        assert isinstance(p, ccrs.Mercator)
+        fuzzy_proj_tester(ds.grid.proj, pyproj.Proj(p.proj4_params))
+
+        ds = GeoTiff(get_demo_file('himalaya.tif'))
+        p = gis.proj_to_cartopy(ds.grid.proj)
+        assert isinstance(p, ccrs.PlateCarree)
+
+        ds = GeoTiff(get_demo_file('hef_roi.tif'))
+        p = gis.proj_to_cartopy(ds.grid.proj)
+        assert isinstance(p, ccrs.PlateCarree)
+        fuzzy_proj_tester(ds.grid.proj, pyproj.Proj(p.proj4_params))
+
+        p = gis.proj_to_cartopy(wgs84)
+        assert isinstance(p, ccrs.PlateCarree)
+
+        p = gis.proj_to_cartopy(pyproj.Proj('+proj=utm +zone=15'))
+        assert isinstance(p, ccrs.UTM)
+
+        # this needs gdal
+        if gis.has_gdal:
+            p = gis.proj_to_cartopy(pyproj.Proj(init='epsg:26915'))
+            assert isinstance(p, ccrs.UTM)

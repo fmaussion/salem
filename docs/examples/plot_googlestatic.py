@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-===========================
-Plot on a google static map
-===========================
+===============================
+Plot on a google map background
+===============================
+
+Google static maps API
 
 In this script, we use `motionless <https://github.com/ryancox/motionless>`_
 to download an image from the `google static map API <http://code.google.com/apis/maps/documentation/staticmaps/>`_
@@ -10,7 +12,6 @@ and plot it on a :py:class:`~salem.Map`. We then add information to the map
 such as a glacier outline (from the `RGI <http://www.glims.org/RGI/>`_),
 and ground penetrating radar measurements (GPR, from the
 `GlaThiDa <http://www.gtn-g.ch/data_catalogue_glathida/>`_ database).
-
 
 The GPR measurements were realized in 1997, the glacier outlines are from
 2003, and the map background is from 2016. This illustrates the retreat of

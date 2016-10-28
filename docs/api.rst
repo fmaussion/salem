@@ -39,6 +39,7 @@ Georeferencing utils
 
     check_crs
     proj_is_same
+    proj_to_cartopy
     transform_proj
     transform_geometry
     transform_geopandas
@@ -132,6 +133,7 @@ methods are almost equivalent):
     :toctree: generated/
     :nosignatures:
 
+    DatasetAccessor.cartopy
     DatasetAccessor.get_map
     DatasetAccessor.quick_map
     DatasetAccessor.roi

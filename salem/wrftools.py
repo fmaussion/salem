@@ -166,6 +166,8 @@ class AccumulatedVariable(FakeVariable):
         vars = self.nc.variables
         if 'XTIME' in vars:
             dt_minutes = vars['XTIME'][1] - vars['XTIME'][0]
+        elif 'xtime' in vars:
+            dt_minutes = vars['xtime'][1] - vars['xtime'][0]
         else:
             # ok, parse time
             time = []

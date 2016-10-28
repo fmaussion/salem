@@ -2,103 +2,66 @@
 
 .. currentmodule:: salem
 
-Plotting
+Graphics
 ========
 
-Color handling with DataLevels
-------------------------------
+Two options are offered to you when plotting geolocalised data on maps:
+you can use `cartopy`_ , or you can use salem's :py:class:`~Map` object.
 
-:py:class:`~DataLevels` is the base class for handling colors. It is there to
-ensure that there will never be a mismatch between data and assigned colors.
+.. _cartopy: http://scitools.org.uk/cartopy/docs/latest/index.html
 
+
+Plotting with cartopy
+---------------------
+
+Plotting on maps using xarray and cartopy is extremely
+`convenient <http://xarray.pydata.org/en/stable/plotting.html#maps>`_.
+
+With salem you can keep your usual plotting workflow, even with more exotic
+map projections:
 
 .. ipython:: python
-   :suppress:
 
     import matplotlib.pyplot as plt
-    plt.rcParams['figure.figsize'] = (7, 2)
-    import numpy as np
-    f = plt.figure(figsize=(7, 3))
+    import cartopy
+    from salem import open_wrf_dataset, get_demo_file
+    ds = open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+
+    ax = plt.axes(projection=cartopy.crs.Orthographic(70, 30))
+    ax.set_global();
+    ds.T2C.isel(time=1).plot.contourf(ax=ax, transform=ds.salem.cartopy());
+    @savefig cartopy_orthographic.png width=80%
+    ax.coastlines();
 
 
-.. ipython:: python
-
-    from salem import DataLevels
-    a = [-1., 0., 1.1, 1.9, 9.]
-
-    dl = DataLevels(a)
-    @savefig datalevels_01.png width=70%
-    dl.visualize(orientation='horizontal', add_values=True)
-
-Discrete levels
-~~~~~~~~~~~~~~~
+You can also use the salem accessor to initialise the plot's map projection:
 
 .. ipython:: python
 
-    dl.set_plot_params(nlevels=11)
-    @savefig datalevels_02.png width=70%
-    dl.visualize(orientation='horizontal', add_values=True)
+    proj = ds.salem.cartopy()
+    ax = plt.axes(projection=proj)
+    ax.coastlines();
+    ax.add_feature(cartopy.feature.BORDERS, linestyle=':');
+    @savefig cartopy_base.png width=80%
+    ax.set_extent(ds.salem.grid.extent, crs=proj);
 
-vmin, vmax
-~~~~~~~~~~
 
-.. ipython:: python
+Plotting with salem
+-------------------
 
-    dl.set_plot_params(nlevels=9, vmax=3)
-    @savefig datalevels_03.png width=70%
-    dl.visualize(orientation='horizontal', add_values=True)
-
-Out-of-bounds data
-~~~~~~~~~~~~~~~~~~
-
-.. ipython:: python
-
-    dl.set_plot_params(levels=[0, 1, 2, 3])
-    @savefig datalevels_04.png width=70%
-    dl.visualize(orientation='horizontal', add_values=True)
-
-Note that if the bounds are not exceeded, the colorbar extensions are gone:
+Salem comes with a homegrown plotting tool which is less flexible than
+cartopy's. It was created to overcome some of cartopy's limitations (e.g.
+the impossibility to add tick labels to Lambert Conformal maps), and to make
+regional maps which are more precise:
 
 .. ipython:: python
 
-    dl.set_data([0., 0.2, 0.4, 0.6, 0.8])
-    @savefig datalevels_05.png width=70%
-    dl.visualize(orientation='horizontal', add_values=True)
+    @savefig salem_quickmap.png width=80%
+    ds.T2C.isel(time=1).salem.quick_map()
 
-This might be undesirable, so you can set a keyword to force out-of-bounds
-levels:
-
-.. ipython:: python
-
-    dl.set_plot_params(levels=[0, 1, 2, 3], extend='both')
-    @savefig datalevels_06.png width=70%
-    dl.visualize(orientation='horizontal', add_values=True)
-
-
-Using DataLevels with matplotlib
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    Here with the example of a scatterplot:
-
-.. ipython:: python
-
-    x, y = np.random.randn(1000), np.random.randn(1000)
-    z = x**2 + y**2
-
-    dl = DataLevels(z, cmap='RdYlBu_r', levels=np.arange(6))
-    fig, ax = plt.subplots(1, figsize=(6, 4))
-    ax.scatter(x, y, color=dl.to_rgb(), s=64);
-    cbar = dl.append_colorbar(ax, "right")  # DataLevel draws the colorbar
-    @savefig datalevels_07.png width=70%
-    plt.show()
-
-
-Maps
-----
-
-:py:class:`~Map` is a sublass of :py:class:`~DataLevels`, but adds the
-georeferencing aspects to the plot. A Map is initalised with a
-:py:class:`~Grid`:
+Salem maps are different from cartopy's in that they don't change the axes'
+projections. The map background is always going to be a call to ``imshow()``,
+with an image of size decided at instanciation:
 
 .. ipython:: python
    :suppress:
@@ -106,53 +69,27 @@ georeferencing aspects to the plot. A Map is initalised with a
     plt.rcParams['figure.figsize'] = (7, 3)
     f = plt.figure(figsize=(7, 3))
 
-
 .. ipython:: python
 
-    from salem import mercator_grid, Map, get_demo_file, open_xr_dataset
+    from salem import mercator_grid, Map, open_xr_dataset
+
     grid = mercator_grid(center_ll=(10.76, 46.79), extent=(9e5, 4e5))
-    emap = Map(grid)
+    grid.nx, grid.ny  # size of the input grid
+    smap = Map(grid, nx=500)
+    smap.grid.nx, smap.grid.ny  # size of the "image", and thus of the axes
+
     @savefig map_central_europe.png width=100%
-    emap.visualize(addcbar=False)
+    smap.visualize(addcbar=False)
 
-The map image has it's own pixel resolution (set with the keywords ``nx`` or
-``ny``), and the cartographic information is simply overlayed on it. When asked
-to plot data, the map will automatically transform it to the map projection:
-
+The map has it's own grid, wich is used internally in order to transform
+the data that has to be plotted on it:
 
 .. ipython:: python
 
     ds = open_xr_dataset(get_demo_file('histalp_avg_1961-1990.nc'))
-    emap.set_data(ds.prcp)
+    smap.set_data(ds.prcp)  # histalp is a lon/lat dataset
     @savefig map_histalp.png width=100%
-    emap.visualize()
+    smap.visualize()
 
+Refer to :ref:`recipes` for more examples on how to use salem's maps.
 
-Add topographical shading to a map
-----------------------------------
-
-You can add topographical shading to a map with DEM files:
-
-.. ipython:: python
-   :suppress:
-
-    plt.rcParams['figure.figsize'] = (6, 4)
-    f = plt.figure(figsize=(6, 4))
-
-.. ipython:: python
-
-    grid = mercator_grid(center_ll=(10.76, 46.79), extent=(18000, 14000))
-    smap = Map(grid, countries=False)
-    smap.set_topography(get_demo_file('hef_srtm.tif'));
-    @savefig topo_shading_simple.png width=80%
-    smap.visualize(addcbar=False, title='Topographical shading')
-
-Note that you can also use the topography data to make a colourful plot:
-
-.. ipython:: python
-
-    z = smap.set_topography(get_demo_file('hef_srtm.tif'))
-    smap.set_data(z)
-    smap.set_cmap('topo')
-    @savefig topo_shading_color.png width=80%
-    smap.visualize(title='Topography', cbar_title='m a.s.l.')

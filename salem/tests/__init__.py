@@ -61,63 +61,64 @@ try:
 except ImportError:
     has_rasterio = False
 
+try:
+    import cartopy
+    has_cartopy = True
+except ImportError:
+    has_cartopy = False
+
 
 def requires_internet(test):
-    # Test decorator
     msg = "requires internet"
     return test if has_internet() else unittest.skip(msg)(test)
 
 
 def requires_matplotlib_and_py3(test):
-    # Test decorator
     msg = "requires matplotlib and py3"
     return test if has_matplotlib and (python_version == 'py3') \
         else unittest.skip(msg)(test)
 
 
 def requires_matplotlib(test):
-    # Test decorator
     msg = "requires matplotlib"
     return test if has_matplotlib else unittest.skip(msg)(test)
 
 
 def requires_motionless(test):
-    # Test decorator
     msg = "requires motionless"
     return test if has_motionless else unittest.skip(msg)(test)
 
 
 def requires_pandas(test):
-    # Test decorator
     msg = "requires pandas"
     return test if has_pandas else unittest.skip(msg)(test)
 
 
 def requires_rasterio(test):
-    # Test decorator
     msg = "requires rasterio"
     return test if has_rasterio else unittest.skip(msg)(test)
 
 
+def requires_cartopy(test):
+    msg = "requires cartopy"
+    return test if has_cartopy else unittest.skip(msg)(test)
+
+
 def requires_xarray(test):
-    # Test decorator
     msg = "requires xarray"
     return test if has_xarray else unittest.skip(msg)(test)
 
 
 def requires_shapely(test):
-    # Test decorator
     msg = "requires shapely"
     return test if has_shapely else unittest.skip(msg)(test)
 
 
 def requires_geopandas(test):
-    # Test decorator
     msg = "requires geopandas"
     return test if has_geopandas else unittest.skip(msg)(test)
 
 
 def requires_travis(test):
-    # Test decorator
     msg = "requires travis"
     return test if on_travis else unittest.skip(msg)(test)

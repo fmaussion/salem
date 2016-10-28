@@ -898,6 +898,91 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=True):
     return out
 
 
+def proj_to_cartopy(proj):
+    """Converts a pyproj.Proj to a cartopy.crs.Projection
+
+    Parameters
+    ----------
+    proj: pyproj.Proj
+        the projection to convert
+
+    Returns
+    -------
+    a cartopy.crs.Projection object
+
+    """
+
+    import cartopy.crs as ccrs
+
+    proj = check_crs(proj)
+
+    if proj.is_latlong():
+        return ccrs.PlateCarree()
+
+    srs = proj.srs
+    if has_gdal:
+        # this is more robust, as srs could be anything (espg, etc.)
+        import osr
+        s1 = osr.SpatialReference()
+        s1.ImportFromProj4(proj.srs)
+        srs = s1.ExportToProj4()
+
+    km_proj = {'lon_0': 'central_longitude',
+               'lat_0': 'central_latitude',
+               'x_0': 'false_easting',
+               'y_0': 'false_northing',
+               'k': 'scale_factor',
+               'zone': 'zone',
+               }
+    km_globe = {'a': 'semimajor_axis',
+                'b': 'semiminor_axis',
+                }
+    km_std = {'lat_1': 'lat_1',
+              'lat_2': 'lat_2',
+              }
+    kw_proj = dict()
+    kw_globe = dict()
+    kw_std = dict()
+    for s in srs.split('+'):
+        s = s.split('=')
+        if len(s) != 2:
+            continue
+        k = s[0].strip()
+        v = s[1].strip()
+        try:
+            v = float(v)
+        except:
+            pass
+        if k == 'proj':
+            if v == 'tmerc':
+                cl = ccrs.TransverseMercator
+            if v == 'lcc':
+                cl = ccrs.LambertConformal
+            if v == 'merc':
+                cl = ccrs.Mercator
+            if v == 'utm':
+                cl = ccrs.UTM
+        if k in km_proj:
+            kw_proj[km_proj[k]] = v
+        if k in km_globe:
+            kw_globe[km_globe[k]] = v
+        if k in km_std:
+            kw_std[km_std[k]] = v
+
+    globe = None
+    if kw_globe:
+        globe = ccrs.Globe(**kw_globe)
+    if kw_std:
+        kw_proj['standard_parallels'] = (kw_std['lat_1'], kw_std['lat_2'])
+
+    # mercatoooor
+    if cl.__name__ == 'Mercator':
+        kw_proj.pop('false_easting', None)
+        kw_proj.pop('false_northing', None)
+
+    return cl(globe=globe, **kw_proj)
+
+
 def mercator_grid(center_ll=None, extent=None, ny=600, nx=None, order='ll'):
     """Local transverse mercator map centered on a specified point.
 
