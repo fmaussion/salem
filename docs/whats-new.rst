@@ -2,6 +2,15 @@ What's New
 ==========
 
 
+v0.x (unreleased)
+-----------------
+
+Enhancements
+~~~~~~~~~~~~
+
+- New diagnostic variable: 'WS'
+
+
 v0.1.1 (27 October 2016)
 ------------------------
 

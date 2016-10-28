@@ -289,6 +289,23 @@ class TK(FakeVariable):
         return (p/p1000mb)**(r_d/cp) * t
 
 
+class WS(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['U'])
+        self.units = 'm s-1'
+        self.description = 'Horizontal wind speed'
+
+    @staticmethod
+    def can_do(nc):
+        return np.all([n in nc.variables for n in ['U', 'V']])
+
+    def __getitem__(self, item):
+        ws = self.nc.variables['U'][item]**2
+        ws += self.nc.variables['V'][item]**2
+        return np.sqrt(ws)
+
+
 class PRESSURE(FakeVariable):
     def __init__(self, nc):
         FakeVariable.__init__(self, nc)
