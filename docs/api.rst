@@ -139,6 +139,8 @@ methods are almost equivalent):
     DatasetAccessor.roi
     DatasetAccessor.subset
     DatasetAccessor.transform
+    DatasetAccessor.wrf_zlevel
+    DatasetAccessor.wrf_plevel
 
 
 Old-style datasets

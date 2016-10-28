@@ -616,6 +616,41 @@ class DataArrayAccessor(_XarrayAccessorBase):
         """Make a plot of the DataArray."""
         return self._quick_map(self._obj, ax=ax, interp=interp, **kwargs)
 
+    def interpz(self, zcoord, levels, dim_name=''):
+        """Interpolates the array along the vertical dimension
+
+        Parameters
+        ----------
+        zcoord: DataArray
+          the z coordinates of the variable. Must be of same dimensions
+        levels: 1dArray
+          the levels at which to interpolate
+        dim_name: str
+          the name of the new dimension
+
+        Returns
+        -------
+        a new DataArray with the interpolated data
+        """
+
+        if self.z_dim is None:
+            raise RuntimeError('zdimension not recognized')
+
+        data = wrftools.interp3d(self._obj.values, zcoord.values,
+                                 np.atleast_1d(levels))
+
+        dims = list(self._obj.dims)
+        zd = np.nonzero([self.z_dim == d for d in dims])[0][0]
+        dims[zd] = dim_name
+        coords = dict(self._obj.coords)
+        coords.pop(self.z_dim, None)
+        coords[dim_name] = np.atleast_1d(levels)
+        out = xr.DataArray(data, name=self._obj.name, dims=dims, coords=coords)
+        out.attrs['pyproj_srs'] = self.grid.proj.srs
+        if not np.asarray(levels).shape:
+            out = out.isel(**{dim_name:0})
+        return out
+
 
 @xr.register_dataset_accessor('salem')
 class DatasetAccessor(_XarrayAccessorBase):
@@ -664,6 +699,54 @@ class DatasetAccessor(_XarrayAccessorBase):
                 except (KeyError, TypeError):
                     new_name = v
                 self._obj[new_name] = out[v]
+
+    def wrf_zlevel(self, varname, levels=None):
+        """Interpolates to a specified height above sea level.
+
+        Parameters
+        ----------
+        varname: str
+          the name of the variable to interpolate
+        levels: 1d array
+          levels at which to interpolate (default: some levels I thought of)
+
+        Returns
+        -------
+        an interpolated DataArray
+        """
+        if levels is None:
+            levels = np.array([10, 20, 30, 50, 75, 100, 200, 300, 500, 750,
+                               1000, 2000, 3000, 5000, 7500, 10000])
+
+        zcoord = self._obj['Z']
+        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='z')
+        out['z'].attrs['description'] = 'height above sea level'
+        out['z'].attrs['units'] = 'm'
+        return out
+
+    def wrf_plevel(self, varname, levels=None):
+        """Interpolates to a specified pressure level (hPa).
+
+        Parameters
+        ----------
+        varname: str
+          the name of the variable to interpolate
+        levels: 1d array
+          levels at which to interpolate (default: some levels I thought of)
+
+        Returns
+        -------
+        an interpolated DataArray
+        """
+        if levels is None:
+            levels = np.array([1000, 975, 950, 925, 900, 850, 800, 750, 700,
+                               650, 600, 550, 500, 450, 400, 300, 200, 100])
+
+        zcoord = self._obj['PRESSURE']
+        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='p')
+        out['p'].attrs['description'] = 'pressure'
+        out['p'].attrs['units'] = 'hPa'
+        return out
 
 
 class _NetCDF4DataStore(NetCDF4DataStore):

@@ -8,6 +8,7 @@ import copy
 
 import numpy as np
 import pyproj
+from scipy.interpolate import interp1d
 try:
     from pandas import to_datetime
     from xarray.core import indexing
@@ -344,6 +345,21 @@ class GEOPOTENTIAL(FakeVariable):
         return self.nc.variables['PH'][item] + self.nc.variables['PHB'][item]
 
 
+class Z(FakeVariable):
+    def __init__(self, nc):
+        FakeVariable.__init__(self, nc)
+        self._copy_attrs_from(nc.variables['PH'])
+        self.units = 'm'
+        self.description = 'Full model height'
+
+    @staticmethod
+    def can_do(nc):
+        return np.all([n in nc.variables for n in ['PH', 'PHB']])
+
+    def __getitem__(self, item):
+        return self.nc.variables['GEOPOTENTIAL'][item] / 9.81
+
+
 class SLP(FakeVariable):
     def __init__(self, nc):
         FakeVariable.__init__(self, nc)
@@ -387,6 +403,46 @@ var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
 var_classes.extend([cls.__name__ for cls in
                     vars()['AccumulatedVariable'].__subclasses__()])
 var_classes.remove('AccumulatedVariable')
+
+
+def interp3d(data, zcoord, levels):
+    """Interpolate on the first dimension of a 3d var
+
+    Useful for WRF pressure or geopotential levels
+
+    Parameters
+    ----------
+    data: ndarrad
+      3d or 4d array of the data to interpolate
+    zcoord: ndarray
+      same dims as data, the z coordinates of the data points
+    levels: 1darray
+      the levels at which to interpolate
+
+    Returns
+    -------
+    a ndarray, with the first dimension now begin of shape nlevels
+    """
+
+    ndims = len(data.shape)
+    if ndims == 4:
+        out = []
+        for d, z in zip(data, zcoord):
+            out.append(np.expand_dims(interp3d(d, z, levels), 0))
+        return np.concatenate(out, axis=0)
+    if ndims != 3:
+        raise ValueError('ndims must be 3')
+
+    # TODO: there got to be a faster way to do this
+    # same problem, no solution: http://stackoverflow.com/questions/27622808/
+    # fast-3d-interpolation-of-atmospheric-data-in-numpy-scipy
+    out = np.zeros((len(levels), data.shape[-2], data.shape[-1]))
+    for i in range(data.shape[-1]):
+        for j in range(data.shape[-2]):
+            f = interp1d(zcoord[:, j, i], data[:, j, i],
+                         fill_value=np.NaN, bounds_error=False)
+            out[:, j, i] = f(levels)
+    return out
 
 
 def _ncl_slp(z, t, p, q):

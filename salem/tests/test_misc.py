@@ -786,6 +786,41 @@ class TestXarray(unittest.TestCase):
         assert_allclose(v.mean(), ds.PRCP.mean())
         assert_allclose(v.max(), ds.PRCP.max())
 
+    @requires_xarray
+    def test_3d_interp(self):
+
+        f = get_demo_file('wrf_d01_allvars_cropped.nc')
+        ds = sio.open_wrf_dataset(f)
+
+        out = ds.salem.wrf_zlevel('Z', levels=6000.)
+        ref_2d = out*0. + 6000.
+        assert_allclose(out, ref_2d)
+
+        # this used to raise an error
+        _ = out.isel(time=1)
+
+        out = ds.salem.wrf_zlevel('Z', levels=[6000., 7000.])
+        assert_allclose(out.sel(z=6000.), ref_2d)
+        assert_allclose(out.sel(z=7000.), ref_2d*0. + 7000.)
+
+        out = ds.salem.wrf_zlevel('Z')
+        assert_allclose(out.sel(z=7500.), ref_2d*0. + 7500.)
+
+        out = ds.salem.wrf_plevel('PRESSURE', levels=400.)
+        ref_2d = out*0. + 400.
+        assert_allclose(out, ref_2d)
+
+        out = ds.salem.wrf_plevel('PRESSURE', levels=[400., 300.])
+        assert_allclose(out.sel(p=400.), ref_2d)
+        assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+
+        out = ds.salem.wrf_plevel('PRESSURE')
+        assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+
+        ds = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+        ws_h = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
+        assert np.all(np.isfinite(ws_h))
+
 
 class TestGeogridSim(unittest.TestCase):
 
