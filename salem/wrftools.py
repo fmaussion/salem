@@ -82,9 +82,11 @@ class Unstaggerer(object):
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
 
         # Slice to change
+        was_scalar = False
         sl = item[self.ds]
         if np.isscalar(sl) and not isinstance(sl, slice):
             sl = slice(sl, sl+1)
+            was_scalar = True
 
         # Ok, get the indexes right
         start = sl.start or 0
@@ -93,8 +95,12 @@ class Unstaggerer(object):
             stop += self._ds_shape-1
         stop = np.clip(stop+1, 0, self._ds_shape)
         itemr = copy.deepcopy(item)
-        item[self.ds] = slice(start, stop-1)
-        itemr[self.ds] = slice(start+1, stop)
+        if was_scalar:
+            item[self.ds] = start
+            itemr[self.ds] = start+1
+        else:
+            item[self.ds] = slice(start, stop-1)
+            itemr[self.ds] = slice(start+1, stop)
         return 0.5*(self.ncvar[item] + self.ncvar[itemr])
 
 
