@@ -15,7 +15,7 @@ import numpy as np
 import netCDF4
 
 from salem.utils import memory, cached_shapefile_path
-from salem import gis, utils, wgs84, wrftools
+from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
 try:
     import xarray as xr
@@ -518,6 +518,10 @@ class _XarrayAccessorBase(object):
         smap.visualize(ax=ax, title=title, cbar_title=cb)
         return smap
 
+    def cartopy(self):
+        """Get a cartopy.crs.Projection for this dataset."""
+        return proj_to_cartopy(self.grid.proj)
+
     def transform(self, other, grid=None, interp='nearest', ks=3):
         """Reprojects an other Dataset or DataArray onto this grid.
 
@@ -762,10 +766,20 @@ def open_wrf_dataset(file):
     # trick xarray with our custom netcdf
     ds = xr.open_dataset(_NetCDF4DataStore(file, ds=nc))
 
+    # remove time dimension to lon lat
+    for vn in ['XLONG', 'XLAT']:
+        try:
+            v = ds[vn].isel(Time=0)
+            ds[vn] = xr.DataArray(v.values, dims=['south_north', 'west_east'])
+        except ValueError:
+            pass
+
     # Convert time
     ds['Time'] = netcdf_time(ds)
     ds.rename({'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon'},
               inplace=True)
+    if 'XTIME' in ds.variables:
+        ds.rename({'XTIME': 'xtime'}, inplace=True)
 
     # drop ugly vars
     vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']

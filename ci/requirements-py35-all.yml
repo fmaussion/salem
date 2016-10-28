@@ -17,6 +17,7 @@ dependencies:
   - matplotlib
   - Pillow
   - descartes
+  - cartopy
   - pip:
     - coveralls
     - pytest-cov

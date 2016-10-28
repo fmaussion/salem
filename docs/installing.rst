@@ -40,7 +40,7 @@ For plotting
 ~~~~~~~~~~~~
 
 - `matplotlib <http://matplotlib.org/>`__: required for :ref:`plotting`
-- `pillow <http://pillow.readthedocs.io/en/latest/installation.html>`__: required for maps
+- `pillow <http://pillow.readthedocs.io/en/latest/installation.html>`__: required for salem.Map
 - `descartes <https://pypi.python.org/pypi/descartes/>`__: for paths and patches on maps
 - `motionless <https://github.com/ryancox/motionless/>`__: for google static maps
 

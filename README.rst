@@ -16,7 +16,7 @@ Salem
     :target: https://zenodo.org/badge/latestdoi/42607422
 
 
-Salem is a `cat`_. Salem is also a small library to do some geoscientific data
+Salem is a `cat`_. Salem is also a small library to do geoscientific data
 processing and plotting. It extends `xarray`_ to add geolocalised
 subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 `DataSet`_ structures.

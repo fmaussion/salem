@@ -4,7 +4,7 @@
 Topographic shading
 ===================
 
-How to add topographic shading to a plot.
+Add topographic shading to a plot
 
 """
 

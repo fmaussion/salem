@@ -18,9 +18,10 @@ except ImportError:
 
 from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
 from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
-    read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap
+    read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
+    open_wrf_dataset
 from salem.utils import get_demo_file
-from salem.tests import requires_matplotlib
+from salem.tests import requires_matplotlib, requires_cartopy
 
 # Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -624,4 +625,56 @@ def test_geogrid_simulator():
     for i, (m, ax) in enumerate(zip(maps, axs)):
         m.set_rgb(natural_earth='lr')
         m.plot(ax=ax)
+    return fig
+
+
+@requires_matplotlib
+@requires_cartopy
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_cartopy():
+
+    import cartopy
+
+    fig = plt.figure(figsize=(8, 11))
+
+    ods = open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+
+    ax = plt.subplot(3, 2, 1)
+    smap = ods.salem.get_map()
+    smap.plot(ax=ax)
+
+    p = ods.salem.cartopy()
+    ax = plt.subplot(3, 2, 2, projection=p)
+    ax.coastlines()
+    ax.add_feature(cartopy.feature.BORDERS, linestyle='-')
+    ax.set_extent(ods.salem.grid.extent, crs=p)
+
+    ds = ods.isel(west_east=slice(22, 28), south_north=slice(0, 6))
+    ds = ds.T2C.mean(dim='time', keep_attrs=True)
+
+    ax = plt.subplot(3, 2, 3)
+    smap = ds.salem.quick_map(ax=ax)
+    x, y = smap.grid.transform(ds.lon.values, ds.lat.values)
+    ax.scatter(x, y)
+
+    p = ds.salem.cartopy()
+    ax = plt.subplot(3, 2, 4, projection=p)
+    ds.plot.imshow(ax=ax, transform=p)
+    ax.coastlines()
+    ax.scatter(ds.lon, ds.lat, transform=cartopy.crs.PlateCarree())
+
+    ds = ods.isel(west_east=slice(80, 86), south_north=slice(80, 86))
+    ds = ds.T2C.mean(dim='time', keep_attrs=True)
+
+    ax = plt.subplot(3, 2, 5)
+    smap = ds.salem.quick_map(ax=ax, factor=1)
+    x, y = smap.grid.transform(ds.lon.values, ds.lat.values)
+    ax.scatter(x, y)
+
+    p = ds.salem.cartopy()
+    ax = plt.subplot(3, 2, 6, projection=p)
+    ds.plot.imshow(ax=ax, transform=p)
+    ax.coastlines()
+    ax.scatter(ds.lon, ds.lat, transform=cartopy.crs.PlateCarree())
+
     return fig

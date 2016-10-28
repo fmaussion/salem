@@ -144,7 +144,7 @@ class TestIO(unittest.TestCase):
 
         import xarray as xr
         da = xr.DataArray(np.arange(12).reshape(3, 4), dims=['lat', 'lon'])
-        ds = da.to_dataset('var')
+        ds = da.to_dataset(name='var')
 
         t = sio.netcdf_time(ds)
         assert t is None
@@ -588,6 +588,10 @@ class TestXarray(unittest.TestCase):
 
         assert_allclose(w['PH'], nc['PH_UNSTAGG'])
 
+        # chunk
+        v = w['PH'].chunk((1, 6, 13, 13))
+        assert_allclose(v.mean(), nc['PH_UNSTAGG'].mean(), atol=1e-2)
+
         wn = w.isel(west_east=slice(4, 8))
         ncn = nc.isel(west_east=slice(4, 8))
         assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
@@ -611,6 +615,8 @@ class TestXarray(unittest.TestCase):
         wn = w.isel(bottom_top=-1)
         ncn = nc.isel(bottom_top=-1)
         assert_allclose(wn['PH'], ncn['PH_UNSTAGG'])
+
+        w['PH'].chunk()
 
     @requires_xarray
     def test_diagvars(self):
@@ -759,6 +765,14 @@ class TestXarray(unittest.TestCase):
             dss = ds.isel(west_east=1, south_north=2,
                           bottom_top=3,  time=2)
             _ = dss[vn].values
+
+        # some chunking experiments
+        v = ds.WS.chunk((2, 1, 4, 5))
+        assert_allclose(v.mean(), ds.WS.mean(), atol=1e-3)
+        ds = ds.isel(time=slice(1, 4))
+        v = ds.PRCP.chunk((1, 2, 2))
+        assert_allclose(v.mean(), ds.PRCP.mean())
+        assert_allclose(v.max(), ds.PRCP.max())
 
 
 class TestGeogridSim(unittest.TestCase):
