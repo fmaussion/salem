@@ -17,6 +17,15 @@ except ImportError:
 
 from salem import lazy_property, wgs84, gis
 
+POOL = None
+
+
+def _init_pool():
+    global POOL
+    if POOL is None:
+        import multiprocessing as mp
+        POOL = mp.Pool()
+
 
 class Unstaggerer(object):
     """Duck NetCDF4.Variable class which "unstaggers" WRF variables.
@@ -405,7 +414,12 @@ var_classes.extend([cls.__name__ for cls in
 var_classes.remove('AccumulatedVariable')
 
 
-def interp3d(data, zcoord, levels):
+def _interp1d(args):
+    f = interp1d(args[0], args[1], fill_value=np.NaN, bounds_error=False)
+    return f(args[2])
+
+
+def interp3d(data, zcoord, levels, use_multiprocessing=True):
     """Interpolate on the first dimension of a 3d var
 
     Useful for WRF pressure or geopotential levels
@@ -418,6 +432,8 @@ def interp3d(data, zcoord, levels):
       same dims as data, the z coordinates of the data points
     levels: 1darray
       the levels at which to interpolate
+    use_multiprocessing: bool
+      set to false if, for some reason, you don't want to use mp
 
     Returns
     -------
@@ -433,15 +449,25 @@ def interp3d(data, zcoord, levels):
     if ndims != 3:
         raise ValueError('ndims must be 3')
 
-    # TODO: there got to be a faster way to do this
-    # same problem, no solution: http://stackoverflow.com/questions/27622808/
-    # fast-3d-interpolation-of-atmospheric-data-in-numpy-scipy
-    out = np.zeros((len(levels), data.shape[-2], data.shape[-1]))
-    for i in range(data.shape[-1]):
+    if use_multiprocessing:
+        inp = []
         for j in range(data.shape[-2]):
-            f = interp1d(zcoord[:, j, i], data[:, j, i],
-                         fill_value=np.NaN, bounds_error=False)
-            out[:, j, i] = f(levels)
+            for i in range(data.shape[-1]):
+                inp.append((zcoord[:, j, i], data[:, j, i], levels))
+        _init_pool()
+        out = POOL.map(_interp1d, inp, chunksize=1000)
+        out = np.asarray(out).T
+        out = out.reshape((len(levels), data.shape[-2], data.shape[-1]))
+    else:
+        # TODO: there got to be a faster way to do this
+        # same problem: http://stackoverflow.com/questions/27622808/
+        # fast-3d-interpolation-of-atmospheric-data-in-numpy-scipy
+        out = np.zeros((len(levels), data.shape[-2], data.shape[-1]))
+        for i in range(data.shape[-1]):
+            for j in range(data.shape[-2]):
+                f = interp1d(zcoord[:, j, i], data[:, j, i],
+                             fill_value=np.NaN, bounds_error=False)
+                out[:, j, i] = f(levels)
     return out
 
 

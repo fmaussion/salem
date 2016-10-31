@@ -818,8 +818,11 @@ class TestXarray(unittest.TestCase):
         assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
 
         ds = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
-        ws_h = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
+        ws_h = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.,
+                                                use_multiprocessing=False)
         assert np.all(np.isfinite(ws_h))
+        ws_h2 = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
+        assert_allclose(ws_h, ws_h2)
 
 
 class TestGeogridSim(unittest.TestCase):
