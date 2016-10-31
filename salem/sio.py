@@ -616,7 +616,7 @@ class DataArrayAccessor(_XarrayAccessorBase):
         """Make a plot of the DataArray."""
         return self._quick_map(self._obj, ax=ax, interp=interp, **kwargs)
 
-    def interpz(self, zcoord, levels, dim_name=''):
+    def interpz(self, zcoord, levels, dim_name='', use_multiprocessing=True):
         """Interpolates the array along the vertical dimension
 
         Parameters
@@ -627,6 +627,8 @@ class DataArrayAccessor(_XarrayAccessorBase):
           the levels at which to interpolate
         dim_name: str
           the name of the new dimension
+        use_multiprocessing: bool
+          set to false if, for some reason, you don't want to use mp
 
         Returns
         -------
@@ -637,7 +639,8 @@ class DataArrayAccessor(_XarrayAccessorBase):
             raise RuntimeError('zdimension not recognized')
 
         data = wrftools.interp3d(self._obj.values, zcoord.values,
-                                 np.atleast_1d(levels))
+                                 np.atleast_1d(levels), use_multiprocessing=
+                                 use_multiprocessing)
 
         dims = list(self._obj.dims)
         zd = np.nonzero([self.z_dim == d for d in dims])[0][0]
@@ -700,7 +703,7 @@ class DatasetAccessor(_XarrayAccessorBase):
                     new_name = v
                 self._obj[new_name] = out[v]
 
-    def wrf_zlevel(self, varname, levels=None):
+    def wrf_zlevel(self, varname, levels=None, use_multiprocessing=True):
         """Interpolates to a specified height above sea level.
 
         Parameters
@@ -709,6 +712,8 @@ class DatasetAccessor(_XarrayAccessorBase):
           the name of the variable to interpolate
         levels: 1d array
           levels at which to interpolate (default: some levels I thought of)
+        use_multiprocessing: bool
+          set to false if, for some reason, you don't want to use mp
 
         Returns
         -------
@@ -719,12 +724,14 @@ class DatasetAccessor(_XarrayAccessorBase):
                                1000, 2000, 3000, 5000, 7500, 10000])
 
         zcoord = self._obj['Z']
-        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='z')
+        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='z',
+                                               use_multiprocessing=
+                                               use_multiprocessing)
         out['z'].attrs['description'] = 'height above sea level'
         out['z'].attrs['units'] = 'm'
         return out
 
-    def wrf_plevel(self, varname, levels=None):
+    def wrf_plevel(self, varname, levels=None, use_multiprocessing=True):
         """Interpolates to a specified pressure level (hPa).
 
         Parameters
@@ -733,6 +740,8 @@ class DatasetAccessor(_XarrayAccessorBase):
           the name of the variable to interpolate
         levels: 1d array
           levels at which to interpolate (default: some levels I thought of)
+        use_multiprocessing: bool
+          set to false if, for some reason, you don't want to use mp
 
         Returns
         -------
@@ -743,7 +752,9 @@ class DatasetAccessor(_XarrayAccessorBase):
                                650, 600, 550, 500, 450, 400, 300, 200, 100])
 
         zcoord = self._obj['PRESSURE']
-        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='p')
+        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='p',
+                                               use_multiprocessing=
+                                               use_multiprocessing)
         out['p'].attrs['description'] = 'pressure'
         out['p'].attrs['units'] = 'hPa'
         return out
