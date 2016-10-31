@@ -9,6 +9,13 @@ Let's open a `WRF model`_ output file with xarray first:
 
 .. _WRF Model: http://www2.mmm.ucar.edu/wrf/users/
 
+
+.. ipython:: python
+   :suppress:
+
+    plt.rcParams['figure.figsize'] = (6, 4)
+    f = plt.figure(figsize=(6, 4))
+
 .. ipython:: python
 
     import xarray as xr
@@ -44,7 +51,8 @@ Salem defines a special parser for these files:
 .. ipython:: python
    :suppress:
 
-    ds.attrs = {'note': 'Global attrs removed.'}
+    ds.attrs = {'note': 'Global attrs removed.',
+                'pyproj_srs': ds.attrs['pyproj_srs']}
 
 This parser greatly simplifies the file structure:
 
@@ -81,6 +89,26 @@ accumulated fields). For a list of diagnostic variables (and TODOs!), refer to
 
     @savefig plot_wrf_diag.png width=80%
     ds.PRCP.isel(time=-1).salem.quick_map(cmap='Purples', vmax=5)
+
+
+Vertical interpolation
+----------------------
+
+The WRF vertical coordinates are eta-levels, which is not a very practical
+coordinate for analysis or plotting. With the functions
+:py:func:`~DatasetAccessor.wrf_zlevel` and
+:py:func:`~DatasetAccessor.wrf_plevel` it is possible to interpolate the 3d
+data at either altitude or pressure levels:
+
+.. ipython:: python
+
+    ws_h = ds.isel(time=1).salem.wrf_zlevel('WS', levels=10000.)
+    @savefig plot_wrf_zinterp.png width=80%
+    ws_h.salem.quick_map();
+
+Note that currently, the interpolation is quite slow, see :issue:`25`. It's
+probably wise to do it on single time slices or aggregated data, rather than
+huge data cubes.
 
 
 Geogrid simulator

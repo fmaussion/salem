@@ -1,4 +1,4 @@
-.. _xarray:
+.. _xarray_acc:
 
 xarray accessors
 ================

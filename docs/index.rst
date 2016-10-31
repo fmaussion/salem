@@ -35,7 +35,7 @@ Documentation
     faq
     whats-new
     installing
-    xarray
+    xarray_acc
     gis
     plotting
     wrf
