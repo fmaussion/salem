@@ -645,6 +645,7 @@ class Map(DataLevels):
             kwargs.setdefault('colors', (0.08984375, 0.65625, 0.8515625))
             return self.set_shapefile(shapefiles['rivers'], **kwargs)
         if countries:
+            kwargs.setdefault('zorder', 98)
             return self.set_shapefile(shapefiles['world_borders'], **kwargs)
 
         # Reset?
@@ -786,6 +787,7 @@ class Map(DataLevels):
         # Done
         kwargs.setdefault('colors', 'gray')
         kwargs.setdefault('linestyles', 'dashed')
+        kwargs.setdefault('zorder', 99)
         self.ll_contour_kw = kwargs
 
     def _shading_base(self, slope=None, relief_factor=0.7):
