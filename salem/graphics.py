@@ -886,12 +886,12 @@ class Map(DataLevels):
                         pixel_ref='corner').center_grid
             return self.set_rgb(img, grid, interp='linear')
 
-        if (len(img.shape) != 3) or (img.shape[-1] != 3):
-            raise ValueError('img should be of shape (y, x, 3)')
+        if (len(img.shape) != 3) or (img.shape[-1] not in [3, 4]):
+            raise ValueError('img should be of shape (y, x, 3) or (y, x, 4)')
 
         # Unefficient but by far easiest right now
         out = []
-        for i in [0, 1, 2]:
+        for i in range(img.shape[-1]):
             out.append(self._check_data(img[..., i], crs=crs, interp=interp))
         self._rgb = np.dstack(out)
 
