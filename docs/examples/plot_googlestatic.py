@@ -30,16 +30,18 @@ f, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
 # read the shapefile and use its extent to define a ideally sized map
 shp = salem.read_shapefile(get_demo_file('rgi_kesselwand.shp'))
+# I you need to do a lot of maps you might want
+# to use an API key and set it here with key='YOUR_API_KEY'
 g = GoogleVisibleMap(x=[shp.min_x, shp.max_x], y=[shp.min_y, shp.max_y],
-                     maptype='satellite')  # try out: 'terrain'
+                     maptype='satellite')  # try out also: 'terrain'
 
 # the google static image is a standard rgb image
 ggl_img = g.get_vardata()
 ax1.imshow(ggl_img)
 ax1.set_title('Google static map')
 
-# make a map of the same size as the image
-sm = Map(g.grid, factor=1)
+# make a map of the same size as the image (no country borders)
+sm = Map(g.grid, factor=1, countries=False)
 sm.set_shapefile(shp)  # add the glacier outlines
 sm.set_rgb(ggl_img)  # add the background rgb image
 sm.visualize(ax=ax2)  # plot it
