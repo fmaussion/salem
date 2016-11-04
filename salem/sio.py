@@ -806,6 +806,7 @@ def open_xr_dataset(file):
         ds = xr.Dataset()
         ds.attrs['pyproj_srs'] = geo.grid.proj.srs
         ds['data'] = da
+        ds['data'].attrs['pyproj_srs'] = geo.grid.proj.srs
         return ds
 
     # otherwise rely on xarray
