@@ -1,8 +1,5 @@
-"""Color handling and maps.
-
-Copyright: Fabien Maussion, 2014-2016
-
-License: GPLv3+
+"""
+Color handling and maps.
 """
 from __future__ import division
 import six

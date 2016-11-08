@@ -1,8 +1,5 @@
-"""Input output functions (but mostly input)
-
-Copyright: Fabien Maussion, 2014-2016
-
-License: GPLv3+
+"""
+Input output functions (but mostly input)
 """
 from __future__ import division
 

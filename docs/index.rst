@@ -56,9 +56,9 @@ Get in touch
 License
 -------
 
-Salem is available under the open source `GNU GPLv3 license`_.
+Salem is available under the open source `3-clause BSD license`_.
 
-.. _GNU GPLv3 license: http://www.gnu.org/licenses/gpl-3.0.en.html
+.. _3-clause BSD license: https://en.wikipedia.org/wiki/BSD_licenses
 
 
 About
@@ -68,7 +68,7 @@ About
     Experimental - in development
 
 :License:
-    GNU GPLv3
+    3-clause BSD
 
 :Authors:
     `Fabien Maussion <http://fabienmaussion.info/>`_

@@ -1,8 +1,5 @@
-"""Projections and grids
-
-Copyright: Fabien Maussion, 2014-2016
-
-License: GPLv3
+"""
+Projections and grids
 """
 # Python 2 stuff
 from __future__ import division

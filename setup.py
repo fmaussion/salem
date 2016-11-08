@@ -16,7 +16,7 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
 DISTNAME = 'salem'
-LICENSE = 'GPLv3+'
+LICENSE = '3-clause BSD'
 AUTHOR = 'Fabien Maussion'
 AUTHOR_EMAIL = 'fabien.maussion@uibk.ac.at'
 URL = 'http://salem.readthedocs.io'
@@ -26,8 +26,7 @@ CLASSIFIERS = [
         'Development Status :: 3 - Alpha',
         # Indicate who your project is intended for
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License ' +
-        'v3 or later (GPLv3+)',
+        'License :: OSI Approved :: BSD License',
         'Topic :: Scientific/Engineering :: Atmospheric Science',
         'Topic :: Scientific/Engineering :: GIS',
         'Programming Language :: Python :: 2',
@@ -86,10 +85,9 @@ req_packages = ['numpy',
                 'scipy',
                 'six',
                 'pyproj',
-                'pandas',
-                'xarray',
-                'matplotlib',
-                'joblib']
+                'joblib',
+                'netCDF4',
+                ]
 
 check_dependencies(req_packages)
 

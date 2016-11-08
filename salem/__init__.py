@@ -1,9 +1,5 @@
 """
 Salem package
-
-Copyright: Fabien Maussion, 2014-2016
-
-License: GPLv3
 """
 from __future__ import division
 
