@@ -4,8 +4,10 @@ What's New
 ==========
 
 
-v0.x (unreleased)
------------------
+v0.2.0 (08 November 2016)
+-------------------------
+
+Salem is now released under a 3-clause BSD license.
 
 Enhancements
 ~~~~~~~~~~~~
