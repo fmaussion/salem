@@ -525,15 +525,12 @@ class _XarrayAccessorBase(object):
     def transform(self, other, grid=None, interp='nearest', ks=3):
         """Reprojects an other Dataset or DataArray onto this grid.
 
-        If the data provided is 3D or 4D, Salem is going to try to understand
-        as much as possible what to do with it.
-
         Parameters
         ----------
         other: Dataset, DataArray or ndarray
             the data to project onto self
         grid: salem.Grid
-            in case the data provided does not carry enough georef info
+            in case the input dataset does not carry georef info
         interp : str
             'nearest' (default), 'linear', or 'spline'
         ks : int
@@ -606,6 +603,8 @@ class _XarrayAccessorBase(object):
 
         if was_dataarray:
             out = out[v]
+        else:
+            out.attrs['pyproj_srs'] = self.grid.proj.srs
         return out
 
 
@@ -667,15 +666,12 @@ class DatasetAccessor(_XarrayAccessorBase):
                           name=None):
         """Reprojects an other Dataset and adds it's content to the current one.
 
-        If the data provided is 3D or 4D, Salem is going to try to understand
-        as much as possible what to do with it.
-
         Parameters
         ----------
         other: Dataset, DataArray or ndarray
             the data to project onto self
         grid: salem.Grid
-            in case the data provided does not carry enough georef info
+            in case the input dataset does not carry georef info
         interp : str
             'nearest' (default), 'linear', or 'spline'
         ks : int

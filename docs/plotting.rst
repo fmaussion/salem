@@ -49,19 +49,19 @@ You can also use the salem accessor to initialise the plot's map projection:
 Plotting with salem
 -------------------
 
-Salem comes with a homegrown plotting tool which is less flexible than
-cartopy's. It was created to overcome some of cartopy's limitations (e.g.
-the impossibility to add tick labels to Lambert Conformal maps), and to make
-regional maps which are more precise:
+Salem comes with a homegrown plotting tool. It is less flexible than
+cartopy, but it was created to overcome some of cartopy's limitations (e.g.
+the impossibility to add tick labels to lambert conformal maps), and to make
+nice looking regional maps:
 
 .. ipython:: python
 
     @savefig salem_quickmap.png width=80%
     ds.T2C.isel(time=1).salem.quick_map()
 
-Salem maps are different from cartopy's in that they don't change the axes'
-projections. The map background is always going to be a call to ``imshow()``,
-with an image of size decided at instanciation:
+Salem maps are different from cartopy's in that they don't change the
+matplotlib axes' projection. The map background is always going to be a
+call to `imshow()`_, with an image size decided at instanciation:
 
 .. ipython:: python
    :suppress:
@@ -93,3 +93,4 @@ the data that has to be plotted on it:
 
 Refer to :ref:`recipes` for more examples on how to use salem's maps.
 
+.. _imshow(): http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow

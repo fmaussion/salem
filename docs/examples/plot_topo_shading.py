@@ -12,7 +12,6 @@ from salem import mercator_grid, Map, get_demo_file
 import matplotlib.pyplot as plt
 
 # prepare the figure
-
 f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 7))
 
 # map extent

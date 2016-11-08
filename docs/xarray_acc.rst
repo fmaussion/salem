@@ -58,6 +58,12 @@ From geotiffs
 Salem uses `rasterio`_ to open and parse geotiff files:
 
 .. ipython:: python
+   :suppress:
+
+    plt.rcParams['figure.figsize'] = (7, 3)
+    f = plt.figure(figsize=(7, 3))
+
+.. ipython:: python
 
     fpath = salem.get_demo_file('himalaya.tif')
     ds = salem.open_xr_dataset(fpath)
@@ -87,3 +93,85 @@ The proj info has to be provided as attribute:
 
     @savefig plot_xarray_utm.png width=80%
     dutm.salem.quick_map(interp='linear');
+
+
+Using the accessor
+------------------
+
+The accessor's methods are available trough the ``.salem`` attribute.
+
+Keeping track of attributes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some datasets carry their georeferencing information in global attributes (WRF
+model output files for example). This makes it possible for Salem to
+determine the data's map projection. From the variables alone,
+however, this is not possible. This is the reason why it is recommended to
+use the :py:func:`~salem.open_xr_dataset` and
+:py:func:`~salem.open_wrf_dataset` function, which add
+an attribute to the variables automatically:
+
+.. ipython:: python
+
+    dsw = salem.open_xr_dataset(salem.get_demo_file('wrfout_d01.nc'))
+    dsw.T2.pyproj_srs
+
+Unfortunately, the DataArray attributes are lost when doing operations on them.
+It is the task of the user to keep track of this attribute:
+
+.. ipython:: python
+
+    dsw.T2.mean(dim='Time', keep_attrs=True).salem  # triggers an error without keep_attrs
+
+
+Reprojecting data
+~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+   :suppress:
+
+    plt.rcParams['figure.figsize'] = (7, 3)
+    f = plt.figure(figsize=(7, 3))
+
+You can reproject a Dataset onto another one with the
+:py:func:`~salem.DatasetAccessor.transform` function:
+
+.. ipython:: python
+
+    dse = salem.open_xr_dataset(salem.get_demo_file('era_interim_tibet.nc'))
+    dsr = ds.salem.transform(dse)
+    dsr
+    @savefig plot_xarray_transfo.png width=80%
+    dsr.t2m.mean(dim='time').salem.quick_map();
+
+Currently, salem implements, the neirest neighbor (default), linear, and spline
+interpolation methods:
+
+.. ipython:: python
+
+    dsr = ds.salem.transform(dse, interp='spline')
+    @savefig plot_xarray_transfo_spline.png width=80%
+    dsr.t2m.mean(dim='time').salem.quick_map();
+
+
+Subsetting data
+~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+    shdf = salem.read_shapefile(salem.get_demo_file('world_borders.shp'))
+    shdf = shdf.loc[shdf['CNTRY_NAME'] == 'Nepal']
+    dsr = dsr.salem.subset(shape=shdf, margin=10)
+    @savefig plot_xarray_subset_out.png width=80%
+    dsr.t2m.mean(dim='time').salem.quick_map();
+
+
+Regions of interest
+~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+    dsr = dsr.salem.roi(shape=shdf)
+    @savefig plot_xarray_roi_out.png width=80%
+    dsr.t2m.mean(dim='time').salem.quick_map();
+

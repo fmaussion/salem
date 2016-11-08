@@ -70,11 +70,12 @@ the two conventions are identical:
 
 .. ipython:: python
 
-    grid_c = salem.Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84, pixel_ref='corner')
+    grid_c = salem.Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0),
+                        proj=wgs84, pixel_ref='corner')
     assert grid_c == grid
 
 While it's good to know how grids work, most of the time grids should be
-inferred directly from the data files (if not, we have to implement it!):
+inferred directly from the data files:
 
 .. ipython:: python
 
