@@ -1,12 +1,9 @@
-"""This module provides a GeoDataset interface and a few implementations for
+"""
+This module provides a GeoDataset interface and a few implementations for
 e.g. netcdf, geotiff, WRF...
 
 This is kept for backwards compatibility reasons, but ideally everything should
 soon happen at the xarray level.
-
-Copyright: Fabien Maussion, 2014-2016
-
-License: GPLv3+
 """
 from __future__ import division
 

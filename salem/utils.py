@@ -1,8 +1,5 @@
-"""Some useful functions
-
-Copyright: Fabien Maussion, 2014-2016
-
-License: GPLv3+
+"""
+Some useful functions
 """
 from __future__ import division
 
