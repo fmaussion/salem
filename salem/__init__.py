@@ -63,4 +63,3 @@ from salem.sio import open_xr_dataset, open_wrf_dataset, \
 from salem.utils import get_demo_file
 from salem.graphics import get_cmap, DataLevels, Map
 from salem.wrftools import geogrid_simulator
-

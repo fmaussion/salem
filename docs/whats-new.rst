@@ -12,7 +12,6 @@ Enhancements
 
 - New :py:func:`~DatasetAccessor.wrf_zlevel` and
   :py:func:`~DatasetAccessor.wrf_plevel` functions for vertical interpolation
-  (still quite slow, though)
 - Salem can now plot on cartopy's maps thanks to a new
   :py:func:`~salem.proj_to_cartopy` function.
 - Doc improvements

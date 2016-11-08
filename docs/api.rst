@@ -107,7 +107,7 @@ Input/output
     read_shapefile_to_grid
 
 
-Xarray
+xarray
 ======
 
 .. autosummary::
@@ -116,29 +116,47 @@ Xarray
 
     open_xr_dataset
     open_wrf_dataset
-    DataArrayAccessor
-    DatasetAccessor
 
 
-Xarray accessors
+xarray accessors
 ----------------
 
 Salem adds `accessors`_ to xarray objects. They can be accessed via the
-``.salem`` attribute and add the following methods (DataArray and Dataset
-methods are almost equivalent):
+``.salem`` attribute and add the following methods:
 
 .. _accessors: http://xarray.pydata.org/en/stable/internals.html#extending-xarray
+
+
+DataArray
+^^^^^^^^^
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
+    DataArrayAccessor.subset
+    DataArrayAccessor.roi
+    DataArrayAccessor.transform
+    DataArrayAccessor.cartopy
+    DataArrayAccessor.get_map
+    DataArrayAccessor.quick_map
+    DataArrayAccessor.interpz
+
+
+Dataset
+^^^^^^^
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    DatasetAccessor.subset
+    DatasetAccessor.roi
+    DatasetAccessor.transform
+    DatasetAccessor.transform_and_add
     DatasetAccessor.cartopy
     DatasetAccessor.get_map
     DatasetAccessor.quick_map
-    DatasetAccessor.roi
-    DatasetAccessor.subset
-    DatasetAccessor.transform
     DatasetAccessor.wrf_zlevel
     DatasetAccessor.wrf_plevel
 

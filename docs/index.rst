@@ -15,7 +15,7 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 
 .. warning::
 
-    Salem is at a very early development stage and is more a proof of
+    Salem is at an early development stage and is more a proof of
     feasibility than a library for "everything you'll ever have to do with
     geoscientific data". There are plenty of more mature tools out there (see
     :ref:`faqtools`). Salem basically reinvents the wheel, but in the way I
@@ -36,9 +36,9 @@ Documentation
     whats-new
     installing
     xarray_acc
-    gis
     plotting
     wrf
+    gis
     auto_examples/index
     api
 
