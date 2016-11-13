@@ -737,11 +737,14 @@ class Grid(object):
         # Several cases
         if shape is not None:
             import pandas as pd
+            inplace = False
             if not isinstance(shape, pd.DataFrame):
                 from salem.sio import read_shapefile
                 shape = read_shapefile(shape)
+                inplace = True
             # corner grid is needed for rasterio
-            transform_geopandas(shape, to_crs=self.corner_grid)
+            transform_geopandas(shape, to_crs=self.corner_grid,
+                                inplace=inplace)
             import rasterio
             with rasterio.Env():
                 mask = rasterio.features.rasterize(shape.geometry, out=mask)

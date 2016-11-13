@@ -223,7 +223,8 @@ class GeoDataset(object):
         # Several cases
         if shape is not None:
             gdf = sio.read_shapefile(shape)
-            gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid)
+            gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid,
+                                    inplace=True)
             with rasterio.Env():
                 mask = features.rasterize(gdf.geometry, out=mask)
         if geometry is not None:
