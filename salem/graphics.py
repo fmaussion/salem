@@ -11,8 +11,6 @@ from os import path
 import copy
 # External libs
 import numpy as np
-from numpy import ma
-from matplotlib.transforms import Transform as MPLTranform
 
 try:
     from scipy.misc import imresize
@@ -32,6 +30,7 @@ try:
     from matplotlib.collections import PatchCollection, LineCollection
     from shapely.geometry import MultiPoint
     from descartes.patch import PolygonPatch
+    from matplotlib.transforms import Transform as MPLTranform
     import matplotlib.path as mpath
 except ImportError:
     class d1():
@@ -91,7 +90,7 @@ class ExtendedNorm(mpl.colors.BoundaryNorm):
 
     def __call__(self, value):
         xx, is_scalar = self.process_value(value)
-        mask = ma.getmaskarray(xx)
+        mask = np.ma.getmaskarray(xx)
         xx = np.atleast_1d(xx.filled(self.vmax + 1))
         iret = np.zeros(xx.shape, dtype=np.int16)
         for i, b in enumerate(self._b):
@@ -101,7 +100,7 @@ class ExtendedNorm(mpl.colors.BoundaryNorm):
             iret = (iret * scalefac).astype(np.int16)
         iret[xx < self.vmin] = -1
         iret[xx >= self.vmax] = self.Ncmap
-        ret = ma.array(iret, mask=mask)
+        ret = np.ma.array(iret, mask=mask)
         if is_scalar:
             ret = int(ret[0])  # assume python scalar
         return ret
