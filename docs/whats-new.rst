@@ -4,6 +4,22 @@ What's New
 ==========
 
 
+v0.2.X (Unreleased)
+-------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+- new ``Map.transform()`` method to make overplotting easier (still
+  a draft)
+
+Bug fixes
+~~~~~~~~~
+
+- ``grid.transform()`` now works with non numpy array type
+- ``transform_geopandas()`` won't do inplace operation per default anymore
+
+
 v0.2.0 (08 November 2016)
 -------------------------
 

@@ -540,6 +540,8 @@ class Grid(object):
         (i, j) coordinates of the points in the local grid.
         """
 
+        x, y = np.ma.array(x), np.ma.array(y)
+
         # First to local proj
         _crs = check_crs(crs)
         if isinstance(_crs, pyproj.Proj):
@@ -550,8 +552,8 @@ class Grid(object):
             raise ValueError('crs not understood')
 
         # Then to local grid
-        x = (np.ma.array(x) - self.x0) / self.dx
-        y = (np.ma.array(y) - self.y0) / self.dy
+        x = (x - self.x0) / self.dx
+        y = (y - self.y0) / self.dy
 
         # See if we need to round
         if nearest:
@@ -853,7 +855,7 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
     return shapely_transform(project, geom)
 
 
-def transform_geopandas(gdf, to_crs=wgs84, inplace=True):
+def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     """Reprojects a geopandas dataframe.
 
     Parameters
@@ -863,7 +865,7 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=True):
     to_crs : crs
         the crs into which the dataframe must be transformed
     inplace : bool
-        the original dataframe will be overwritten (default)
+        the original dataframe will be overwritten (default: False)
 
     Returns
     -------

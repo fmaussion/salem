@@ -654,8 +654,7 @@ def test_cartopy():
 
     ax = plt.subplot(3, 2, 3)
     smap = ds.salem.quick_map(ax=ax)
-    x, y = smap.grid.transform(ds.lon.values, ds.lat.values)
-    ax.scatter(x, y)
+    ax.scatter(ds.lon, ds.lat, transform=smap.transform(ax=ax))
 
     p = ds.salem.cartopy()
     ax = plt.subplot(3, 2, 4, projection=p)
@@ -668,8 +667,7 @@ def test_cartopy():
 
     ax = plt.subplot(3, 2, 5)
     smap = ds.salem.quick_map(ax=ax, factor=1)
-    x, y = smap.grid.transform(ds.lon.values, ds.lat.values)
-    ax.scatter(x, y)
+    ax.scatter(ds.lon, ds.lat, transform=smap.transform(ax=ax))
 
     p = ds.salem.cartopy()
     ax = plt.subplot(3, 2, 6, projection=p)

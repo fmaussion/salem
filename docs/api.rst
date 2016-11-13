@@ -94,6 +94,9 @@ Map methods
     Map.set_shapefile
     Map.set_text
     Map.set_topography
+    Map.transform
+    Map.visualize
+    Map.plot
 
 Input/output
 ============

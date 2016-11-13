@@ -12,7 +12,7 @@ import copy
 # External libs
 import numpy as np
 from numpy import ma
-
+from matplotlib.transforms import Transform as MPLTranform
 
 try:
     from scipy.misc import imresize
@@ -32,6 +32,7 @@ try:
     from matplotlib.collections import PatchCollection, LineCollection
     from shapely.geometry import MultiPoint
     from descartes.patch import PolygonPatch
+    import matplotlib.path as mpath
 except ImportError:
     class d1():
         def __init__(self):
@@ -642,7 +643,7 @@ class Map(DataLevels):
             kwargs.setdefault('colors', (0.08984375, 0.65625, 0.8515625))
             return self.set_shapefile(shapefiles['rivers'], **kwargs)
         if countries:
-            kwargs.setdefault('zorder', 98)
+            kwargs.setdefault('zorder', 50)
             return self.set_shapefile(shapefiles['world_borders'], **kwargs)
 
         # Reset?
@@ -784,7 +785,7 @@ class Map(DataLevels):
         # Done
         kwargs.setdefault('colors', 'gray')
         kwargs.setdefault('linestyles', 'dashed')
-        kwargs.setdefault('zorder', 99)
+        kwargs.setdefault('zorder', 51)
         self.ll_contour_kw = kwargs
 
     def _shading_base(self, slope=None, relief_factor=0.7):
@@ -892,6 +893,30 @@ class Map(DataLevels):
             out.append(self._check_data(img[..., i], crs=crs, interp=interp))
         self._rgb = np.dstack(out)
 
+    def transform(self, crs=wgs84, ax=None):
+        """Get a matplotlib transform object for a given reference system
+
+        Parameters
+        ----------
+        crs : coordinate reference system
+            a Grid or a Proj, basically. If a grid is given, the grid's proj
+            will be used.
+
+        Returns
+        -------
+        a matplotlib.transforms.Transform instance
+        """
+        try:
+            crs = crs.salem.grid
+        except:
+            pass
+        try:
+            crs = crs.proj
+        except:
+            pass
+        return _SalemTransform(target_grid=self.grid,
+                               source_crs=crs, ax=ax)
+
     def to_rgb(self):
         """Transform the data to a RGB image and add topographical shading."""
 
@@ -967,6 +992,7 @@ class Map(DataLevels):
                 kwargs.setdefault('color', 'k')
                 ax.plot(a[:, 0], a[:, 1], **kwargs)
             if g.type == 'Point':
+                kwargs.setdefault('zorder', 99)
                 kwargs.setdefault('marker', 'o')
                 kwargs.setdefault('s', 60)
                 kwargs.setdefault('facecolor', 'w')
@@ -1014,3 +1040,40 @@ def plot_polygon(ax, poly, edgecolor='black', **kwargs):
     for p in poly.interiors:
         x, y = zip(*p.coords)
         ax.plot(x, y, color=edgecolor)
+
+
+class _SalemTransform(MPLTranform):
+    """
+    A transform class for mpl axes using Grids.
+    """
+
+    input_dims = 2
+    output_dims = 2
+    is_separable = False
+    has_inverse = False
+
+    def __init__(self, target_grid=None, source_crs=None, ax=None):
+        """ Instanciate.
+
+        Parameters
+        ----------
+        target_grid : salem.Grid
+            typically, the map grid
+        source_grid
+        """
+        self.source_crs = source_crs
+        self.target_grid = target_grid
+        self.ax = ax
+        MPLTranform.__init__(self)
+
+    def transform_non_affine(self, xy):
+        xx, yy = xy[:, 0:1], xy[:, 1:2]
+        xx, yy = self.target_grid.transform(xx, yy, crs=self.source_crs)
+        ax = plt.gca() if self.ax is None else self.ax
+        return ax.transData.transform(np.concatenate((xx, yy), 1))
+
+    def transform_path_non_affine(self, path):
+        raise NotImplementedError('path transforms not working yet')
+
+    def inverted(self):
+        raise NotImplementedError('inverted not working yet')
