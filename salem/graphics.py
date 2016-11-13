@@ -40,6 +40,7 @@ except ImportError:
             self.colors = d2
             self.colors.BoundaryNorm = object
     mpl = d1()
+    MPLTranform = object
 
 from salem import utils, gis, sio, Grid, wgs84, cache_dir, GeoTiff
 
