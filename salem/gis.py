@@ -743,8 +743,8 @@ class Grid(object):
                 shape = read_shapefile(shape)
                 inplace = True
             # corner grid is needed for rasterio
-            transform_geopandas(shape, to_crs=self.corner_grid,
-                                inplace=inplace)
+            shape = transform_geopandas(shape, to_crs=self.corner_grid,
+                                        inplace=inplace)
             import rasterio
             with rasterio.Env():
                 mask = rasterio.features.rasterize(shape.geometry, out=mask)
