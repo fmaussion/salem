@@ -4,15 +4,18 @@
 Plotting shapefiles
 ===================
 
-Put some colors on shapefiles
+Put some colors and labels on shapefiles
 
 In this script, we use data from the `HydroSHEDS <http://www.hydrosheds.org/>`_
-database to illustrate some functionalities of salem Maps.
+database to illustrate some functionalities of salem Maps. The data shows the
+sub-basins of the Nam Co Lake catchment in Tibet. We navigate between the
+various tributary catchments of the lake.
 """
 
 import salem
 import matplotlib.pyplot as plt
 
+# read the shapefile
 shpf = salem.get_demo_file('Lev_09_MAIN_BAS_4099000881.shp')
 gdf = salem.read_shapefile(shpf)
 
@@ -21,9 +24,6 @@ g = salem.GoogleVisibleMap(x=[gdf.min_x.min(), gdf.max_x.max()],
                            y=[gdf.min_y.min(), gdf.max_y.max()],
                            maptype='satellite', size_x=400, size_y=400)
 ggl_img = g.get_vardata()
-
-# Get the polygon of the last sink (i.e. the lake)
-gds_0 = gdf.loc[gdf.HYBAS_ID == gdf.iloc[0].MAIN_BAS]
 
 # Get each level draining into the lake, then into the last level, and so on
 gds = []
@@ -38,8 +38,7 @@ while True:
 # make a map of the same size as the image
 sm = salem.Map(g.grid, factor=1)
 sm.set_rgb(ggl_img)  # add the background rgb image
-sm.set_shapefile(gds_0, linewidth=3)  # add the lake outline
-# and add all the draining basins
+# add all the draining basins
 cmap = plt.get_cmap('Blues')
 for i, gd in enumerate(gds):
     # here we use a trick. set_shapefile uses PatchCollections internally,
@@ -50,6 +49,14 @@ for i, gd in enumerate(gds):
         label = 'Level {:02d}'.format(i+1) if g == 0 else None
         sm.set_geometry(geo, facecolor=cmap(i/(len(gds)-1)),
                         alpha=0.8, label=label)
+
+# Get the polygon of the last sink (i.e. the lake) and plot it
+gds_0 = gdf.loc[gdf.HYBAS_ID == gdf.iloc[0].MAIN_BAS]
+sm.set_shapefile(gds_0, linewidth=2)
+# Compute the outline of the entire basin and plot it
+gds_1 = gdf.geometry.unary_union
+sm.set_geometry(gds_1, linewidth=4)
+
 # plot!
 f, ax = plt.subplots(figsize=(6, 4))
 ax.set_position([0.05, 0.06, 0.7, 0.9])
