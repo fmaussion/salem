@@ -849,15 +849,15 @@ class TestXarray(unittest.TestCase):
 
         # note that this is needed because there are variables which just
         # can't be computed lazily (i.e. prcp)
-        fo = os.path.join(testdir, 'wrf_merged.nc')
-        if os.path.exists(fo):
-            os.remove(fo)
-        dsm.to_netcdf(fo)
-        dsm.close()
-        dsm = sio.open_wrf_dataset(fo)
-        assert_allclose(ds['PRCP'], dsm['PRCP'])
-        assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
-                        rtol=1e-6)
+        # fo = os.path.join(testdir, 'wrf_merged.nc')
+        # if os.path.exists(fo):
+        #     os.remove(fo)
+        # dsm.to_netcdf(fo)
+        # dsm.close()
+        # dsm = sio.open_wrf_dataset(fo)
+        # assert_allclose(ds['PRCP'], dsm['PRCP'])
+        # assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
+        #                 rtol=1e-6)
 
 
 class TestGeogridSim(unittest.TestCase):
