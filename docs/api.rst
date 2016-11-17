@@ -119,6 +119,7 @@ xarray
 
     open_xr_dataset
     open_wrf_dataset
+    open_mf_wrf_dataset
 
 
 xarray accessors
@@ -144,6 +145,7 @@ DataArray
     DataArrayAccessor.get_map
     DataArrayAccessor.quick_map
     DataArrayAccessor.interpz
+    DataArrayAccessor.deacc
 
 
 Dataset

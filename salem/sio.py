@@ -4,6 +4,7 @@ Input output functions (but mostly input)
 from __future__ import division
 
 import os
+from glob import glob
 import pickle
 import warnings
 from datetime import datetime
@@ -18,6 +19,8 @@ try:
     import xarray as xr
     from xarray.backends.netCDF4_ import NetCDF4DataStore, close_on_error, \
         _nc4_group
+    from xarray.core.pycompat import basestring
+    from xarray.backends.api import _MultiFileCloser
     has_xarray = True
 except ImportError:
     has_xarray = False
@@ -612,6 +615,23 @@ class DataArrayAccessor(_XarrayAccessorBase):
         """Make a plot of the DataArray."""
         return self._quick_map(self._obj, ax=ax, interp=interp, **kwargs)
 
+    def deacc(self):
+        """De-accumulates the variable (i.e. compute the variable's rate).
+
+        The returned variable has one element less over the time dimension.
+
+        Currently the default is to return in units per hour, but this could
+        be made more flexible later on.
+        """
+        out = self._obj[{self.t_dim : slice(1, len(self._obj[self.t_dim]))}]
+        diff = self._obj[{self.t_dim : slice(0, len(self._obj[self.t_dim])-1)}]
+        out.values =  out.values - diff.values
+
+        dth = self._obj.time[1].values - self._obj.time[0].values
+        dth = dth.astype('timedelta64[h]').astype(float)
+        out.values = out.values / dth
+        return out
+
     def interpz(self, zcoord, levels, dim_name='', use_multiprocessing=True):
         """Interpolates the array along the vertical dimension
 
@@ -754,7 +774,10 @@ class DatasetAccessor(_XarrayAccessorBase):
 
 
 class _NetCDF4DataStore(NetCDF4DataStore):
-    """Just another way to init xarray's datastore
+    """Just another way to init xarray's datastore.
+
+    This code is adapted from xarray's _NetCDF4DataStore class. The xarray
+    license is reproduced in the salem/licenses directory.
     """
     def __init__(self, filename, mode='r', format='NETCDF4', group=None,
                  writer=None, clobber=True, diskless=False, persist=False,
@@ -826,12 +849,19 @@ def open_xr_dataset(file):
     return ds
 
 
-def open_wrf_dataset(file):
+def open_wrf_dataset(file, **kwargs):
     """Wrapper around xarray's open_dataset to make WRF files a bit better.
 
     This is needed because variables often have not enough georef attrs
     to be understood alone, and datasets tend to loose their attrs with
     operations...
+
+    Parameters
+    ----------
+    file : str
+        the path to the WRF file
+    **kwargs : optional
+        Additional arguments passed on to ``xarray.open_dataset``.
 
     Returns:
     --------
@@ -848,26 +878,26 @@ def open_wrf_dataset(file):
     # Check if we can add diagnostic variables to the pot
     for vn in wrftools.var_classes:
         cl = getattr(wrftools, vn)
-        if cl.can_do(nc):
+        if vn not in nc.variables and cl.can_do(nc):
             nc.variables[vn] = cl(nc)
 
     # trick xarray with our custom netcdf
-    ds = xr.open_dataset(_NetCDF4DataStore(file, ds=nc))
+    ds = xr.open_dataset(_NetCDF4DataStore(file, ds=nc), **kwargs)
 
     # remove time dimension to lon lat
     for vn in ['XLONG', 'XLAT']:
         try:
             v = ds[vn].isel(Time=0)
             ds[vn] = xr.DataArray(v.values, dims=['south_north', 'west_east'])
-        except ValueError:
+        except (ValueError, KeyError):
             pass
 
-    # Convert time
-    ds['Time'] = netcdf_time(ds)
-    ds.rename({'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon'},
-              inplace=True)
-    if 'XTIME' in ds.variables:
-        ds.rename({'XTIME': 'xtime'}, inplace=True)
+    # Convert time (if necessary)
+    if 'Time' in ds.variables:
+        ds['Time'] = netcdf_time(ds)
+    tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
+    tr = {k: tr[k] for k in tr.keys() if k in ds.variables}
+    ds.rename(tr, inplace=True)
 
     # drop ugly vars
     vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']
@@ -884,3 +914,70 @@ def open_wrf_dataset(file):
         ds[v].attrs['pyproj_srs'] = ds.salem.grid.proj.srs
 
     return ds
+
+
+def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None):
+    """Open multiple WRF files as a single WRF dataset.
+
+    Requires dask to be installed. Note that if your files are sliced by time,
+    certain diagnostic variable computed out of accumulated variables (e.g.
+    PRCP) won't be available, because not computable lazily.
+
+    This code is adapted from xarray's open_mfdataset function. The xarray
+    license is reproduced in the salem/licenses directory.
+
+    Parameters
+    ----------
+    paths : str or sequence
+        Either a string glob in the form "path/to/my/files/*.nc" or an explicit
+        list of files to open.
+    chunks : int or dict, optional
+        Dictionary with keys given by dimension names and values given by chunk
+        sizes. In general, these should divide the dimensions of each dataset.
+        If int, chunk each dimension by ``chunks``.
+        By default, chunks will be chosen to load entire input files into
+        memory at once. This has a major impact on performance: please see
+        xarray's full documentation for more details.
+    compat : {'identical', 'equals', 'broadcast_equals',
+              'no_conflicts'}, optional
+        String indicating how to compare variables of the same name for
+        potential conflicts when merging:
+
+        - 'broadcast_equals': all values must be equal when variables are
+          broadcast against each other to ensure common dimensions.
+        - 'equals': all values and dimensions must be the same.
+        - 'identical': all values, dimensions and attributes must be the
+          same.
+        - 'no_conflicts': only values which are not null in both datasets
+          must be equal. The returned dataset then contains the combination
+          of all non-null values.
+    lock : False, True or threading.Lock, optional
+        This argument is passed on to :py:func:`dask.array.from_array`. By
+        default, a per-variable lock is used when reading data from netCDF
+        files with the netcdf4 and h5netcdf engines to avoid issues with
+        concurrent access when using dask's multithreaded backend.
+
+    Returns
+    -------
+    xarray.Dataset
+
+    """
+    if isinstance(paths, basestring):
+        paths = sorted(glob(paths))
+    if not paths:
+        raise IOError('no files to open')
+
+    datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
+                for p in paths]
+    file_objs = [ds._file_obj for ds in datasets]
+
+    combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
+    combined._file_obj = _MultiFileCloser(file_objs)
+    combined.attrs = datasets[0].attrs
+
+    # drop accumulated vars if needed (TODO: make this not hard coded)
+    vns = ['PRCP', 'PRCP_C', 'PRCP_NC']
+    vns = [vn for vn in vns if vn in combined.variables]
+    combined = combined.drop(vns)
+
+    return combined

@@ -24,7 +24,7 @@ sandbox.py
 eggs
 
 # specific
-salem/tests/tmp_*
+salem/tests/tmp*
 *.html
 build/
 docs/*-gen.rst

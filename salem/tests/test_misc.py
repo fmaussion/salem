@@ -824,6 +824,38 @@ class TestXarray(unittest.TestCase):
         ws_h2 = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
         assert_allclose(ws_h, ws_h2)
 
+    @requires_xarray
+    def test_mf_datasets(self):
+
+        import xarray as xr
+
+        # prepare the data
+        f = get_demo_file('wrf_d01_allvars_cropped.nc')
+        ds = xr.open_dataset(f)
+        for i in range(4):
+            dss = ds.isel(Time=[i])
+            dss.to_netcdf(os.path.join(testdir, 'wrf_slice_{}.nc'.format(i)))
+
+        ds = sio.open_wrf_dataset(f)
+        dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'))
+
+        assert_allclose(ds['RAINNC'], dsm['RAINNC'])
+        assert_allclose(ds['GEOPOTENTIAL'], dsm['GEOPOTENTIAL'])
+        assert_allclose(ds['T2C'], dsm['T2C'])
+        assert 'PRCP' not in dsm.variables
+        prcp_nc = dsm.RAINNC.salem.deacc()
+
+        # note that this is needed because there are variables which just
+        # can't be computed lazily (i.e. prcp)
+        fo = os.path.join(testdir, 'wrf_merged.nc')
+        if os.path.exists(fo):
+            os.remove(fo)
+        dsm.to_netcdf(fo)
+        dsm = sio.open_wrf_dataset(fo)
+        assert_allclose(ds['PRCP'], dsm['PRCP'])
+        assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
+                        rtol=1e-6)
+
 
 class TestGeogridSim(unittest.TestCase):
 

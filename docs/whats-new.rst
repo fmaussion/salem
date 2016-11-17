@@ -10,8 +10,9 @@ v0.2.X (Unreleased)
 Enhancements
 ~~~~~~~~~~~~
 
-- new ``Map.transform()`` method to make overplotting easier (still
-  a draft)
+- new ``open_mf_wrf_dataset`` function
+- new ``deacc`` method added to DataArrayAccessors
+- new ``Map.transform()`` method to make over-plotting easier (experimental)
 
 Bug fixes
 ~~~~~~~~~

@@ -111,6 +111,19 @@ probably wise to do it on single time slices or aggregated data, rather than
 huge data cubes.
 
 
+Open multiple files
+-------------------
+
+It is possible to open multiple WRF files at different time steps with
+:py:func:`~salem.open_mf_wrf_dataset`, which works like xarray's
+`open_mfdataset`_ . The only drawback of having multiple WRF time slices is
+that "de-accumulated" variables such as ``PRCP`` won't be available.
+For this purpose, you might want to use the :py:func:`~DataArrayAccessor.deacc`
+method.
+
+.. _open_mfdataset: http://xarray.pydata.org/en/stable/generated/xarray.open_mfdataset.html#xarray.open_mfdataset
+
+
 Geogrid simulator
 -----------------
 
