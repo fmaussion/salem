@@ -188,12 +188,16 @@ class AccumulatedVariable(FakeVariable):
                                         format='%Y-%m-%d_%H:%M:%S'))
             dt_minutes = time[1] - time[0]
             dt_minutes = dt_minutes.seconds / 60
-
         return 60 / dt_minutes
 
     @staticmethod
     def can_do(nc):
-        return nc.dimensions['Time'].size > 1
+        can_do = False
+        if 'Time' in nc.dimensions:
+            can_do = nc.dimensions['Time'].size > 1
+        elif 'time' in nc.dimensions:
+            can_do = nc.dimensions['time'].size > 1
+        return can_do
 
     def __getitem__(self, item):
 
@@ -475,7 +479,8 @@ def _ncl_slp(z, t, p, q):
     """Computes the SLP out of the WRF variables.
 
     This code has been directly translated from the NCL fortran routine found
-    in NCLS's wrf_user.f, therefore I reproduce their licence agreement below.
+    in NCL (wrf_user.f). The NCL license is reproduced in the
+    salem/licenses directory.
 
     Parameters
     ----------
@@ -483,40 +488,6 @@ def _ncl_slp(z, t, p, q):
     T: temp
     P: pressure
     Q: specific humidity
-
-    NCL Licence
-    -----------
-
-    Copyright (C) 2015 University Corporation for Atmospheric Research
-    The use of this software is governed by a License Agreement.
-    See http://www.ncl.ucar.edu/ for more details.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
-
-    Neither the names of NCAR's Computational and Information Systems
-    Laboratory, the University Corporation for Atmospheric Research, nor
-    the names of its contributors may be used to endorse or promote
-    products derived from this Software without specific prior written
-    permission.
-
-    Redistributions of source code must retain the above copyright
-    notice, this list of conditions, and the disclaimer below.
-
-    Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions, and the disclaimer below in the
-    documentation and/or other materials provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO THE WARRANTIES OF
-    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-    NONINFRINGEMENT. IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT
-    HOLDERS BE LIABLE FOR ANY CLAIM, INDIRECT, INCIDENTAL, SPECIAL,
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-    ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
-    SOFTWARE.
     """
 
     ndims = len(z.shape)
