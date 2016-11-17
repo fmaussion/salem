@@ -828,6 +828,8 @@ class TestXarray(unittest.TestCase):
     def test_mf_datasets(self):
 
         import xarray as xr
+        if not os.path.exists(testdir):
+            os.makedirs(testdir)
 
         # prepare the data
         f = get_demo_file('wrf_d01_allvars_cropped.nc')
