@@ -829,6 +829,7 @@ class TestXarray(unittest.TestCase):
     def test_mf_datasets(self):
 
         import xarray as xr
+
         if not os.path.exists(testdir):
             os.makedirs(testdir)
 
@@ -838,9 +839,19 @@ class TestXarray(unittest.TestCase):
         for i in range(4):
             dss = ds.isel(Time=[i])
             dss.to_netcdf(os.path.join(testdir, 'wrf_slice_{}.nc'.format(i)))
-
+            dss.close()
         ds = sio.open_wrf_dataset(f)
-        dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'))
+
+        def preprocess(ds):
+            # TODO: thread safety issues
+            vns = ['GEOPOTENTIAL', 'RAINNC', 'RAINC', 'T2C']
+            ds = ds[vns]
+            for vn in vns:
+                ds[vn] = ds[vn].load()
+            return ds
+
+        dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'),
+                                      preprocess=preprocess)
 
         assert_allclose(ds['RAINNC'], dsm['RAINNC'])
         assert_allclose(ds['GEOPOTENTIAL'], dsm['GEOPOTENTIAL'])
@@ -850,18 +861,16 @@ class TestXarray(unittest.TestCase):
 
         # note that this is needed because there are variables which just
         # can't be computed lazily (i.e. prcp)
-        # TODO: thread safety issues
-        if not (on_travis and python_version == 'py2'):
-            fo = os.path.join(testdir, 'wrf_merged.nc')
-            if os.path.exists(fo):
-                os.remove(fo)
-            dsm = dsm[['RAINNC', 'RAINC']].load()
-            dsm.to_netcdf(fo)
-            dsm.close()
-            dsm = sio.open_wrf_dataset(fo)
-            assert_allclose(ds['PRCP'], dsm['PRCP'])
-            assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
-                            rtol=1e-6)
+        fo = os.path.join(testdir, 'wrf_merged.nc')
+        if os.path.exists(fo):
+            os.remove(fo)
+        dsm = dsm[['RAINNC', 'RAINC']].load()
+        dsm.to_netcdf(fo)
+        dsm.close()
+        dsm = sio.open_wrf_dataset(fo)
+        assert_allclose(ds['PRCP'], dsm['PRCP'])
+        assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
+                        rtol=1e-6)
 
 
 class TestGeogridSim(unittest.TestCase):

@@ -916,7 +916,8 @@ def open_wrf_dataset(file, **kwargs):
     return ds
 
 
-def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None):
+def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
+                        preprocess=None):
     """Open multiple WRF files as a single WRF dataset.
 
     Requires dask to be installed. Note that if your files are sliced by time,
@@ -951,6 +952,8 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None):
         - 'no_conflicts': only values which are not null in both datasets
           must be equal. The returned dataset then contains the combination
           of all non-null values.
+    preprocess : callable, optional
+        If provided, call this function on each dataset prior to concatenation.
     lock : False, True or threading.Lock, optional
         This argument is passed on to :py:func:`dask.array.from_array`. By
         default, a per-variable lock is used when reading data from netCDF
@@ -972,6 +975,10 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None):
     datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
                 for p in paths]
     file_objs = [ds._file_obj for ds in datasets]
+
+    if preprocess is not None:
+        datasets = [preprocess(ds) for ds in datasets]
+
     # TODO: add compat=compat when xarray 9.0 is out
     combined = xr.auto_combine(datasets, concat_dim='time')
     combined._file_obj = _MultiFileCloser(file_objs)
