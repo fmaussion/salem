@@ -20,7 +20,7 @@ try:
     from xarray.backends.netCDF4_ import NetCDF4DataStore, close_on_error, \
         _nc4_group
     from xarray.core.pycompat import basestring
-    from xarray.backends.api import _MultiFileCloser
+    from xarray.backends.api import _MultiFileCloser, _default_lock
     has_xarray = True
 except ImportError:
     has_xarray = False
@@ -967,6 +967,8 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None):
     if not paths:
         raise IOError('no files to open')
 
+    if lock is None:
+        lock = _default_lock(paths[0], 'netcdf4')
     datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
                 for p in paths]
     file_objs = [ds._file_obj for ds in datasets]

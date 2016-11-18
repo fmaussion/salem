@@ -13,9 +13,10 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
 from salem.tests import requires_travis, requires_geopandas, \
-    requires_matplotlib, requires_xarray
+    requires_matplotlib, requires_xarray, on_travis
 from salem import utils, transform_geopandas, GeoTiff, read_shapefile, sio
 from salem import read_shapefile_to_grid, graphics, Grid, mercator_grid, wgs84
+from salem import python_version
 from salem.utils import get_demo_file
 
 try:
@@ -849,15 +850,18 @@ class TestXarray(unittest.TestCase):
 
         # note that this is needed because there are variables which just
         # can't be computed lazily (i.e. prcp)
-        # fo = os.path.join(testdir, 'wrf_merged.nc')
-        # if os.path.exists(fo):
-        #     os.remove(fo)
-        # dsm.to_netcdf(fo)
-        # dsm.close()
-        # dsm = sio.open_wrf_dataset(fo)
-        # assert_allclose(ds['PRCP'], dsm['PRCP'])
-        # assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
-        #                 rtol=1e-6)
+        # TODO: thread safety issues
+        if not (on_travis and python_version == 'py2'):
+            fo = os.path.join(testdir, 'wrf_merged.nc')
+            if os.path.exists(fo):
+                os.remove(fo)
+            dsm = dsm[['RAINNC', 'RAINC']].load()
+            dsm.to_netcdf(fo)
+            dsm.close()
+            dsm = sio.open_wrf_dataset(fo)
+            assert_allclose(ds['PRCP'], dsm['PRCP'])
+            assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
+                            rtol=1e-6)
 
 
 class TestGeogridSim(unittest.TestCase):

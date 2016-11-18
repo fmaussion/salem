@@ -9,6 +9,7 @@ import copy
 import numpy as np
 import pyproj
 from scipy.interpolate import interp1d
+from netCDF4 import num2date
 try:
     from pandas import to_datetime
     from xarray.core import indexing
@@ -178,6 +179,11 @@ class AccumulatedVariable(FakeVariable):
             dt_minutes = vars['XTIME'][1] - vars['XTIME'][0]
         elif 'xtime' in vars:
             dt_minutes = vars['xtime'][1] - vars['xtime'][0]
+        elif 'time' in vars:
+            var = vars['time']
+            nctime = num2date(var[0:2], var.units)
+            dt_minutes = np.asarray(nctime[1] - nctime[0])
+            dt_minutes = dt_minutes.astype('timedelta64[m]').astype(float)
         else:
             # ok, parse time
             time = []
