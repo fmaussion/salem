@@ -852,6 +852,7 @@ class TestXarray(unittest.TestCase):
         fo = os.path.join(testdir, 'wrf_merged.nc')
         if os.path.exists(fo):
             os.remove(fo)
+        dsm = dsm.load()
         dsm.to_netcdf(fo)
         dsm.close()
         # dsm = sio.open_wrf_dataset(fo)
