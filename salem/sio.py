@@ -35,6 +35,10 @@ except ImportError:
     xr.register_dataset_accessor = NullDecl
     xr.register_dataarray_accessor = NullDecl
     NetCDF4DataStore = object
+try:
+    import dask
+except ImportError:
+    pass
 
 
 def read_shapefile(fpath, cached=False):
@@ -969,6 +973,9 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
         paths = sorted(glob(paths))
     if not paths:
         raise IOError('no files to open')
+
+    # TODO: current workaround to dask thread problems
+    dask.set_options(get=dask.async.get_sync)
 
     if lock is None:
         lock = _default_lock(paths[0], 'netcdf4')

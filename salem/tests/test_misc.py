@@ -842,16 +842,7 @@ class TestXarray(unittest.TestCase):
             dss.close()
         ds = sio.open_wrf_dataset(f)
 
-        def preprocess(ds):
-            # TODO: thread safety issues
-            vns = ['GEOPOTENTIAL', 'RAINNC', 'RAINC', 'T2C']
-            ds = ds[vns]
-            for vn in vns:
-                ds[vn] = ds[vn].load()
-            return ds
-
-        dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'),
-                                      preprocess=preprocess)
+        dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'))
 
         assert_allclose(ds['RAINNC'], dsm['RAINNC'])
         assert_allclose(ds['GEOPOTENTIAL'], dsm['GEOPOTENTIAL'])
