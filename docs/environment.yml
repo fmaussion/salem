@@ -2,7 +2,7 @@ name: salem
 channels:
   - conda-forge
 dependencies:
-  - python
+  - python=3.5
   - six
   - numpy
   - scipy
@@ -22,5 +22,5 @@ dependencies:
   - ipython=4.0.1
   - sphinx
   - pip:
-    - git+https://github.com/fmaussion/motionless.git
+    - motionless
     - sphinx-gallery

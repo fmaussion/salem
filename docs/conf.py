@@ -13,19 +13,84 @@
 # serve to show the default.
 
 import os
+import sys
 import shutil
 
-# see if matplotlib is there
+# see if packages are here
+print("python exec:", sys.executable)
+print("sys.path:", sys.path)
+try:
+    import numpy
+    print("numpy: %s, %s" % (numpy.__version__, numpy.__file__))
+except ImportError:
+    print("no numpy")
+try:
+    import scipy
+    print("scipy: %s, %s" % (scipy.__version__, scipy.__file__))
+except ImportError:
+    print("no scipy")
+try:
+    import pandas
+    print("pandas: %s, %s" % (pandas.__version__, pandas.__file__))
+except ImportError:
+    print("no pandas")
+try:
+    import xarray
+    print("xarray: %s, %s" % (xarray.__version__, xarray.__file__))
+except ImportError:
+    print("no xarray")
+try:
+    import pyproj
+    print("pyproj: %s, %s" % (pyproj.__version__, pyproj.__file__))
+except ImportError:
+    print("no pyproj")
+try:
+    import joblib
+    print("joblib: %s, %s" % (joblib.__version__, joblib.__file__))
+except ImportError:
+    print("no joblib")
+try:
+    import rasterio
+    print("rasterio: %s, %s" % (rasterio.__version__, rasterio.__file__))
+except ImportError:
+    print("no rasterio")
+try:
+    import geopandas
+    print("geopandas: %s, %s" % (geopandas.__version__, geopandas.__file__))
+except ImportError:
+    print("no geopandas")
 try:
     import matplotlib
     matplotlib.use('Agg')
     print("matplotlib: %s, %s" % (matplotlib.__version__, matplotlib.__file__))
 except ImportError:
     print("no matplotlib")
+try:
+    import dask
+    print("dask: %s, %s" % (dask.__version__, dask.__file__))
+except ImportError:
+    print("no dask")
+try:
+    import IPython
+    print("ipython: %s, %s" % (IPython.__version__, IPython.__file__))
+except ImportError:
+    print("no ipython")
+try:
+    import cartopy
+    print("cartopy: %s, %s" % (cartopy.__version__, cartopy.__file__))
+except ImportError:
+    print("no cartopy")
+try:
+    import netCDF4
+    print("netCDF4: %s, %s" % (netCDF4.__version__, netCDF4.__file__))
+except ImportError:
+    print("no netCDF4")
 
 # If we are on a proper salem install, we should be able to import all modules
 import salem
 import salem.version
+
+print("Python version: %s" % salem.python_version)
 
 # -- General configuration ------------------------------------------------
 
