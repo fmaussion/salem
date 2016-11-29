@@ -619,21 +619,26 @@ class DataArrayAccessor(_XarrayAccessorBase):
         """Make a plot of the DataArray."""
         return self._quick_map(self._obj, ax=ax, interp=interp, **kwargs)
 
-    def deacc(self):
+    def deacc(self, as_rate=True):
         """De-accumulates the variable (i.e. compute the variable's rate).
 
         The returned variable has one element less over the time dimension.
 
         Currently the default is to return in units per hour, but this could
         be made more flexible later on.
+
+        Parameters
+        ----------
+
         """
         out = self._obj[{self.t_dim : slice(1, len(self._obj[self.t_dim]))}]
         diff = self._obj[{self.t_dim : slice(0, len(self._obj[self.t_dim])-1)}]
         out.values =  out.values - diff.values
 
-        dth = self._obj.time[1].values - self._obj.time[0].values
-        dth = dth.astype('timedelta64[h]').astype(float)
-        out.values = out.values / dth
+        if as_rate:
+            dth = self._obj.time[1].values - self._obj.time[0].values
+            dth = dth.astype('timedelta64[h]').astype(float)
+            out.values = out.values / dth
         return out
 
     def interpz(self, zcoord, levels, dim_name='', use_multiprocessing=True):
