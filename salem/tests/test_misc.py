@@ -848,7 +848,16 @@ class TestXarray(unittest.TestCase):
         assert_allclose(ds['GEOPOTENTIAL'], dsm['GEOPOTENTIAL'])
         assert_allclose(ds['T2C'], dsm['T2C'])
         assert 'PRCP' not in dsm.variables
+
+        prcp_nc_r = dsm.RAINNC.salem.deacc(as_rate=False)
+        self.assertEqual(prcp_nc_r.units, 'mm step-1')
+        self.assertEqual(prcp_nc_r.description, 'TOTAL GRID SCALE PRECIPITATION')
+
         prcp_nc = dsm.RAINNC.salem.deacc()
+        self.assertEqual(prcp_nc.units, 'mm h-1')
+        self.assertEqual(prcp_nc.description, 'TOTAL GRID SCALE PRECIPITATION')
+
+        assert_allclose(prcp_nc_r/3, prcp_nc)
 
         # note that this is needed because there are variables which just
         # can't be computed lazily (i.e. prcp)
