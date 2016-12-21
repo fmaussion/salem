@@ -22,7 +22,8 @@ matrix:
   - python: 3.5
     env: CONDA_ENV=py35-xr
   allow_failures:
-  - env: CONDA_ENV=py35-all-rc
+  - python: 3.5
+    env: CONDA_ENV=py35-all-rc
 
 before_install:
   - "export DISPLAY=:99.0"
