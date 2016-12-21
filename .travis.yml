@@ -23,7 +23,6 @@ matrix:
     env: CONDA_ENV=py35-pd
   - python: 3.5
     env: CONDA_ENV=py35-xr
-  allow_failures:
   - python: 3.5
     env: CONDA_ENV=py35-all-rc
 
