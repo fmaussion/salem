@@ -414,6 +414,107 @@ class TestGrid(unittest.TestCase):
             assert_allclose(exp_i, r_i, atol=1e-03)
             assert_allclose(exp_j, r_j, atol=1e-03)
 
+    def test_lookup_grid(self):
+
+        data = np.arange(12).reshape((4, 3))
+        args = dict(nxny=(3, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g = Grid(**args)
+        lut = g.grid_lookup(g)
+        for ji, l in lut.items():
+            self.assertEqual(data[ji], data[l[:, 0], l[:, 1]])
+
+        args = dict(nxny=(2, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g2 = Grid(**args)
+        lut = g2.grid_lookup(g)
+        for ji, l in lut.items():
+            self.assertEqual(data[ji], data[l[:, 0], l[:, 1]])
+
+        lut = g.grid_lookup(g2)
+        for (j, i), l in lut.items():
+            if j > 2 or i > 1:
+                assert l is None
+            else:
+                self.assertEqual(data[j, i], data[l[:, 0], l[:, 1]])
+
+        args = dict(nxny=(1, 1), dxdy=(10, 10), ll_corner=(0, 0), proj=wgs84)
+        g3 = Grid(**args)
+
+        lut = g3.grid_lookup(g)
+        od = data[lut[(0, 0)][:, 0], lut[(0, 0)][:, 1]]
+        self.assertEqual(len(od), 12)
+        assert_allclose(np.mean(od), np.mean(data))
+
+    def test_lookup_transform(self):
+
+        data2d = np.arange(12).reshape((4, 3))
+        data3d = np.stack([data2d, data2d, data2d])
+        data4d = np.stack([data3d, data3d])
+
+        args = dict(nxny=(3, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g = Grid(**args)
+
+        odata = g.lookup_transform(data2d, g)
+        assert_allclose(odata, data2d)
+        odata = g.lookup_transform(data3d, g)
+        assert_allclose(odata, data3d)
+        odata = g.lookup_transform(data4d, g)
+        assert_allclose(odata, data4d)
+        odata = g.lookup_transform(data4d, g, method=len)
+        assert_allclose(odata, data4d*0+1)
+
+        # set lut
+        lut = g.grid_lookup(g)
+        odata = g.lookup_transform(data2d, g, lut=lut)
+        assert_allclose(odata, data2d)
+
+        args = dict(nxny=(2, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g2 = Grid(**args)
+        odata = g2.lookup_transform(data2d, g)
+        assert_allclose(odata, data2d[:-1, :-1])
+        odata = g2.lookup_transform(data3d, g)
+        assert_allclose(odata, data3d[..., :-1, :-1])
+        odata = g2.lookup_transform(data4d, g)
+        assert_allclose(odata, data4d[..., :-1, :-1])
+
+        with self.assertRaisesRegexp(ValueError, 'dimension not compatible'):
+            g.lookup_transform(data2d[:-1, :-1], g)
+
+        odata = g.lookup_transform(data2d[:-1, :-1], g2)
+        ref = data2d * 0
+        ref[-1, :] = 1
+        ref[:, -1] = 1
+        assert_allclose(odata.mask, ref)
+        assert_allclose(data2d, odata)
+
+        odata = g.lookup_transform(data2d[:-1, :-1], g2, method=len)
+        assert_allclose(odata, 1-ref)
+
+        args = dict(nxny=(1, 1), dxdy=(10, 10), ll_corner=(0, 0), proj=wgs84)
+        g3 = Grid(**args)
+
+        odata = g3.lookup_transform(data2d, g)
+        self.assertEqual(odata.shape, (1, 1))
+        assert_allclose(odata, np.mean(data2d))
+
+        odata = g3.lookup_transform(data2d, g, method=np.sum)
+        self.assertEqual(odata.shape, (1, 1))
+        assert_allclose(odata, np.sum(data2d))
+
+        odata = g3.lookup_transform(data2d, g, method=len)
+        self.assertEqual(odata.shape, (1, 1))
+        assert_allclose(odata, 12)
+
+        # total back and forth
+        data = np.arange(12).reshape((4, 3))
+        args = dict(nxny=(3, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g = Grid(**args)
+        rg = g.regrid(factor=3)
+        tdata = rg.map_gridded_data(data, g, interp='nearest')
+        odata = g.lookup_transform(tdata, rg)
+        assert_allclose(odata, data)
+        odata = g.lookup_transform(tdata, rg, method=len)
+        assert_allclose(odata, data*0.+9)
+
     def test_stagg(self):
         """Staggered grids."""
 

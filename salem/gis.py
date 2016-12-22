@@ -48,6 +48,12 @@ def check_crs(crs):
     -------
     A valid crs if possible, otherwise None
     """
+
+    try:
+        crs = crs.salem.grid  # try xarray
+    except:
+        pass
+
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
@@ -574,6 +580,135 @@ class Grid(object):
 
         return x, y
 
+    def grid_lookup(self, other):
+        """Performs forward transformation of any other grid into self.
+
+        The principle of forward transform is to obtain, for each grid point of
+        ``self``, all the indices of ``other`` that are located into the
+        given grid point. This transformation makes sense ONLY if ``other`` has
+        a higher resolution than the object grid. If ``other`` has a similar
+        or coarser resolution than ``self``, choose the more general
+        (and much faster) :py:meth:`Grid.map_gridded_data` method.
+
+        Parameters
+        ----------
+        other : salem.Grid
+            the grid that needs to be transformed into self
+
+        Returns
+        -------
+        a dict: each key (j, i) contains an array of shape (n, 2) where n is
+        the number of ``other``s grid points found within the grid point (j, i)
+        """
+
+        # Input checks
+        other = check_crs(other)
+        if not isinstance(other, Grid):
+            raise ValueError('`other` should be a Grid instance')
+
+        # Transform the other grid into the local grid (forward transform)
+        # Work in center grid cause that's what we need
+        i, j = other.center_grid.ij_coordinates
+        oi, oj = self.center_grid.transform(i, j, crs=other.center_grid,
+                                            nearest=True, maskout=True)
+
+        out_inds = oi.flatten() + self.nx * oj.flatten()
+        orig_inds = i.flatten() + other.nx * j.flatten()
+
+        ris = np.digitize(out_inds, bins=np.arange(self.nx*self.ny+1))
+        ris = np.ma.array(ris, mask=out_inds.mask)
+        out = dict()
+        for oi, ri in zip(orig_inds[~ris.mask], ris[~ris.mask]):
+            ij = divmod(ri-1, self.nx)
+            oij = np.array(divmod(oi, other.nx)).reshape(1, 2)
+            if ij not in out:
+                out[ij] = oij
+            else:
+                out[ij] = np.append(out[ij], oij, axis=0)
+        return out
+
+    def lookup_transform(self, data, grid=None, method=np.mean, lut=None):
+        """Performs the forward transformation of gridded data into self.
+
+        This method is suitable when the data grid is of higher resolution
+        than ``self``. ``lookup_transform`` performs aggregation of data
+        according to a user given rule (e.g. ``np.mean``, ``len``, ``np.std``),
+        applied to all grid points found below a grid point in ``self``.
+
+        See Also: :py:meth:`Grid.grid_lookup` method, and examples in the docs
+
+        Parameters
+        ----------
+        data : ndarray
+            an ndarray of dimensions 2, 3, or 4, the two last ones being y, x.
+        grid : Grid
+            a Grid instance matching the data
+        method : function, default: np.mean
+            the aggregation method. Possibilities: np.std, np.median, np.sum,
+            and more. Use ``len``For counting the number of grid points!
+        lut : ndarray, optional
+            computing the lookup table can be expensive. If you have several
+            operations to do with the same grid, set ``lut`` to an existing
+            table obtained from a previous call to  :py:meth:`Grid.grid_lookup`
+
+        Returns
+        -------
+        An aggregated ndarray of the data, in ``self`` coordinates.
+
+        """
+
+        # Input checks
+        if grid is None:
+            grid = check_crs(data)  # xarray
+        if not isinstance(grid, Grid):
+            raise ValueError('grid should be a Grid instance')
+        if hasattr(data, 'values'):
+            data = data.values  # xarray
+
+        # dimensional check
+        in_shape = data.shape
+        ndims = len(in_shape)
+        if (ndims < 2) or (ndims > 4):
+            raise ValueError('data dimension not accepted')
+        if (in_shape[-1] != grid.nx) or (in_shape[-2] != grid.ny):
+            raise ValueError('data dimension not compatible')
+
+        if lut is None:
+            lut = self.grid_lookup(grid)
+
+        # Prepare the output
+        out_shape = list(in_shape)
+        out_shape[-2:] = [self.ny, self.nx]
+
+        if data.dtype.kind == 'i':
+            out_data = np.empty(out_shape, dtype=np.float) * np.NaN
+        else:
+            out_data = np.empty(out_shape, dtype=data.dtype) * np.NaN
+
+        def _2d_trafo(ind, outd):
+            for ji, l in lut.items():
+                outd[ji] = method(ind[l[:, 0], l[:, 1]])
+            return outd
+
+        if ndims == 2:
+            _2d_trafo(data, out_data)
+        if ndims == 3:
+            for dimi, cdata in enumerate(data):
+                out_data[dimi, ...] = _2d_trafo(cdata, out_data[dimi, ...])
+        if ndims == 4:
+            for dimj, cdata in enumerate(data):
+                for dimi, ccdata in enumerate(cdata):
+                    tmp = _2d_trafo(ccdata, out_data[dimj, dimi, ...])
+                    out_data[dimj, dimi, ...] = tmp
+
+        # prepare output
+        if method is len:
+            out_data[~np.isfinite(out_data)] = 0
+            out_data = out_data.astype(np.int)
+        else:
+            out_data = np.ma.masked_invalid(out_data)
+        return out_data
+
     def map_gridded_data(self, data, grid=None, interp='nearest',
                          ks=3, out=None):
         """Reprojects any structured data onto the local grid.
@@ -605,7 +740,7 @@ class Grid(object):
 
         Returns
         -------
-        A projected ndarray of the data.
+        A projected ndarray of the data, in ``self`` coordinates.
         """
 
         if grid is None:

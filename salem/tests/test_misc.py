@@ -757,6 +757,17 @@ class TestXarray(unittest.TestCase):
                         t2.coords['west_east'])
 
     @requires_xarray
+    @requires_geopandas
+    def test_lookup_transform(self):
+
+        dsw = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+        dse = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        out = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len)
+        # qualitative tests (quantitative testing done elsewhere)
+        assert out[0, 0] == 0
+        assert out.mean() > 1
+
+    @requires_xarray
     def test_full_wrf_wfile(self):
 
         from salem.wrftools import var_classes

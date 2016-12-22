@@ -8,6 +8,7 @@ from glob import glob
 import pickle
 import warnings
 from datetime import datetime
+from functools import partial
 
 import numpy as np
 import netCDF4
@@ -526,24 +527,8 @@ class _XarrayAccessorBase(object):
         """Get a cartopy.crs.Projection for this dataset."""
         return proj_to_cartopy(self.grid.proj)
 
-    def transform(self, other, grid=None, interp='nearest', ks=3):
-        """Reprojects an other Dataset or DataArray onto this grid.
-
-        Parameters
-        ----------
-        other: Dataset, DataArray or ndarray
-            the data to project onto self
-        grid: salem.Grid
-            in case the input dataset does not carry georef info
-        interp : str
-            'nearest' (default), 'linear', or 'spline'
-        ks : int
-            Degree of the bivariate spline. Default is 3.
-
-        Returns
-        -------
-        a dataset or a dataarray
-        """
+    def _apply_transform(self, transform, grid, other):
+        """Common transform mixin"""
 
         was_dataarray = False
         if not isinstance(other, xr.Dataset):
@@ -552,8 +537,7 @@ class _XarrayAccessorBase(object):
                 was_dataarray = True
             except AttributeError:
                 # must be a ndarray
-                rdata = self.grid.map_gridded_data(other, grid=grid,
-                                                   interp=interp, ks=ks)
+                rdata = transform(other, grid=grid)
                 # let's guess
                 sh = rdata.shape
                 nd = len(sh)
@@ -582,7 +566,7 @@ class _XarrayAccessorBase(object):
         out = xr.Dataset()
         for v in other.data_vars:
             var = other[v]
-            rdata = self.grid.map_gridded_data(var, interp=interp, ks=ks)
+            rdata = transform(var)
 
             # remove old coords
             dims = [d for d in var.dims]
@@ -610,6 +594,52 @@ class _XarrayAccessorBase(object):
         else:
             out.attrs['pyproj_srs'] = self.grid.proj.srs
         return out
+
+    def transform(self, other, grid=None, interp='nearest', ks=3):
+        """Reprojects an other Dataset or DataArray onto this grid.
+
+        Parameters
+        ----------
+        other: Dataset, DataArray or ndarray
+            the data to project onto self
+        grid: salem.Grid
+            in case the input dataset does not carry georef info
+        interp : str
+            'nearest' (default), 'linear', or 'spline'
+        ks : int
+            Degree of the bivariate spline. Default is 3.
+
+        Returns
+        -------
+        a dataset or a dataarray
+        """
+
+        transform = partial(self.grid.map_gridded_data, interp=interp, ks=ks)
+        return self._apply_transform(transform, grid, other)
+
+    def lookup_transform(self, other, grid=None, method=np.mean):
+        """Reprojects an other Dataset or DataArray onto this grid using the
+        forward tranform lookup.
+
+        See : :py:meth:`Grid.lookup_transform`
+
+        Parameters
+        ----------
+        other: Dataset, DataArray or ndarray
+            the data to project onto self
+        grid: salem.Grid
+            in case the input dataset does not carry georef info
+        method : function, default: np.mean
+            the aggregation method. Possibilities: np.std, np.median, np.sum,
+            and more. Use ``len``For counting the number of grid points!
+
+        Returns
+        -------
+        a dataset or a dataarray
+        """
+
+        transform = partial(self.grid.lookup_transform, method=method)
+        return self._apply_transform(transform, grid, other)
 
 
 @xr.register_dataarray_accessor('salem')

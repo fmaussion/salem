@@ -28,6 +28,8 @@ Grid methods
     Grid.region_of_interest
     Grid.regrid
     Grid.transform
+    Grid.grid_lookup
+    Grid.lookup_transform
 
 
 Georeferencing utils
@@ -141,6 +143,7 @@ DataArray
     DataArrayAccessor.subset
     DataArrayAccessor.roi
     DataArrayAccessor.transform
+    DataArrayAccessor.lookup_transform
     DataArrayAccessor.cartopy
     DataArrayAccessor.get_map
     DataArrayAccessor.quick_map

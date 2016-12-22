@@ -19,7 +19,7 @@ except ImportError:
 from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
 from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
     read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
-    open_wrf_dataset
+    open_wrf_dataset, open_xr_dataset
 from salem.utils import get_demo_file
 from salem.tests import requires_matplotlib, requires_cartopy
 
@@ -625,6 +625,18 @@ def test_geogrid_simulator():
     for i, (m, ax) in enumerate(zip(maps, axs)):
         m.set_rgb(natural_earth='lr')
         m.plot(ax=ax)
+    return fig
+
+
+@requires_matplotlib
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_lookup_transform():
+
+    dsw = open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+    dse = open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+    out = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len)
+    fig, ax = plt.subplots(1, 1)
+    out.salem.quick_map(ax=ax)
     return fig
 
 
