@@ -105,33 +105,27 @@ class Grid(object):
 
     Attributes
     ----------
-    proj : pyproj.Proj instance
-        defining the grid's map projection
-    nx : int
-        number of grid points in the x direction
-    ny : int
-        number of grid points in the y direction
-    dx : float
-        x grid spacing (always positive)
-    dy : float
-        y grid spacing (positive if ll_corner, negative if ul_corner)
-    x0 : float
-        reference point in X proj coordinates
-    y0 : float
-        reference point in Y proj coordinates
-    order : str
-        'ul_corner' or 'll_corner' convention
-    pixel_ref : str
-        'center' or 'corner' convention
-    ij_coordinates
+
+    proj
+    nx
+    ny
+    dx
+    dy
+    x0
+    y0
+    order
+    pixel_ref
     x_coord
     y_coord
     xy_coordinates
     ll_coordinates
+    xstagg_xy_coordinates
+    ystagg_xy_coordinates
+    xstagg_ll_coordinates
+    ystagg_ll_coordinates
     center_grid
     corner_grid
     extent
-
     """
 
     def __init__(self, proj=wgs84, nxny=None, dxdy=None, corner=None,
@@ -187,10 +181,10 @@ class Grid(object):
         """
 
         # Check for coordinate system
-        _proj = check_crs(proj)
-        if _proj is None:
+        proj = check_crs(proj)
+        if proj is None:
             raise ValueError('proj must be of type pyproj.Proj')
-        self.proj = _proj
+        self._proj = proj
 
         # Check for shortcut
         if corner is not None:
@@ -206,7 +200,7 @@ class Grid(object):
                           pixel_ref=pixel_ref)
 
         # Quick'n dirty solution for comparison operator
-        self._ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'order']
+        self._ckeys = ['_x0', '_y0', '_nx', '_ny', '_dx', '_dy', '_order']
 
     def _check_input(self, **kwargs):
         """See which parameter combination we have and set everything."""
@@ -230,19 +224,19 @@ class Grid(object):
         else:
             raise ValueError('Input params not compatible')
 
-        self.nx = np.int(nx)
-        self.ny = np.int(ny)
-        if (self.nx <= 0.) or (self.ny <= 0.):
+        self._nx = np.int(nx)
+        self._ny = np.int(ny)
+        if (self._nx <= 0) or (self._ny <= 0):
             raise ValueError('nxny not valid')
-        self.dx = np.float(dx)
-        self.dy = np.float(dy)
-        self.x0 = np.float(x0)
-        self.y0 = np.float(y0)
-        self.order = order
+        self._dx = np.float(dx)
+        self._dy = np.float(dy)
+        self._x0 = np.float(x0)
+        self._y0 = np.float(y0)
+        self._order = order
         
         # Check for pixel ref
-        self.pixel_ref = kwargs['pixel_ref'].lower()
-        if self.pixel_ref not in ['corner', 'center']:
+        self._pixel_ref = kwargs['pixel_ref'].lower()
+        if self._pixel_ref not in ['corner', 'center']:
             raise ValueError('pixel_ref not recognized')
 
     def __eq__(self, other):
@@ -268,9 +262,56 @@ class Grid(object):
         a['proj'] = '+'.join(sorted(self.proj.srs.split('+')))
         return str(a)
 
+    @property
+    def proj(self):
+        """``pyproj.Proj`` instance defining the grid's map projection."""
+        return self._proj
+
+    @property
+    def nx(self):
+        """number of grid points in the x direction."""
+        return self._nx
+
+    @property
+    def ny(self):
+        """number of grid points in the y direction."""
+        return self._ny
+
+    @property
+    def dx(self):
+        """x grid spacing (always positive)."""
+        return self._dx
+
+    @property
+    def dy(self):
+        """y grid spacing (positive if ll_corner, negative if ul_corner)."""
+        return self._dy
+
+    @property
+    def x0(self):
+        """X reference point in projection coordinates."""
+        return self._x0
+
+    @property
+    def y0(self):
+        """Y reference point in projection coordinates."""
+        return self._y0
+
+    @property
+    def order(self):
+        """upper left (``'ul_corner'``) or lower left (``'ll_corner'``)."""
+        return self._order
+
+    @property
+    def pixel_ref(self):
+        """if coordinates are at the ``'center'`` or ``'corner'`` of the grid.
+        """
+        return self._pixel_ref
+
     @lazy_property
     def center_grid(self):
-        """(Grid instance) representing the grid in center coordinates."""
+        """``salem.Grid`` instance representing the grid in center coordinates.
+        """
         
         if self.pixel_ref == 'center':
             return self
@@ -284,7 +325,8 @@ class Grid(object):
         
     @lazy_property
     def corner_grid(self):
-        """(Grid instance) representing the grid in corner coordinates."""
+        """``salem.Grid`` instance representing the grid in corner coordinates.
+        """
 
         if self.pixel_ref == 'corner':
             return self

@@ -15,6 +15,34 @@ Grid
 
     Grid
 
+Grid attributes
+---------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    Grid.proj
+    Grid.nx
+    Grid.ny
+    Grid.dx
+    Grid.dy
+    Grid.x0
+    Grid.y0
+    Grid.order
+    Grid.pixel_ref
+    Grid.x_coord
+    Grid.y_coord
+    Grid.xy_coordinates
+    Grid.ll_coordinates
+    Grid.xstagg_xy_coordinates
+    Grid.ystagg_xy_coordinates
+    Grid.xstagg_ll_coordinates
+    Grid.ystagg_ll_coordinates
+    Grid.center_grid
+    Grid.corner_grid
+    Grid.extent
+
 Grid methods
 ------------
 
@@ -46,6 +74,7 @@ Georeferencing utils
     transform_geometry
     transform_geopandas
     mercator_grid
+    grid_from_dataset
 
 
 Graphics
@@ -161,6 +190,7 @@ Dataset
     DatasetAccessor.subset
     DatasetAccessor.roi
     DatasetAccessor.transform
+    DatasetAccessor.lookup_transform
     DatasetAccessor.transform_and_add
     DatasetAccessor.cartopy
     DatasetAccessor.get_map

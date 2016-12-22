@@ -53,7 +53,7 @@ if sys.version_info.major == 2:
 # API
 from salem.gis import *
 from salem.datasets import *
-from salem.sio import read_shapefile, read_shapefile_to_grid
+from salem.sio import read_shapefile, read_shapefile_to_grid, grid_from_dataset
 from salem.sio import open_xr_dataset, open_wrf_dataset, open_mf_wrf_dataset
 from salem.sio import DataArrayAccessor, DatasetAccessor
 from salem.utils import get_demo_file

@@ -312,10 +312,10 @@ def _salem_grid_from_dataset(ds):
 def grid_from_dataset(ds):
     """Find out if the dataset contains enough info for Salem to understand.
 
-    ds can be an xarray dataset or a NetCDF dataset,
-    or anything that resembles it.
+    ``ds`` can be an xarray dataset or a NetCDF dataset, or anything
+    that resembles it.
 
-    Returns a :py:class:`~salem.Grid` if successful, None otherwise
+    Returns a :py:class:`~salem.Grid` if successful, ``None`` otherwise
     """
 
     # try if it is a salem file

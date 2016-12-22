@@ -1,18 +1,26 @@
 .. _gis:
 
-Georeferencing
-==============
+Map transformations
+===================
+
+Most of the georeferencing machinery for gridded datasets is
+handled by the :py:class:`~salem.Grid` class: its capacity to handle
+gridded datasets in a painless manner was one of the primary
+motivations to develop Salem.
+
+Grids
+-----
 
 A point on earth can be defined unambiguously in two ways:
 
 DATUM (lon, lat, datum)
     longitudes and latitudes are angular coordinates of a point on an
-    ellipsoid (datum)
+    ellipsoid (often called "datum")
 PROJ (x, y, projection)
     x (eastings) and y (northings) are cartesian coordinates of a point in a
     map projection (the unit of x, y is usually meter)
 
-Salem adds a third coordinate reference system (crs) to this list:
+Salem adds a third coordinate reference system (**crs**) to this list:
 
 GRID (i, j, Grid)
     on a structured grid, the (x, y) coordinates are distant of a
@@ -22,7 +30,7 @@ GRID (i, j, Grid)
 
 Transformations between datums and projections is handled by several tools
 in the python ecosystem, for example `GDAL`_ or the more lightweight
-`pyproj`_, which is the tool Salem is using internally [#]_.
+`pyproj`_, which is the tool used by Salem internally [#]_.
 
 The concept of Grid added by Salem is useful when transforming data between
 two structured datasets, or from an unstructured dataset to a structured one.
@@ -35,9 +43,6 @@ two structured datasets, or from an unstructured dataset to a structured one.
        concepts of datum and projection are often interchangeable:
        (lon, lat) coordinates are equivalent to cartesian (x, y) coordinates
        in the plate carree projection.
-
-Grids
------
 
 A :py:class:`~salem.Grid` is defined by a projection, a reference point in
 this projection, a grid spacing and a number of grid points:
@@ -53,7 +58,7 @@ this projection, a grid spacing and a number of grid points:
     x
     y
 
-The default in Salem is to define the grids according to the pixels center point:
+The default is to define the grids according to the pixels center point:
 
 .. ipython:: python
 
@@ -75,7 +80,7 @@ the two conventions are identical:
     assert grid_c == grid
 
 While it's good to know how grids work, most of the time grids should be
-inferred directly from the data files:
+inferred directly from the data files (see also: :ref:`xarray_acc.init`):
 
 .. ipython:: python
 
@@ -85,15 +90,20 @@ inferred directly from the data files:
     grid.extent
 
 Grids come with several convenience functions, for example for transforming
-a point onto the grid coordinates:
+points onto the grid coordinates:
 
 .. ipython:: python
 
     grid.transform(85, 27, crs=salem.wgs84)
 
-Or for reprojecting structured data (the xarray accessors
-:py:func:`~salem.DatasetAccessor.transform` method calls
-:py:func:`~salem.Grid.map_gridded_data` internally):
+Or for reprojecting structured data as explained below.
+
+
+Reprojecting data
+-----------------
+
+TODO: add more :py:func:`~salem.DatasetAccessor.transform` and
+:py:func:`~salem.DatasetAccessor.lookup_transform` examples.
 
 .. ipython:: python
 
