@@ -488,7 +488,7 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
@@ -535,7 +535,7 @@ def test_gmap_transformed():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_gmap_llconts():
     # This was because some problems were left unnoticed by other tests
     g = GoogleCenterMap(center_ll=(11.38, 47.26), zoom=9)
@@ -584,7 +584,7 @@ def test_example_docs():
     t2_roi = t2_sub.salem.roi(shape=shdf)
     smap = t2_roi.salem.get_map(data=t2_roi-273.15, cmap='RdYlBu_r', vmin=-14, vmax=18)
     _ = smap.set_topography(get_demo_file('himalaya.tif'))
-    smap.set_shapefile(shape=shdf, color='grey', linewidth=3)
+    smap.set_shapefile(shape=shdf, color='grey', linewidth=3, zorder=5)
     smap.set_points(91.1, 29.6)
     smap.set_text(91.2, 29.7, 'Lhasa', fontsize=17)
     smap.set_data(ds.T2.isel(Time=1)-273.15, crs=ds.salem.grid)
@@ -642,7 +642,7 @@ def test_lookup_transform():
 
 @requires_matplotlib
 @requires_cartopy
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_cartopy():
 
     import cartopy

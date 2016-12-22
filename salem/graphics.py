@@ -514,6 +514,7 @@ class Map(DataLevels):
 
         self._contourf_data = self._check_data(data=data, crs=crs,
                                                interp=interp)
+        kwargs.setdefault('zorder', 1.4)
         self._contourf_kw = kwargs
 
     def set_contour(self, data=None, crs=None, interp='nearest', **kwargs):
@@ -535,6 +536,7 @@ class Map(DataLevels):
 
         self._contour_data = self._check_data(data=data, crs=crs,
                                               interp=interp)
+        kwargs.setdefault('zorder', 1.4)
         self._contour_kw = kwargs
 
     def set_geometry(self, geometry=None, crs=wgs84, text=None,
@@ -607,6 +609,8 @@ class Map(DataLevels):
             self._text = []
             return
 
+        kwargs.setdefault('zorder', 5)
+
         # Transform
         x, y = self.grid.center_grid.transform(x, y, crs=crs)
         self._text.append((x, y, text, kwargs))
@@ -643,7 +647,7 @@ class Map(DataLevels):
             kwargs.setdefault('colors', (0.08984375, 0.65625, 0.8515625))
             return self.set_shapefile(shapefiles['rivers'], **kwargs)
         if countries:
-            kwargs.setdefault('zorder', 50)
+            kwargs.setdefault('zorder', 1.5)
             return self.set_shapefile(shapefiles['world_borders'], **kwargs)
 
         # Reset?
@@ -785,7 +789,7 @@ class Map(DataLevels):
         # Done
         kwargs.setdefault('colors', 'gray')
         kwargs.setdefault('linestyles', 'dashed')
-        kwargs.setdefault('zorder', 51)
+        kwargs.setdefault('zorder', 1.5)
         self.ll_contour_kw = kwargs
 
     def _shading_base(self, slope=None, relief_factor=0.7):
@@ -992,7 +996,7 @@ class Map(DataLevels):
                 kwargs.setdefault('color', 'k')
                 ax.plot(a[:, 0], a[:, 1], **kwargs)
             if g.type == 'Point':
-                kwargs.setdefault('zorder', 99)
+                kwargs.setdefault('zorder', 5)
                 kwargs.setdefault('marker', 'o')
                 kwargs.setdefault('s', 60)
                 kwargs.setdefault('facecolor', 'w')
@@ -1023,6 +1027,8 @@ class Map(DataLevels):
             ax.yaxis.set_ticks(np.array(self.ytick_pos)-0.5)
             ax.set_xticklabels(self.xtick_val)
             ax.set_yticklabels(self.ytick_val)
+            ax.xaxis.set_zorder(5)
+            ax.yaxis.set_zorder(5)
         else:
             ax.xaxis.set_ticks([])
             ax.yaxis.set_ticks([])
