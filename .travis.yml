@@ -21,6 +21,8 @@ matrix:
     env: CONDA_ENV=py35-min
   - python: 3.5
     env: CONDA_ENV=py35-xr
+  - python: 3.5
+    env: CONDA_ENV=py35-all-rc
   allow_failures:
   - python: 3.5
     env: CONDA_ENV=py35-all-rc
@@ -46,7 +48,7 @@ install:
   - pip install -e .
 
 script:
-  - py.test salem --cov=salem --cov-report term-missing
+  - py.test salem --mpl --cov=salem --cov-report term-missing
 
 after_success:
   - coveralls
