@@ -48,7 +48,11 @@ install:
   - pip install -e .
 
 script:
-  - py.test salem --mpl --cov=salem --cov-report term-missing
+  - if [[ "$CONDA_ENV" == "py35-all" ]]; then
+      pytest salem --mpl --cov=salem --cov-report term-missing;
+    else
+      pytest salem --cov=salem --cov-report term-missing;
+    fi
 
 after_success:
   - coveralls

@@ -19,13 +19,15 @@ except ImportError:
 from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
 from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
     read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
-    open_wrf_dataset, open_xr_dataset
+    open_wrf_dataset, open_xr_dataset, python_version
 from salem.utils import get_demo_file
 from salem.tests import requires_matplotlib, requires_cartopy
 
 # Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
+
+tolpy2 = 5 if python_version == 'py3' else 10
 
 
 def _create_dummy_shp(fname):
@@ -463,7 +465,7 @@ def test_hef_from_array():
 
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
-                               tolerance=5)
+                               tolerance=tolpy2)
 def test_hef_topo_withnan():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
@@ -596,7 +598,7 @@ def test_example_docs():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_colormaps():
 
     fig = plt.figure(figsize=(8, 3))
