@@ -15,17 +15,23 @@ matrix:
   include:
   - python: 2.7
     env: CONDA_ENV=py27-all
+    env: MPL=--mpl
   - python: 3.5
     env: CONDA_ENV=py35-all
+    env: MPL=--mpl
   - python: 3.5
     env: CONDA_ENV=py35-min
+    env: MPL=
   - python: 3.5
     env: CONDA_ENV=py35-xr
+    env: MPL=
   - python: 3.5
     env: CONDA_ENV=py35-all-rc
+    env: MPL=--mpl
   allow_failures:
   - python: 3.5
     env: CONDA_ENV=py35-all-rc
+    env: MPL=--mpl
 
 before_install:
   - "export DISPLAY=:99.0"
@@ -48,11 +54,7 @@ install:
   - pip install -e .
 
 script:
-  - if [[ "$CONDA_ENV" == "py35-all" ]]; then
-      pytest salem --mpl --cov=salem --cov-report term-missing;
-    else
-      pytest salem --cov=salem --cov-report term-missing;
-    fi
+  - pytest salem $MPL --cov=salem --cov-report term-missing;
 
 after_success:
   - coveralls
