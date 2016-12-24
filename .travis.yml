@@ -14,24 +14,18 @@ matrix:
   fast_finish: true
   include:
   - python: 2.7
-    env: CONDA_ENV=py27-all
-    env: MPL=--mpl
+    env: CONDA_ENV=py27-all MPL=--mpl
   - python: 3.5
-    env: CONDA_ENV=py35-all
-    env: MPL=--mpl
+    env: CONDA_ENV=py35-all MPL=--mpl
   - python: 3.5
-    env: CONDA_ENV=py35-min
-    env: MPL=
+    env: CONDA_ENV=py35-min MPL=
   - python: 3.5
-    env: CONDA_ENV=py35-xr
-    env: MPL=
+    env: CONDA_ENV=py35-xr MPL=
   - python: 3.5
-    env: CONDA_ENV=py35-all-rc
-    env: MPL=--mpl
+    env: CONDA_ENV=py35-all-rc MPL=--mpl
   allow_failures:
   - python: 3.5
-    env: CONDA_ENV=py35-all-rc
-    env: MPL=--mpl
+    env: CONDA_ENV=py35-all-rc MPL=--mpl
 
 before_install:
   - "export DISPLAY=:99.0"
