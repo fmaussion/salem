@@ -2,7 +2,7 @@ name: salem
 channels:
   - conda-forge
 dependencies:
-  - python
+  - python=3.5
   - six
   - numpy
   - scipy
@@ -14,12 +14,12 @@ dependencies:
   - rasterio
   - pandas
   - xarray
-  - matplotlib
+  - matplotlib=1.5.3
   - Pillow
   - descartes
   - cartopy
   - numpydoc
-  - ipython=4.0.1
+  - ipython=4.0.3  # https://github.com/ipython/ipython/issues/8733
   - sphinx
   - pip:
     - motionless
