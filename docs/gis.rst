@@ -102,8 +102,18 @@ Or for reprojecting structured data as explained below.
 Reprojecting data
 -----------------
 
-TODO: add more :py:func:`~salem.DatasetAccessor.transform` and
-:py:func:`~salem.DatasetAccessor.lookup_transform` examples.
+Interpolation
+~~~~~~~~~~~~~
+
+The standard way to reproject a gridded dataset into another one is to use the
+:py:func:`~salem.DatasetAccessor.transform` method:
+
+
+.. ipython:: python
+   :suppress:
+
+    plt.rcParams['figure.figsize'] = (7, 3)
+    f = plt.figure(figsize=(7, 3))
 
 .. ipython:: python
 
@@ -111,4 +121,63 @@ TODO: add more :py:func:`~salem.DatasetAccessor.transform` and
     t2_era_reproj = ds.salem.transform(dse.t2m.isel(time=0))
 
     @savefig plot_reproj_grid.png width=80%
-    t2_era_reproj.salem.quick_map()
+    t2_era_reproj.salem.quick_map();
+
+This is the recommended way if the output grid (in this case, a high resolution
+lon-lat grid) is of similar or finer resolution than the input grid (in this
+case, reanalysis data at 0.75°). As of v0.2, three interpolation methods are
+available in Salem: ``nearest`` (default), ``linear``, or ``spline``:
+
+
+.. ipython:: python
+
+    t2_era_reproj = ds.salem.transform(dse.t2m.isel(time=0), interp='spline')
+
+    @savefig plot_reproj_grid_spline.png width=80%
+    t2_era_reproj.salem.quick_map();
+
+Internally, Salem uses `pyproj <https://jswhit.github.io/pyproj/>`__ for the
+coordinates transformation and scipy's interpolation methods for the
+resampling. Note that reprojecting data can be computationally and
+memory expensive: it is generally recommended to reproject your data at the
+end of the processing chain if possible.
+
+The :py:func:`~salem.DatasetAccessor.transform` method returns an object of
+the same structure as the input. The only differences are the coordinates and
+the grid, which are those of the arrival grid:
+
+
+.. ipython:: python
+
+    dst = ds.salem.transform(dse)
+    dst
+    dst.salem.grid == ds.salem.grid
+
+Aggregation
+~~~~~~~~~~~
+
+If you need to resample higher resolution data onto a coarser grid,
+:py:func:`~salem.DatasetAccessor.lookup_transform` may be the way to go. This
+method gets its name from the "lookup table" it uses internally to store
+the information needed for the resampling: for each
+grid point in the coarser dataset, the lookup table stores the coordinates
+of the high-resolution grid located below.
+
+The default resampling method is to average all these points:
+
+.. ipython:: python
+
+    dse = dse.salem.subset(corners=((77, 23), (94.5, 32.5)))
+    dsl = dse.salem.lookup_transform(ds)
+    @savefig plot_lookup_grid.png width=80%
+    dsl.data.salem.quick_map(cmap='terrain');
+
+But any aggregation method is available, for example ``np.std``, or ``len`` if
+you want to know the number of high resolution pixels found below a coarse
+grid point:
+
+.. ipython:: python
+
+    dsl = dse.salem.lookup_transform(ds, method=len)
+    @savefig plot_lookup_grid_std.png width=80%
+    dsl.data.salem.quick_map();

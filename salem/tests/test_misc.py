@@ -767,6 +767,15 @@ class TestXarray(unittest.TestCase):
         assert out[0, 0] == 0
         assert out.mean() > 1
 
+        dsw = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+        dse = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        _, lut = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len,
+                                              return_lut=True)
+        out2 = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len,
+                                          lut=lut)
+        # qualitative tests (quantitative testing done elsewhere)
+        assert_allclose(out, out2)
+
     @requires_xarray
     def test_full_wrf_wfile(self):
 

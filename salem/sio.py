@@ -527,7 +527,7 @@ class _XarrayAccessorBase(object):
         """Get a cartopy.crs.Projection for this dataset."""
         return proj_to_cartopy(self.grid.proj)
 
-    def _apply_transform(self, transform, grid, other):
+    def _apply_transform(self, transform, grid, other, return_lut=False):
         """Common transform mixin"""
 
         was_dataarray = False
@@ -537,7 +537,10 @@ class _XarrayAccessorBase(object):
                 was_dataarray = True
             except AttributeError:
                 # must be a ndarray
-                rdata = transform(other, grid=grid)
+                if return_lut:
+                    rdata, lut = transform(other, grid=grid, return_lut=True)
+                else:
+                    rdata = transform(other, grid=grid)
                 # let's guess
                 sh = rdata.shape
                 nd = len(sh)
@@ -560,13 +563,19 @@ class _XarrayAccessorBase(object):
 
                 out = xr.DataArray(rdata, coords=coords, dims=dims)
                 out.attrs['pyproj_srs'] = self.grid.proj.srs
-                return out
+                if return_lut:
+                    return out, lut
+                else:
+                    return out
 
         # go
         out = xr.Dataset()
         for v in other.data_vars:
             var = other[v]
-            rdata = transform(var)
+            if return_lut:
+                rdata, lut = transform(var, return_lut=True)
+            else:
+                rdata = transform(var)
 
             # remove old coords
             dims = [d for d in var.dims]
@@ -593,10 +602,18 @@ class _XarrayAccessorBase(object):
             out = out[v]
         else:
             out.attrs['pyproj_srs'] = self.grid.proj.srs
-        return out
+
+        if return_lut:
+            return out, lut
+        else:
+            return out
 
     def transform(self, other, grid=None, interp='nearest', ks=3):
-        """Reprojects an other Dataset or DataArray onto this grid.
+        """Reprojects an other Dataset or DataArray onto self.
+
+        The returned object has the same data structure as ``other`` (i.e.
+        variables names, attributes), but is defined on the new grid
+        (``self.grid``).
 
         Parameters
         ----------
@@ -617,8 +634,9 @@ class _XarrayAccessorBase(object):
         transform = partial(self.grid.map_gridded_data, interp=interp, ks=ks)
         return self._apply_transform(transform, grid, other)
 
-    def lookup_transform(self, other, grid=None, method=np.mean):
-        """Reprojects an other Dataset or DataArray onto this grid using the
+    def lookup_transform(self, other, grid=None, method=np.mean, lut=None,
+                         return_lut=False):
+        """Reprojects an other Dataset or DataArray onto self using the
         forward tranform lookup.
 
         See : :py:meth:`Grid.lookup_transform`
@@ -631,15 +649,24 @@ class _XarrayAccessorBase(object):
             in case the input dataset does not carry georef info
         method : function, default: np.mean
             the aggregation method. Possibilities: np.std, np.median, np.sum,
-            and more. Use ``len``For counting the number of grid points!
+            and more. Use ``len`` to count the number of grid points!
+        lut : ndarray, optional
+            computing the lookup table can be expensive. If you have several
+            operations to do with the same grid, set ``lut`` to an existing
+            table obtained from a previous call to  :py:meth:`Grid.grid_lookup`
+        return_lut : bool, optional
+            set to True if you want to return the lookup table for later use.
+            in this case, returns a tuple
 
         Returns
         -------
         a dataset or a dataarray
+        If ``return_lut==True``, also return the lookup table
         """
 
-        transform = partial(self.grid.lookup_transform, method=method)
-        return self._apply_transform(transform, grid, other)
+        transform = partial(self.grid.lookup_transform, method=method, lut=lut)
+        return self._apply_transform(transform, grid, other,
+                                     return_lut=return_lut)
 
 
 @xr.register_dataarray_accessor('salem')
@@ -976,17 +1003,16 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     Parameters
     ----------
     paths : str or sequence
-        Either a string glob in the form "path/to/my/files/*.nc" or an explicit
-        list of files to open.
+        Either a string glob in the form "path/to/my/files/\*.nc" or an
+        explicit list of files to open.
     chunks : int or dict, optional
         Dictionary with keys given by dimension names and values given by chunk
         sizes. In general, these should divide the dimensions of each dataset.
-        If int, chunk each dimension by ``chunks``.
+        If int, chunk each dimension by ``chunks`` .
         By default, chunks will be chosen to load entire input files into
         memory at once. This has a major impact on performance: please see
         xarray's full documentation for more details.
-    compat : {'identical', 'equals', 'broadcast_equals',
-              'no_conflicts'}, optional
+    compat : {'identical', 'equals', 'broadcast_equals', 'no_conflicts'}, optional
         String indicating how to compare variables of the same name for
         potential conflicts when merging:
 

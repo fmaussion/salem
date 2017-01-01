@@ -626,10 +626,10 @@ class Grid(object):
         """Performs forward transformation of any other grid into self.
 
         The principle of forward transform is to obtain, for each grid point of
-        ``self``, all the indices of ``other`` that are located into the
+        ``self`` , all the indices of ``other`` that are located into the
         given grid point. This transformation makes sense ONLY if ``other`` has
         a higher resolution than the object grid. If ``other`` has a similar
-        or coarser resolution than ``self``, choose the more general
+        or coarser resolution than ``self`` , choose the more general
         (and much faster) :py:meth:`Grid.map_gridded_data` method.
 
         Parameters
@@ -640,7 +640,8 @@ class Grid(object):
         Returns
         -------
         a dict: each key (j, i) contains an array of shape (n, 2) where n is
-        the number of ``other``s grid points found within the grid point (j, i)
+        the number of ``other`` 's grid points found within the grid point
+        (j, i)
         """
 
         # Input checks
@@ -651,25 +652,31 @@ class Grid(object):
         # Transform the other grid into the local grid (forward transform)
         # Work in center grid cause that's what we need
         i, j = other.center_grid.ij_coordinates
+        i, j = i.flatten(), j.flatten()
         oi, oj = self.center_grid.transform(i, j, crs=other.center_grid,
                                             nearest=True, maskout=True)
+        # keep only valid values
+        oi, oj, i, j = oi[~oi.mask], oj[~oi.mask], i[~oi.mask], j[~oi.mask]
 
         out_inds = oi.flatten() + self.nx * oj.flatten()
-        orig_inds = i.flatten() + other.nx * j.flatten()
 
+        # find the links
         ris = np.digitize(out_inds, bins=np.arange(self.nx*self.ny+1))
-        ris = np.ma.array(ris, mask=out_inds.mask)
+
+        # some optim based on the fact that ris has many duplicates
+        sort_idx = np.argsort(ris)
+        unq_items, unq_count = np.unique(ris[sort_idx], return_counts=True)
+        unq_idx = np.split(sort_idx, np.cumsum(unq_count))
+
+        # lets go
         out = dict()
-        for oi, ri in zip(orig_inds[~ris.mask], ris[~ris.mask]):
+        for idx, ri in zip(unq_idx, unq_items):
             ij = divmod(ri-1, self.nx)
-            oij = np.array(divmod(oi, other.nx)).reshape(1, 2)
-            if ij not in out:
-                out[ij] = oij
-            else:
-                out[ij] = np.append(out[ij], oij, axis=0)
+            out[ij] = np.stack((j[idx], i[idx]), axis=1)
         return out
 
-    def lookup_transform(self, data, grid=None, method=np.mean, lut=None):
+    def lookup_transform(self, data, grid=None, method=np.mean, lut=None,
+                         return_lut=False):
         """Performs the forward transformation of gridded data into self.
 
         This method is suitable when the data grid is of higher resolution
@@ -687,16 +694,19 @@ class Grid(object):
             a Grid instance matching the data
         method : function, default: np.mean
             the aggregation method. Possibilities: np.std, np.median, np.sum,
-            and more. Use ``len``For counting the number of grid points!
+            and more. Use ``len`` to count the number of grid points!
         lut : ndarray, optional
             computing the lookup table can be expensive. If you have several
             operations to do with the same grid, set ``lut`` to an existing
             table obtained from a previous call to  :py:meth:`Grid.grid_lookup`
+        return_lut : bool, optional
+            set to True if you want to return the lookup table for later use.
+            in this case, returns a tuple
 
         Returns
         -------
         An aggregated ndarray of the data, in ``self`` coordinates.
-
+        If ``return_lut==True``, also return the lookup table
         """
 
         # Input checks
@@ -749,7 +759,11 @@ class Grid(object):
             out_data = out_data.astype(np.int)
         else:
             out_data = np.ma.masked_invalid(out_data)
-        return out_data
+
+        if return_lut:
+            return out_data, lut
+        else:
+            return out_data
 
     def map_gridded_data(self, data, grid=None, interp='nearest',
                          ks=3, out=None):
@@ -965,7 +979,7 @@ def proj_is_same(p1, p2):
         s1.ImportFromProj4(p1.srs)
         s2 = osr.SpatialReference()
         s2.ImportFromProj4(p2.srs)
-        return s1.IsSame(s2)
+        return s1.IsSame(s2) == 1  # IsSame returns 1 or 0
     else:
         # at least we can try to sort it
         p1 = '+'.join(sorted(p1.srs.split('+')))

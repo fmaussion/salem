@@ -459,11 +459,10 @@ class TestGrid(unittest.TestCase):
         assert_allclose(odata, data3d)
         odata = g.lookup_transform(data4d, g)
         assert_allclose(odata, data4d)
-        odata = g.lookup_transform(data4d, g, method=len)
+        odata, lut = g.lookup_transform(data4d, g, method=len, return_lut=True)
         assert_allclose(odata, data4d*0+1)
 
         # set lut
-        lut = g.grid_lookup(g)
         odata = g.lookup_transform(data2d, g, lut=lut)
         assert_allclose(odata, data2d)
 

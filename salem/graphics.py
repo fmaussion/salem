@@ -554,13 +554,13 @@ class Map(DataLevels):
         text_delta: it can be useful to shift the text of a certain amount
         when annotating points. units are percentage of data coordinates.
         text_kwargs: the keyword arguments to pass to the test() function
-        kwargs: any keyword associated with the geometrie's plotting function::
+        kwargs: any keyword associated with the geometry's plotting function:
 
             - Point: all keywords accepted by scatter(): marker, s, edgecolor,
-             facecolor...
+              facecolor...
             - Line: all keywords accepted by plot(): color, linewidth...
             - Polygon: all keywords accepted by PathPatch(): color, edgecolor,
-             facecolor, linestyle, linewidth, alpha...
+              facecolor, linestyle, linewidth, alpha...
 
         """
 
