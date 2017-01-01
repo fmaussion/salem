@@ -15,7 +15,7 @@ dependencies:
   - pandas
   - xarray
   - dask
-  - matplotlib
+  - matplotlib=1.5.3
   - Pillow
   - descartes
   - cartopy
