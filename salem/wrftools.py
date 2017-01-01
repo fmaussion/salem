@@ -706,7 +706,8 @@ def geogrid_simulator(fpath, do_maps=True):
                 s = np.array([(left, bottom), (right, bottom),
                               (right, top), (left, top)])
                 l1 = shpg.LinearRing(s)
-                m.set_geometry(l1, crs=cg.proj, linewidth=(len(out)-j))
+                m.set_geometry(l1, crs=cg.proj, linewidth=(len(out)-j),
+                               zorder=5)
 
             maps.append(m)
 

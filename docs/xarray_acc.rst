@@ -1,6 +1,6 @@
 .. _xarray_acc:
 
-xarray accessors
+Xarray accessors
 ================
 
 One of the main purposes of Salem is to add georeferencing tools to
@@ -13,6 +13,7 @@ One of the main purposes of Salem is to add georeferencing tools to
 .. _xarray.DataArray: http://xarray.pydata.org/en/stable/data-structures.html#dataarray
 .. _xarray.Dataset: http://xarray.pydata.org/en/stable/data-structures.html#dataset
 
+.. _xarray_acc.init:
 
 Initializing the accessor
 -------------------------
@@ -20,7 +21,7 @@ Initializing the accessor
 Automated projection parsing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Salem will try to understand in which projection the Dataset or DataArray is
+Salem will try to understand in which projection your Dataset or DataArray is
 defined. For example, with a platte carree (or lon/lat) projection, Salem will
 know what to do based on the coordinates' names:
 
@@ -31,26 +32,34 @@ know what to do based on the coordinates' names:
     import salem
 
     da = xr.DataArray(np.arange(20).reshape(4, 5), dims=['lat', 'lon'],
-                      coords={'lat':np.linspace(0, 30, 4), 'lon':np.linspace(-20, 20, 5)})
+                      coords={'lat':np.linspace(0, 30, 4),
+                              'lon':np.linspace(-20, 20, 5)})
 
-    da.salem
+    da.salem  # the accessor is an object
 
     @savefig plot_xarray_simple.png width=80%
     da.salem.quick_map();
 
-While the above should work with many (most?) climate datasets (such as
-atmospheric reanalyses or GCM output), certain NetCDF files will have a less
-standard map projection requiring special parsing. There are `conventions`_ to
-formalise these things in the NetCDF model, but Salem doesn't understand them
-yet. Currently, Salem can parse:
+While the above should work with a majority of climate datasets (such as
+atmospheric reanalyses or GCM output), certain NetCDF files will have a more
+exotic map projection requiring a dedicated parsing. There are `conventions`_
+to formalise these things in the NetCDF data model, but Salem doesn't
+understand them yet (my impression is that they aren't widely used anyways).
+
+Currently, Salem can deal with:
+
 - platte carree (or lon/lat) projections
 - WRF projections (see :ref:`wrf`)
-- virually any projection explicitly provided by the user
 - for geotiff files only: any projection that `rasterio`_ can understand
+- **virually any projection provided explicitly by the user**
 
 .. _conventions: http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch05s06.html
 .. _rasterio: https://mapbox.github.io/rasterio/
 
+The logic for deciding upon the projection of a Dataset or DataArray is
+located in :py:func:`~salem.grid_from_dataset`. If the automated parsing
+doesn't work, the ``salem`` accessor won't work either. In that case, you'll
+have to provide your own :ref:`xarray_acc.custom` to the data.
 
 From geotiffs
 ~~~~~~~~~~~~~
@@ -73,9 +82,10 @@ Salem uses `rasterio`_ to open and parse geotiff files:
     @savefig plot_xarray_geotiff.png width=80%
     hmap.visualize();
 
+.. _xarray_acc.custom:
 
-Custom projections
-~~~~~~~~~~~~~~~~~~
+Custom projection
+~~~~~~~~~~~~~~~~~
 
 Alternatively, Salem will understand any projection supported by  `pyproj`_.
 The proj info has to be provided as attribute:
@@ -154,13 +164,22 @@ interpolation methods:
     dsr.t2m.mean(dim='time').salem.quick_map();
 
 
+The accessor's map transformation machinery is handled by the
+:py:class:`~salem.Grid` class internally. See :ref:`gis` for more information.
+
+
 Subsetting data
 ~~~~~~~~~~~~~~~
+
+The :py:func:`~salem.DatasetAccessor.subset` function allows you to subset
+your datasets according to (georeferenced) vector or raster data, for example
+based on `shapely <https://pypi.python.org/pypi/Shapely>`__ geometries
+(e.g. polygons), other grids, or shapefiles:
 
 .. ipython:: python
 
     shdf = salem.read_shapefile(salem.get_demo_file('world_borders.shp'))
-    shdf = shdf.loc[shdf['CNTRY_NAME'] == 'Nepal']
+    shdf = shdf.loc[shdf['CNTRY_NAME'] == 'Nepal']  # remove other countries
     dsr = dsr.salem.subset(shape=shdf, margin=10)
     @savefig plot_xarray_subset_out.png width=80%
     dsr.t2m.mean(dim='time').salem.quick_map();
@@ -169,9 +188,12 @@ Subsetting data
 Regions of interest
 ~~~~~~~~~~~~~~~~~~~
 
+While subsetting selects the optimal rectangle over your region of interest,
+sometimes you also want to maskout unrelevant data, too. This is done with the
+:py:func:`~salem.DatasetAccessor.roi` tool:
+
 .. ipython:: python
 
     dsr = dsr.salem.roi(shape=shdf)
     @savefig plot_xarray_roi_out.png width=80%
     dsr.t2m.mean(dim='time').salem.quick_map();
-

@@ -56,7 +56,7 @@ and Salem will be further developed with this model in mind.
 
 
 What's this ".salem_cache" directory in my home folder?
-------------------------------------------------------
+-------------------------------------------------------
 
 At the first import, Salem will create a hidden directory called
 ``.salem_cache`` in your home folder. It will be used to download Salem's

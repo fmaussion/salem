@@ -19,13 +19,15 @@ except ImportError:
 from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
 from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
     read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
-    open_wrf_dataset
+    open_wrf_dataset, open_xr_dataset, python_version
 from salem.utils import get_demo_file
 from salem.tests import requires_matplotlib, requires_cartopy
 
 # Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
+
+tolpy2 = 5 if python_version == 'py3' else 10
 
 
 def _create_dummy_shp(fname):
@@ -463,7 +465,7 @@ def test_hef_from_array():
 
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images',
-                               tolerance=5)
+                               tolerance=tolpy2)
 def test_hef_topo_withnan():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
@@ -488,7 +490,7 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
@@ -535,7 +537,7 @@ def test_gmap_transformed():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_gmap_llconts():
     # This was because some problems were left unnoticed by other tests
     g = GoogleCenterMap(center_ll=(11.38, 47.26), zoom=9)
@@ -584,7 +586,7 @@ def test_example_docs():
     t2_roi = t2_sub.salem.roi(shape=shdf)
     smap = t2_roi.salem.get_map(data=t2_roi-273.15, cmap='RdYlBu_r', vmin=-14, vmax=18)
     _ = smap.set_topography(get_demo_file('himalaya.tif'))
-    smap.set_shapefile(shape=shdf, color='grey', linewidth=3)
+    smap.set_shapefile(shape=shdf, color='grey', linewidth=3, zorder=5)
     smap.set_points(91.1, 29.6)
     smap.set_text(91.2, 29.7, 'Lhasa', fontsize=17)
     smap.set_data(ds.T2.isel(Time=1)-273.15, crs=ds.salem.grid)
@@ -596,7 +598,7 @@ def test_example_docs():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_colormaps():
 
     fig = plt.figure(figsize=(8, 3))
@@ -629,8 +631,20 @@ def test_geogrid_simulator():
 
 
 @requires_matplotlib
-@requires_cartopy
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_lookup_transform():
+
+    dsw = open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+    dse = open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+    out = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len)
+    fig, ax = plt.subplots(1, 1)
+    out.salem.quick_map(ax=ax)
+    return fig
+
+
+@requires_matplotlib
+@requires_cartopy
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', tolerance=5)
 def test_cartopy():
 
     import cartopy

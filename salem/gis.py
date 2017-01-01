@@ -48,6 +48,12 @@ def check_crs(crs):
     -------
     A valid crs if possible, otherwise None
     """
+
+    try:
+        crs = crs.salem.grid  # try xarray
+    except:
+        pass
+
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
@@ -99,33 +105,27 @@ class Grid(object):
 
     Attributes
     ----------
-    proj : pyproj.Proj instance
-        defining the grid's map projection
-    nx : int
-        number of grid points in the x direction
-    ny : int
-        number of grid points in the y direction
-    dx : float
-        x grid spacing (always positive)
-    dy : float
-        y grid spacing (positive if ll_corner, negative if ul_corner)
-    x0 : float
-        reference point in X proj coordinates
-    y0 : float
-        reference point in Y proj coordinates
-    order : str
-        'ul_corner' or 'll_corner' convention
-    pixel_ref : str
-        'center' or 'corner' convention
-    ij_coordinates
+
+    proj
+    nx
+    ny
+    dx
+    dy
+    x0
+    y0
+    order
+    pixel_ref
     x_coord
     y_coord
     xy_coordinates
     ll_coordinates
+    xstagg_xy_coordinates
+    ystagg_xy_coordinates
+    xstagg_ll_coordinates
+    ystagg_ll_coordinates
     center_grid
     corner_grid
     extent
-
     """
 
     def __init__(self, proj=wgs84, nxny=None, dxdy=None, corner=None,
@@ -181,10 +181,10 @@ class Grid(object):
         """
 
         # Check for coordinate system
-        _proj = check_crs(proj)
-        if _proj is None:
+        proj = check_crs(proj)
+        if proj is None:
             raise ValueError('proj must be of type pyproj.Proj')
-        self.proj = _proj
+        self._proj = proj
 
         # Check for shortcut
         if corner is not None:
@@ -200,7 +200,7 @@ class Grid(object):
                           pixel_ref=pixel_ref)
 
         # Quick'n dirty solution for comparison operator
-        self._ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'order']
+        self._ckeys = ['_x0', '_y0', '_nx', '_ny', '_dx', '_dy', '_order']
 
     def _check_input(self, **kwargs):
         """See which parameter combination we have and set everything."""
@@ -224,19 +224,19 @@ class Grid(object):
         else:
             raise ValueError('Input params not compatible')
 
-        self.nx = np.int(nx)
-        self.ny = np.int(ny)
-        if (self.nx <= 0.) or (self.ny <= 0.):
+        self._nx = np.int(nx)
+        self._ny = np.int(ny)
+        if (self._nx <= 0) or (self._ny <= 0):
             raise ValueError('nxny not valid')
-        self.dx = np.float(dx)
-        self.dy = np.float(dy)
-        self.x0 = np.float(x0)
-        self.y0 = np.float(y0)
-        self.order = order
+        self._dx = np.float(dx)
+        self._dy = np.float(dy)
+        self._x0 = np.float(x0)
+        self._y0 = np.float(y0)
+        self._order = order
         
         # Check for pixel ref
-        self.pixel_ref = kwargs['pixel_ref'].lower()
-        if self.pixel_ref not in ['corner', 'center']:
+        self._pixel_ref = kwargs['pixel_ref'].lower()
+        if self._pixel_ref not in ['corner', 'center']:
             raise ValueError('pixel_ref not recognized')
 
     def __eq__(self, other):
@@ -262,9 +262,56 @@ class Grid(object):
         a['proj'] = '+'.join(sorted(self.proj.srs.split('+')))
         return str(a)
 
+    @property
+    def proj(self):
+        """``pyproj.Proj`` instance defining the grid's map projection."""
+        return self._proj
+
+    @property
+    def nx(self):
+        """number of grid points in the x direction."""
+        return self._nx
+
+    @property
+    def ny(self):
+        """number of grid points in the y direction."""
+        return self._ny
+
+    @property
+    def dx(self):
+        """x grid spacing (always positive)."""
+        return self._dx
+
+    @property
+    def dy(self):
+        """y grid spacing (positive if ll_corner, negative if ul_corner)."""
+        return self._dy
+
+    @property
+    def x0(self):
+        """X reference point in projection coordinates."""
+        return self._x0
+
+    @property
+    def y0(self):
+        """Y reference point in projection coordinates."""
+        return self._y0
+
+    @property
+    def order(self):
+        """upper left (``'ul_corner'``) or lower left (``'ll_corner'``)."""
+        return self._order
+
+    @property
+    def pixel_ref(self):
+        """if coordinates are at the ``'center'`` or ``'corner'`` of the grid.
+        """
+        return self._pixel_ref
+
     @lazy_property
     def center_grid(self):
-        """(Grid instance) representing the grid in center coordinates."""
+        """``salem.Grid`` instance representing the grid in center coordinates.
+        """
         
         if self.pixel_ref == 'center':
             return self
@@ -278,7 +325,8 @@ class Grid(object):
         
     @lazy_property
     def corner_grid(self):
-        """(Grid instance) representing the grid in corner coordinates."""
+        """``salem.Grid`` instance representing the grid in corner coordinates.
+        """
 
         if self.pixel_ref == 'corner':
             return self
@@ -574,6 +622,149 @@ class Grid(object):
 
         return x, y
 
+    def grid_lookup(self, other):
+        """Performs forward transformation of any other grid into self.
+
+        The principle of forward transform is to obtain, for each grid point of
+        ``self`` , all the indices of ``other`` that are located into the
+        given grid point. This transformation makes sense ONLY if ``other`` has
+        a higher resolution than the object grid. If ``other`` has a similar
+        or coarser resolution than ``self`` , choose the more general
+        (and much faster) :py:meth:`Grid.map_gridded_data` method.
+
+        Parameters
+        ----------
+        other : salem.Grid
+            the grid that needs to be transformed into self
+
+        Returns
+        -------
+        a dict: each key (j, i) contains an array of shape (n, 2) where n is
+        the number of ``other`` 's grid points found within the grid point
+        (j, i)
+        """
+
+        # Input checks
+        other = check_crs(other)
+        if not isinstance(other, Grid):
+            raise ValueError('`other` should be a Grid instance')
+
+        # Transform the other grid into the local grid (forward transform)
+        # Work in center grid cause that's what we need
+        i, j = other.center_grid.ij_coordinates
+        i, j = i.flatten(), j.flatten()
+        oi, oj = self.center_grid.transform(i, j, crs=other.center_grid,
+                                            nearest=True, maskout=True)
+        # keep only valid values
+        oi, oj, i, j = oi[~oi.mask], oj[~oi.mask], i[~oi.mask], j[~oi.mask]
+
+        out_inds = oi.flatten() + self.nx * oj.flatten()
+
+        # find the links
+        ris = np.digitize(out_inds, bins=np.arange(self.nx*self.ny+1))
+
+        # some optim based on the fact that ris has many duplicates
+        sort_idx = np.argsort(ris)
+        unq_items, unq_count = np.unique(ris[sort_idx], return_counts=True)
+        unq_idx = np.split(sort_idx, np.cumsum(unq_count))
+
+        # lets go
+        out = dict()
+        for idx, ri in zip(unq_idx, unq_items):
+            ij = divmod(ri-1, self.nx)
+            out[ij] = np.stack((j[idx], i[idx]), axis=1)
+        return out
+
+    def lookup_transform(self, data, grid=None, method=np.mean, lut=None,
+                         return_lut=False):
+        """Performs the forward transformation of gridded data into self.
+
+        This method is suitable when the data grid is of higher resolution
+        than ``self``. ``lookup_transform`` performs aggregation of data
+        according to a user given rule (e.g. ``np.mean``, ``len``, ``np.std``),
+        applied to all grid points found below a grid point in ``self``.
+
+        See Also: :py:meth:`Grid.grid_lookup` method, and examples in the docs
+
+        Parameters
+        ----------
+        data : ndarray
+            an ndarray of dimensions 2, 3, or 4, the two last ones being y, x.
+        grid : Grid
+            a Grid instance matching the data
+        method : function, default: np.mean
+            the aggregation method. Possibilities: np.std, np.median, np.sum,
+            and more. Use ``len`` to count the number of grid points!
+        lut : ndarray, optional
+            computing the lookup table can be expensive. If you have several
+            operations to do with the same grid, set ``lut`` to an existing
+            table obtained from a previous call to  :py:meth:`Grid.grid_lookup`
+        return_lut : bool, optional
+            set to True if you want to return the lookup table for later use.
+            in this case, returns a tuple
+
+        Returns
+        -------
+        An aggregated ndarray of the data, in ``self`` coordinates.
+        If ``return_lut==True``, also return the lookup table
+        """
+
+        # Input checks
+        if grid is None:
+            grid = check_crs(data)  # xarray
+        if not isinstance(grid, Grid):
+            raise ValueError('grid should be a Grid instance')
+        if hasattr(data, 'values'):
+            data = data.values  # xarray
+
+        # dimensional check
+        in_shape = data.shape
+        ndims = len(in_shape)
+        if (ndims < 2) or (ndims > 4):
+            raise ValueError('data dimension not accepted')
+        if (in_shape[-1] != grid.nx) or (in_shape[-2] != grid.ny):
+            raise ValueError('data dimension not compatible')
+
+        if lut is None:
+            lut = self.grid_lookup(grid)
+
+        # Prepare the output
+        out_shape = list(in_shape)
+        out_shape[-2:] = [self.ny, self.nx]
+
+        if data.dtype.kind == 'i':
+            out_data = np.empty(out_shape, dtype=np.float) * np.NaN
+        else:
+            out_data = np.empty(out_shape, dtype=data.dtype) * np.NaN
+
+        def _2d_trafo(ind, outd):
+            for ji, l in lut.items():
+                outd[ji] = method(ind[l[:, 0], l[:, 1]])
+            return outd
+
+        if ndims == 2:
+            _2d_trafo(data, out_data)
+        if ndims == 3:
+            for dimi, cdata in enumerate(data):
+                out_data[dimi, ...] = _2d_trafo(cdata, out_data[dimi, ...])
+        if ndims == 4:
+            for dimj, cdata in enumerate(data):
+                for dimi, ccdata in enumerate(cdata):
+                    tmp = _2d_trafo(ccdata, out_data[dimj, dimi, ...])
+                    out_data[dimj, dimi, ...] = tmp
+
+        # prepare output
+        if method is len:
+            out_data[~np.isfinite(out_data)] = 0
+            out_data = out_data.astype(np.int)
+        else:
+            out_data = np.ma.masked_invalid(out_data)
+
+        if return_lut:
+            return out_data, lut
+        else:
+            return out_data
+
     def map_gridded_data(self, data, grid=None, interp='nearest',
                          ks=3, out=None):
         """Reprojects any structured data onto the local grid.
@@ -605,7 +796,7 @@ class Grid(object):
 
         Returns
         -------
-        A projected ndarray of the data.
+        A projected ndarray of the data, in ``self`` coordinates.
         """
 
         if grid is None:
@@ -788,7 +979,7 @@ def proj_is_same(p1, p2):
         s1.ImportFromProj4(p1.srs)
         s2 = osr.SpatialReference()
         s2.ImportFromProj4(p2.srs)
-        return s1.IsSame(s2)
+        return s1.IsSame(s2) == 1  # IsSame returns 1 or 0
     else:
         # at least we can try to sort it
         p1 = '+'.join(sorted(p1.srs.split('+')))

@@ -14,16 +14,18 @@ matrix:
   fast_finish: true
   include:
   - python: 2.7
-    env: CONDA_ENV=py27-all
+    env: CONDA_ENV=py27-all MPL=--mpl
   - python: 3.5
-    env: CONDA_ENV=py35-all
+    env: CONDA_ENV=py35-all MPL=--mpl
   - python: 3.5
-    env: CONDA_ENV=py35-min
+    env: CONDA_ENV=py35-min MPL=
   - python: 3.5
-    env: CONDA_ENV=py35-xr
+    env: CONDA_ENV=py35-xr MPL=
+  - python: 3.5
+    env: CONDA_ENV=py35-all-rc MPL=--mpl
   allow_failures:
   - python: 3.5
-    env: CONDA_ENV=py35-all-rc
+    env: CONDA_ENV=py35-all-rc MPL=--mpl
 
 before_install:
   - "export DISPLAY=:99.0"
@@ -46,7 +48,7 @@ install:
   - pip install -e .
 
 script:
-  - py.test salem --cov=salem --cov-report term-missing
+  - pytest salem $MPL --cov=salem --cov-report term-missing;
 
 after_success:
   - coveralls
