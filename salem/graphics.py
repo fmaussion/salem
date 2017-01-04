@@ -690,7 +690,7 @@ class Map(DataLevels):
         else:
             raise NotImplementedError(geomtype)
 
-    def _find_interval(self):
+    def _find_interval(self, max_nticks):
         """Quick n dirty function to find a suitable lonlat interval."""
         candidates = [0.001, 0.002, 0.005,
                       0.01, 0.02, 0.05,
@@ -704,13 +704,13 @@ class Map(DataLevels):
             mm_y = [np.ceil(np.min(_yy)), np.floor(np.max(_yy))]
             nx = mm_x[1]-mm_x[0]+1
             ny = mm_y[1]-mm_y[0]+1
-            if np.max([nx, ny]) <= 8:
+            if np.max([nx, ny]) <= max_nticks:
                 break
         return inter
 
     def set_lonlat_contours(self, interval=None, xinterval=None,
                             yinterval=None, add_tick_labels=True,
-                            **kwargs):
+                            max_nticks=8, **kwargs):
         """Add longitude and latitude contours to the map.
 
         Calling it with interval=0. remove all conours.
@@ -722,12 +722,13 @@ class Map(DataLevels):
         xinterval: set a different interval for lons
         yinterval: set a different interval for lats
         add_tick_label: add the ticks labels to the map
+        max_nticks: when automatic, max num ber of contours to draw
         kwargs: any keyword accepted by contour()
         """
 
         # Defaults
         if interval is None:
-            interval = self._find_interval()
+            interval = self._find_interval(max_nticks)
         if xinterval is None:
             xinterval = interval
         if yinterval is None:
