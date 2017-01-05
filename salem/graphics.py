@@ -189,7 +189,7 @@ class DataLevels(object):
         self._extend = extend
 
     def set_plot_params(self, levels=None, nlevels=None, vmin=None, vmax=None,
-                        extend=None):
+                        extend=None, cmap=None):
         """Shortcut to all parameters related to the plot.
 
         As a side effect, running set_plot_params() without arguments will
@@ -200,6 +200,8 @@ class DataLevels(object):
         self.set_levels(levels)
         self.set_nlevels(nlevels)
         self.set_extend(extend)
+        if cmap is not None:
+            self.set_cmap(cmap)
 
     @property
     def levels(self):

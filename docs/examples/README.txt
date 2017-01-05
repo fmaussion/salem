@@ -3,7 +3,4 @@
 Recipes
 =======
 
-Plotting
---------
-
-How to make nice looking plots.
+Some examples of Salem's features.
