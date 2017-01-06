@@ -897,7 +897,7 @@ class Grid(object):
 
     def region_of_interest(self, shape=None, geometry=None, grid=None,
                            corners=None, crs=wgs84, roi=None,
-                           rasterize_kws={}):
+                           all_touched=False):
         """Computes a region of interest (ROI).
 
         A ROI is simply a mask of the same size as the grid.
@@ -918,9 +918,10 @@ class Grid(object):
         roi : ndarray
             add the new region_of_interest to a previous one (useful for
             multiple geometries for example)
-        rasterize_kws : dict
-            dictionary of additional keyword arguments to pass to
-            rasterio.features.rasterize
+        all_touched : boolean
+            pass-through argument for rasterio.features.rasterize, indicating
+            that all grid cells which are  clipped by the shapefile defining
+            the region of interest should be included (default=False)
         """
 
         # Initial mask
@@ -929,9 +930,9 @@ class Grid(object):
         else:
             mask = np.zeros((self.ny, self.nx), dtype=np.int16)
 
-        # Add mask to rasterize keyword arguments, overriding anything the user
+        # Collect keyword arguments, overriding anything the user
         # inadvertently added
-        rasterize_kws['out'] = mask
+        rasterize_kws = dict(out=mask, all_touched=all_touched)
 
         # Several cases
         if shape is not None:
@@ -955,7 +956,7 @@ class Grid(object):
                                       to_crs=self.corner_grid)
             with rasterio.Env():
                 mask = rasterio.features.rasterize(np.atleast_1d(geom),
-                                                   out=mask)
+                                                   **rasterize_kws)
         if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = self.map_gridded_data(_tmp, grid, out=mask).filled(0)

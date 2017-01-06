@@ -451,7 +451,7 @@ class _XarrayAccessorBase(object):
 
     def roi(self, ds=None, **kwargs):
         """roi(self, shape=None, geometry=None, grid=None, corners=None,
-               crs=wgs84, roi=None, rasterize_kws={})
+               crs=wgs84, roi=None, all_touched=False)
 
         Make a region of interest (ROI) for the dataset.
 
@@ -474,9 +474,10 @@ class _XarrayAccessorBase(object):
             coordinate reference system of the geometry and corners
         roi : ndarray
             if you have a mask ready, you can give it here
-        rasterize_kws : dict
-            dictionary of additional keyword arguments to pass to
-            rasterio.features.rasterize
+        all_touched : boolean
+            pass-through argument for rasterio.features.rasterize, indicating
+            that all grid cells which are  clipped by the shapefile defining
+            the region of interest should be included (default=False)
         """
 
         if ds is not None:
