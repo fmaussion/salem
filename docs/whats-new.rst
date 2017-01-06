@@ -13,6 +13,7 @@ Enhancements
 - new ``open_mf_wrf_dataset`` function
 - new ``deacc`` method added to DataArrayAccessors
 - new ``Map.transform()`` method to make over-plotting easier (experimental)
+- new **rasterize_kws** argument added to ``Grid.region_of_interest()`` to pass additional kwargs to  ``rasterio.features.rasterize``
 
 Bug fixes
 ~~~~~~~~~

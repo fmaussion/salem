@@ -451,7 +451,7 @@ class _XarrayAccessorBase(object):
 
     def roi(self, ds=None, **kwargs):
         """roi(self, shape=None, geometry=None, grid=None, corners=None,
-               crs=wgs84, roi=None)
+               crs=wgs84, roi=None, rasterize_kws={})
 
         Make a region of interest (ROI) for the dataset.
 
@@ -474,6 +474,9 @@ class _XarrayAccessorBase(object):
             coordinate reference system of the geometry and corners
         roi : ndarray
             if you have a mask ready, you can give it here
+        rasterize_kws : dict
+            dictionary of additional keyword arguments to pass to
+            rasterio.features.rasterize
         """
 
         if ds is not None:
@@ -686,7 +689,7 @@ class DataArrayAccessor(_XarrayAccessorBase):
         Parameters
         ----------
         as_rate: bool
-          set to false if you don't want units per hour, 
+          set to false if you don't want units per hour,
           but units per given data timestep
         """
 
