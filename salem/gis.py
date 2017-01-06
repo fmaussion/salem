@@ -233,7 +233,7 @@ class Grid(object):
         self._x0 = np.float(x0)
         self._y0 = np.float(y0)
         self._order = order
-        
+
         # Check for pixel ref
         self._pixel_ref = kwargs['pixel_ref'].lower()
         if self._pixel_ref not in ['corner', 'center']:
@@ -312,7 +312,7 @@ class Grid(object):
     def center_grid(self):
         """``salem.Grid`` instance representing the grid in center coordinates.
         """
-        
+
         if self.pixel_ref == 'center':
             return self
         else:
@@ -322,7 +322,7 @@ class Grid(object):
                         proj=self.proj, pixel_ref='center')
             args[self.order + '_corner'] = x0y0
             return Grid(**args)
-        
+
     @lazy_property
     def corner_grid(self):
         """``salem.Grid`` instance representing the grid in corner coordinates.
@@ -896,7 +896,6 @@ class Grid(object):
         return np.ma.masked_invalid(out_data)
 
     def region_of_interest(self, shape=None, geometry=None, grid=None,
-                           corners=None, crs=wgs84, roi=None):
                            corners=None, crs=wgs84, roi=None,
                            rasterize_kws={}):
         """Computes a region of interest (ROI).
