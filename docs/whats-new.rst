@@ -13,6 +13,7 @@ Enhancements
 - new ``open_mf_wrf_dataset`` function
 - new ``deacc`` method added to DataArrayAccessors
 - new ``Map.transform()`` method to make over-plotting easier (experimental)
+- new **all_touched** argument added to ``Grid.region_of_interest()`` to pass through to  ``rasterio.features.rasterize``, tweaking how grid cells are included in the region of interest
 
 Bug fixes
 ~~~~~~~~~

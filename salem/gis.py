@@ -233,7 +233,7 @@ class Grid(object):
         self._x0 = np.float(x0)
         self._y0 = np.float(y0)
         self._order = order
-        
+
         # Check for pixel ref
         self._pixel_ref = kwargs['pixel_ref'].lower()
         if self._pixel_ref not in ['corner', 'center']:
@@ -312,7 +312,7 @@ class Grid(object):
     def center_grid(self):
         """``salem.Grid`` instance representing the grid in center coordinates.
         """
-        
+
         if self.pixel_ref == 'center':
             return self
         else:
@@ -322,7 +322,7 @@ class Grid(object):
                         proj=self.proj, pixel_ref='center')
             args[self.order + '_corner'] = x0y0
             return Grid(**args)
-        
+
     @lazy_property
     def corner_grid(self):
         """``salem.Grid`` instance representing the grid in corner coordinates.
@@ -896,7 +896,8 @@ class Grid(object):
         return np.ma.masked_invalid(out_data)
 
     def region_of_interest(self, shape=None, geometry=None, grid=None,
-                           corners=None, crs=wgs84, roi=None):
+                           corners=None, crs=wgs84, roi=None,
+                           all_touched=False):
         """Computes a region of interest (ROI).
 
         A ROI is simply a mask of the same size as the grid.
@@ -917,6 +918,10 @@ class Grid(object):
         roi : ndarray
             add the new region_of_interest to a previous one (useful for
             multiple geometries for example)
+        all_touched : boolean
+            pass-through argument for rasterio.features.rasterize, indicating
+            that all grid cells which are  clipped by the shapefile defining
+            the region of interest should be included (default=False)
         """
 
         # Initial mask
@@ -924,6 +929,10 @@ class Grid(object):
             mask = np.array(roi, dtype=np.int16)
         else:
             mask = np.zeros((self.ny, self.nx), dtype=np.int16)
+
+        # Collect keyword arguments, overriding anything the user
+        # inadvertently added
+        rasterize_kws = dict(out=mask, all_touched=all_touched)
 
         # Several cases
         if shape is not None:
@@ -938,7 +947,8 @@ class Grid(object):
                                         inplace=inplace)
             import rasterio
             with rasterio.Env():
-                mask = rasterio.features.rasterize(shape.geometry, out=mask)
+                mask = rasterio.features.rasterize(shape.geometry,
+                                                   **rasterize_kws)
         if geometry is not None:
             import rasterio
             # corner grid is needed for rasterio
@@ -946,7 +956,7 @@ class Grid(object):
                                       to_crs=self.corner_grid)
             with rasterio.Env():
                 mask = rasterio.features.rasterize(np.atleast_1d(geom),
-                                                   out=mask)
+                                                   **rasterize_kws)
         if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = self.map_gridded_data(_tmp, grid, out=mask).filled(0)
