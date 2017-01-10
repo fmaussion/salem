@@ -209,7 +209,7 @@ def _wrf_grid_from_dataset(ds):
                 reflat = reflat[0, :, :]
             assert np.allclose(reflon, mylon, atol=1e-4)
             assert np.allclose(reflat, mylat, atol=1e-4)
-        if 'lon' in ds.variables:
+        elif 'lon' in ds.variables:
             # HAR
             mylon, mylat = grid.ll_coordinates
             reflon = ds.variables['lon']
@@ -219,6 +219,8 @@ def _wrf_grid_from_dataset(ds):
                 reflat = reflat[0, :, :]
             assert np.allclose(reflon, mylon, atol=1e-4)
             assert np.allclose(reflat, mylat, atol=1e-4)
+        else:
+            raise RuntimeError("couldn't test for correct WRF lon-lat")
 
     return grid
 
