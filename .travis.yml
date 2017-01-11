@@ -22,8 +22,12 @@ matrix:
   - python: 3.5
     env: CONDA_ENV=py35-xr MPL=
   - python: 3.5
+    env: CONDA_ENV=py35-xarray-dev MPL=--mpl
+  - python: 3.5
     env: CONDA_ENV=py35-all-rc MPL=--mpl
   allow_failures:
+  - python: 3.5
+    env: CONDA_ENV=py35-xarray-dev MPL=--mpl
   - python: 3.5
     env: CONDA_ENV=py35-all-rc MPL=--mpl
 

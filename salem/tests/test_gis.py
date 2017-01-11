@@ -181,6 +181,14 @@ class TestGrid(unittest.TestCase):
         g1 = Grid(**args)
         self.assertEqual(g1, g2)
 
+    def test_str(self):
+
+        args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g1 = Grid(**args)
+        ref = 'x0: -0.5; y0: -0.5; nx: 3; ny: 3; dx: 1.0; dy: 1.0; ' \
+              'order: ll; proj: +datum=WGS84 +proj=latlong +units=m '
+        self.assertEqual(str(g1), ref)
+
     def test_errors(self):
         """Check that errors are occurring"""
 
@@ -689,23 +697,28 @@ class TestGrid(unittest.TestCase):
         # At the borders IDL and Python take other decision on wether it
         # should be a NaN or not (Python seems to be more conservative)
         ref_data[np.where(odata.mask)] = np.NaN
+        assert np.sum(np.isfinite(ref_data)) != 0
         assert_allclose(ref_data, odata.filled(np.NaN), atol=1e-3)
 
         odata = grid_to.map_gridded_data(data, grid_from, interp='spline')
         odata[np.where(~ np.isfinite(ref_data))] = np.NaN
         ref_data[np.where(~ np.isfinite(odata))] = np.NaN
+        assert np.sum(np.isfinite(ref_data)) != 0
         assert_allclose(ref_data, odata, rtol=0.2, atol=3)
 
         # 4D
         data = np.array([data, data])
         ref_data = np.array([ref_data, ref_data])
         odata = grid_to.map_gridded_data(data, grid_from, interp='linear')
+        odata = odata.filled(np.NaN)
         ref_data[np.where(~ np.isfinite(odata))] = np.NaN
-        assert_allclose(ref_data, odata.filled(np.NaN), atol=1e-3)
+        assert np.sum(np.isfinite(ref_data)) != 0
+        assert_allclose(ref_data, odata, atol=1e-3)
 
         odata = grid_to.map_gridded_data(data, grid_from, interp='spline')
         odata[np.where(~ np.isfinite(ref_data))] = np.NaN
         ref_data[np.where(~ np.isfinite(odata))] = np.NaN
+        assert np.sum(np.isfinite(ref_data)) != 0
         assert_allclose(ref_data, odata, rtol=0.2, atol=3)
 
         # 4D - INTEGER
@@ -804,7 +817,9 @@ class TestGrid(unittest.TestCase):
             # map
             nx, ny = (3, 4)
             data = np.arange(nx * ny).reshape((ny, nx))
-            data = xr.DataArray(data).rename({'dim_0': 'y', 'dim_1': 'x'})
+            data = xr.DataArray(data, coords={'y':np.arange(ny),
+                                              'x':np.arange(nx)},
+                                dims=['y', 'x'])
             data.attrs = {'test': 'attr'}
 
             # Nearest Neighbor

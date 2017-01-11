@@ -101,7 +101,7 @@ def _memory_transform(shape_cpath, grid=None, grid_str=None):
     return shape
 
 
-def read_shapefile_to_grid(fpath, grid):
+def read_shapefile_to_grid(fpath, grid, use_cache=True):
     """Same as read_shapefile but directly transformed to a grid.
 
     The whole thing is cached so that the second call will
@@ -111,11 +111,12 @@ def read_shapefile_to_grid(fpath, grid):
     ----------
     fpath: path to the file
     grid: the arrival grid
+    use_cache: use the cache or not
     """
 
     # ensure it is a cached pickle (copy code smell)
     shape_cpath = cached_shapefile_path(fpath)
-    if not os.path.exists(shape_cpath):
+    if not os.path.exists(shape_cpath) or not use_cache:
         out = read_shapefile(fpath, cached=False)
         with open(shape_cpath, 'wb') as f:
             pickle.dump(out, f)
@@ -916,7 +917,7 @@ def open_xr_dataset(file):
         return ds
 
     # add cartesian coords for WRF
-    if 'west_east' in ds.variables:
+    if 'west_east' in ds.dims:
         ds['west_east'] = ds.salem.grid.x_coord
         ds['south_north'] = ds.salem.grid.y_coord
 
@@ -972,7 +973,7 @@ def open_wrf_dataset(file, **kwargs):
             pass
 
     # Convert time (if necessary)
-    if 'Time' in ds.variables:
+    if 'Time' in ds.dims:
         ds['Time'] = netcdf_time(ds)
     tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
     tr = {k: tr[k] for k in tr.keys() if k in ds.variables}

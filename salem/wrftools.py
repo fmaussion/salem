@@ -233,6 +233,11 @@ class AccumulatedVariable(FakeVariable):
         if do_nan:
             item[0] = slice(0, stop-1)
             out = var[itemr]
+            try:
+                # in case we have a masked array
+                out.unshare_mask()
+            except:
+                pass
             out[1:, ...] -= var[item]
             out[0, ...] = np.NaN
         else:
