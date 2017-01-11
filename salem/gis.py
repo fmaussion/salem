@@ -7,6 +7,7 @@ from six import string_types
 
 # Builtins
 import copy
+import warnings
 from functools import partial
 from collections import OrderedDict
 
@@ -200,7 +201,7 @@ class Grid(object):
                           pixel_ref=pixel_ref)
 
         # Quick'n dirty solution for comparison operator
-        self._ckeys = ['_x0', '_y0', '_nx', '_ny', '_dx', '_dy', '_order']
+        self._ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'order']
 
     def _check_input(self, **kwargs):
         """See which parameter combination we have and set everything."""
@@ -249,8 +250,8 @@ class Grid(object):
         (independent of the grid's cornered or centered representation.)
         """
 
-        a = dict((k, self.corner_grid.__dict__[k]) for k in self._ckeys)
-        b = dict((k, other.corner_grid.__dict__[k]) for k in self._ckeys)
+        a = dict((k, getattr(self.corner_grid, k)) for k in self._ckeys)
+        b = dict((k, getattr(other.corner_grid, k)) for k in self._ckeys)
         p1 = self.corner_grid.proj
         p2 = other.corner_grid.proj
         return (a == b) and proj_is_same(p1, p2)
@@ -258,9 +259,13 @@ class Grid(object):
     def __str__(self):
         """str representation of the grid (useful for caching)."""
 
-        a = OrderedDict((k, self.corner_grid.__dict__[k]) for k in self._ckeys)
+        a = OrderedDict((k, getattr(self.corner_grid, k)) for k in self._ckeys)
         a['proj'] = '+'.join(sorted(self.proj.srs.split('+')))
-        return str(a)
+
+        out = ''
+        for k, v in a.items():
+            out += str(k) + ': ' + str(v) + '; '
+        return out[:-2]
 
     @property
     def proj(self):
@@ -893,7 +898,12 @@ class Grid(object):
             msg = 'interpolation not understood: {}'.format(interp)
             raise ValueError(msg)
 
-        return np.ma.masked_invalid(out_data)
+        # we have to catch a warning for an unexplained reason
+        with warnings.catch_warnings():
+            mess = "invalid value encountered in isfinite"
+            warnings.filterwarnings("ignore", message=mess)
+            out_data = np.ma.masked_invalid(out_data)
+        return out_data
 
     def region_of_interest(self, shape=None, geometry=None, grid=None,
                            corners=None, crs=wgs84, roi=None,

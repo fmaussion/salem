@@ -67,7 +67,6 @@ class TestUtils(unittest.TestCase):
 
     @requires_travis
     def test_empty_cache(self):
-
         utils.empty_cache()
 
     def test_demofiles(self):
@@ -133,7 +132,7 @@ class TestIO(unittest.TestCase):
         g = GeoTiff(utils.get_demo_file('hef_srtm.tif'))
         sf = utils.get_demo_file('Hintereisferner_UTM.shp')
 
-        df1 = read_shapefile_to_grid(sf, g.grid)
+        df1 = read_shapefile_to_grid(sf, g.grid, use_cache=False)
 
         df2 = transform_geopandas(read_shapefile(sf), to_crs=g.grid)
         assert_allclose(df1.geometry[0].exterior.coords,
@@ -535,11 +534,14 @@ class TestXarray(unittest.TestCase):
     @requires_xarray
     def test_ncl_diagvars(self):
 
+        import xarray as xr
         wf = get_demo_file('wrf_cropped.nc')
         ncl_out = get_demo_file('wrf_cropped_ncl.nc')
 
-        w = sio.open_wrf_dataset(wf)
-        nc = sio.open_xr_dataset(ncl_out)
+        with warnings.catch_warnings(record=True) as war:
+            w = sio.open_wrf_dataset(wf)
+            self.assertEqual(len(war), 0)
+        nc = xr.open_dataset(ncl_out)
 
         ref = nc['TK']
         tot = w['TK']
