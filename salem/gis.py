@@ -114,7 +114,7 @@ class Grid(object):
     dy
     x0
     y0
-    order
+    origin
     pixel_ref
     x_coord
     y_coord
@@ -129,8 +129,9 @@ class Grid(object):
     extent
     """
 
-    def __init__(self, proj=wgs84, nxny=None, dxdy=None, corner=None,
-                 ul_corner=None, ll_corner=None, pixel_ref='center'):
+    def __init__(self, proj=wgs84, nxny=None, dxdy=None, x0y0=None,
+                 pixel_ref='center',
+                 corner=None, ul_corner=None, ll_corner=None):
         """
         Parameters
         ----------
@@ -141,28 +142,33 @@ class Grid(object):
             (nx, ny) number of grid points
         dxdy : (float, float)
             (dx, dy) grid spacing in proj coordinates
-        corner : (float, float)
+        x0y0 : (float, float)
             (x0, y0) cartesian coordinates (in proj) of the upper left
-             or lower left corner, depending on the sign of dy
-        ul_corner : (float, float)
-            (x0, y0) cartesian coordinates (in proj) of the upper left corner
-        ll_corner : (float, float)
-            (x0, y0) cartesian coordinates (in proj) of the lower left corner
+            or lower left corner, depending on the sign of dy
         pixel_ref : str
             either 'center' or 'corner' (default: 'center'). Tells
             the Grid object where the (x0, y0) is located in the grid point
+        corner : (float, float)
+            DEPRECATED in favor of ``x0y0``
+            (x0, y0) cartesian coordinates (in proj) of the upper left
+             or lower left corner, depending on the sign of dy
+        ul_corner : (float, float)
+            DEPRECATED in favor of ``x0y0``
+            (x0, y0) cartesian coordinates (in proj) of the upper left corner
+        ll_corner : (float, float)
+            DEPRECATED in favor of ``x0y0``
+            (x0, y0) cartesian coordinates (in proj) of the lower left corner
 
         Notes
         -----
-        The corner, ul_corner and ll_corner parameters are mutually exclusive:
-        set one and only one. If pixel_ref is set to 'corner', the ul_corner
-        parameter specifies the **corner grid point's** upper left corner
-        coordinates.  Equivalently, the ll_corner parameter then specifies the
-        **corner grid point's** lower left coordinate.
+        If pixel_ref is set to 'corner' and dy < 0, the x0y0
+        parameter specifies the **grid point's upper left** corner
+        coordinates.  Equivalently, if dy > 0 parameter x0y0 then specifies the
+        **grid point's lower left** coordinate.
 
         Examples
         --------
-        >>> g = Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        >>> g = Grid(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         >>> lon, lat = g.ll_coordinates
         >>> lon
         array([[ 0.,  1.,  2.],
@@ -187,21 +193,35 @@ class Grid(object):
             raise ValueError('proj must be of type pyproj.Proj')
         self._proj = proj
 
-        # Check for shortcut
+        # deprecations
         if corner is not None:
+            warnings.warn('The `corner` kwarg is deprecated: '
+                          'use `x0y0` instead.', DeprecationWarning)
+            x0y0 = corner
+        if ul_corner is not None:
+            warnings.warn('The `ul_corner` kwarg is deprecated: '
+                          'use `x0y0` instead.', DeprecationWarning)
+            if dxdy[1] > 0.:
+                raise ValueError('dxdy and input params not compatible')
+            x0y0 = ul_corner
+        if ll_corner is not None:
+            warnings.warn('The `ll_corner` kwarg is deprecated: '
+                          'use `x0y0` instead.', DeprecationWarning)
             if dxdy[1] < 0.:
-                ul_corner = corner
-            else:
-                ll_corner = corner
+                raise ValueError('dxdy and input params not compatible')
+            x0y0 = ll_corner
+
+        # Check for shortcut
+        if dxdy[1] < 0.:
+            ul_corner = x0y0
+        else:
+            ll_corner = x0y0
 
         # Initialise the rest
         self._check_input(nxny=nxny, dxdy=dxdy,
                           ul_corner=ul_corner,
                           ll_corner=ll_corner,
                           pixel_ref=pixel_ref)
-
-        # Quick'n dirty solution for comparison operator
-        self._ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'order']
 
     def _check_input(self, **kwargs):
         """See which parameter combination we have and set everything."""
@@ -214,14 +234,14 @@ class Grid(object):
             x0, y0 = kwargs['ul_corner']
             if (dx <= 0.) or (dy >= 0.):
                 raise ValueError('dxdy and input params not compatible')
-            order = 'ul'
+            origin = 'upper-left'
         elif all(kwargs[k] is not None for k in combi_b):
             nx, ny = kwargs['nxny']
             dx, dy = kwargs['dxdy']
             x0, y0 = kwargs['ll_corner']
             if (dx <= 0.) or (dy <= 0.):
                 raise ValueError('dxdy and input params not compatible')
-            order = 'll'
+            origin = 'lower-left'
         else:
             raise ValueError('Input params not compatible')
 
@@ -233,7 +253,7 @@ class Grid(object):
         self._dy = np.float(dy)
         self._x0 = np.float(x0)
         self._y0 = np.float(y0)
-        self._order = order
+        self._origin = origin
 
         # Check for pixel ref
         self._pixel_ref = kwargs['pixel_ref'].lower()
@@ -250,22 +270,25 @@ class Grid(object):
         (independent of the grid's cornered or centered representation.)
         """
 
-        a = dict((k, getattr(self.corner_grid, k)) for k in self._ckeys)
-        b = dict((k, getattr(other.corner_grid, k)) for k in self._ckeys)
+        # Attributes defining the instance
+        ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'origin']
+
+        a = dict((k, getattr(self.corner_grid, k)) for k in ckeys)
+        b = dict((k, getattr(other.corner_grid, k)) for k in ckeys)
         p1 = self.corner_grid.proj
         p2 = other.corner_grid.proj
         return (a == b) and proj_is_same(p1, p2)
 
-    def __str__(self):
-        """str representation of the grid (useful for caching)."""
-
-        a = OrderedDict((k, getattr(self.corner_grid, k)) for k in self._ckeys)
-        a['proj'] = '+'.join(sorted(self.proj.srs.split('+')))
-
-        out = ''
-        for k, v in a.items():
-            out += str(k) + ': ' + str(v) + '; '
-        return out[:-2]
+    def __repr__(self):
+        srs = '+'.join(sorted(self.proj.srs.split('+'))).strip()
+        summary = ['<salem.Grid>']
+        summary += ['  proj: ' + srs]
+        summary += ['  pixel_ref: ' + self.pixel_ref]
+        summary += ['  origin: ' + str(self.origin)]
+        summary += ['  (nx, ny): (' + str(self.nx) + ', ' + str(self.ny) + ')']
+        summary += ['  (dx, dy): (' + str(self.dx) + ', ' + str(self.dy) + ')']
+        summary += ['  (x0, y0): (' + str(self.x0) + ', ' + str(self.y0) + ')']
+        return '\n'.join(summary) + '\n'
 
     @property
     def proj(self):
@@ -303,9 +326,9 @@ class Grid(object):
         return self._y0
 
     @property
-    def order(self):
-        """upper left (``'ul_corner'``) or lower left (``'ll_corner'``)."""
-        return self._order
+    def origin(self):
+        """``'upper-left'`` or ``'lower-left'``."""
+        return self._origin
 
     @property
     def pixel_ref(self):
@@ -324,8 +347,7 @@ class Grid(object):
             # shift the grid
             x0y0 = ((self.x0 + self.dx / 2.), (self.y0 + self.dy / 2.))
             args = dict(nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
-                        proj=self.proj, pixel_ref='center')
-            args[self.order + '_corner'] = x0y0
+                        proj=self.proj, pixel_ref='center', x0y0=x0y0)
             return Grid(**args)
 
     @lazy_property
@@ -339,8 +361,7 @@ class Grid(object):
             # shift the grid
             x0y0 = ((self.x0 - self.dx / 2.), (self.y0 - self.dy / 2.))
             args = dict(nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
-                        proj=self.proj, pixel_ref='corner')
-            args[self.order + '_corner'] = x0y0
+                        proj=self.proj, pixel_ref='corner', x0y0=x0y0)
             return Grid(**args)
 
     @property
@@ -457,10 +478,38 @@ class Grid(object):
         """
 
         x = np.array([0, self.nx]) * self.dx + self.corner_grid.x0
-        ypoint = [0, self.ny] if self.order == 'll' else [self.ny, 0]
+        ypoint = [0, self.ny] if self.origin == 'lower-left' else [self.ny, 0]
         y = np.array(ypoint) * self.dy + self.corner_grid.y0
 
         return [x[0], x[1], y[0], y[1]]
+
+    def almost_equal(self, other, rtol=1e-05, atol=1e-08):
+        """A less strict comparison between grids.
+
+        Two grids are considered equal when their defining coordinates
+        and projection are equal.
+        grid1 == grid2 uses floating point equality, which is very strict; here
+        we uses numpy's is close instead.
+
+        (independent of the grid's cornered or centered representation.)
+        """
+
+        # float attributes defining the instance
+        fkeys = ['x0', 'y0', 'dx', 'dy']
+        # unambiguous attributes
+        ckeys = ['nx', 'ny', 'origin']
+
+        ok = True
+        for k in fkeys:
+            ok = ok and np.isclose(getattr(self.corner_grid, k),
+                                   getattr(other.corner_grid, k),
+                                   rtol=rtol, atol=atol)
+        for k in ckeys:
+            _ok = getattr(self.corner_grid, k) == getattr(other.corner_grid, k)
+            ok = ok and _ok
+        p1 = self.corner_grid.proj
+        p2 = other.corner_grid.proj
+        return ok and proj_is_same(p1, p2)
 
     def extent_in_crs(self, crs=wgs84):
         """Get the extent of the grid in a desired crs.
@@ -521,9 +570,8 @@ class Grid(object):
 
         x0 = self.corner_grid.x0
         y0 = self.corner_grid.y0
-        args = dict(nxny=(nx, ny), dxdy=(dx, dy),
+        args = dict(nxny=(nx, ny), dxdy=(dx, dy), x0y0=(x0, y0),
                     proj=self.proj, pixel_ref='corner')
-        args[self.order + '_corner'] = (x0, y0)
         g = Grid(**args)
         if self.pixel_ref == 'center':
             g = g.center_grid
@@ -738,9 +786,9 @@ class Grid(object):
         out_shape[-2:] = [self.ny, self.nx]
 
         if data.dtype.kind == 'i':
-            out_data = np.empty(out_shape, dtype=np.float) * np.NaN
+            out_data = np.zeros(out_shape, dtype=np.float) * np.NaN
         else:
-            out_data = np.empty(out_shape, dtype=data.dtype) * np.NaN
+            out_data = np.zeros(out_shape, dtype=data.dtype) * np.NaN
 
         def _2d_trafo(ind, outd):
             for ji, l in lut.items():
@@ -807,7 +855,7 @@ class Grid(object):
         if grid is None:
             try:
                 grid = data.salem.grid  # try xarray
-            except:
+            except AttributeError:
                 pass
 
         # Input checks
@@ -1135,7 +1183,7 @@ def proj_to_cartopy(proj):
     srs = proj.srs
     if has_gdal:
         # this is more robust, as srs could be anything (espg, etc.)
-        import osr
+        from osgeo import osr
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(proj.srs)
         srs = s1.ExportToProj4()
@@ -1196,7 +1244,8 @@ def proj_to_cartopy(proj):
     return cl(globe=globe, **kw_proj)
 
 
-def mercator_grid(center_ll=None, extent=None, ny=600, nx=None, order='ll'):
+def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
+                  origin='lower-left'):
     """Local transverse mercator map centered on a specified point.
 
     Parameters
@@ -1210,8 +1259,8 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None, order='ll'):
     nx : int
         number of x grid points wanted to cover the map (mutually exclusive
         with y)
-    order : str
-        'll' (lower left) or 'ul' (upper left)
+    origin : str
+        'lower-left' or 'upper-left'
 
     """
 
@@ -1234,14 +1283,14 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None, order='ll'):
 
     e, n = pyproj.transform(wgs84, projloc, lon, lat)
 
-    if order=='ul':
+    if origin== 'upper-left':
         corner = (-xx / 2. + e, yy / 2. + n)
         dxdy = (xx / nx, - yy / ny)
     else:
         corner = (-xx / 2. + e, -yy / 2. + n)
         dxdy = (xx / nx, yy / ny)
 
-    return Grid(proj=projloc, corner=corner, nxny=(nx, ny), dxdy=dxdy,
+    return Grid(proj=projloc, x0y0=corner, nxny=(nx, ny), dxdy=dxdy,
                 pixel_ref='corner')
 
 
@@ -1270,5 +1319,5 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12):
     corner = (-xx / 2. + e, yy / 2. + n)
     dxdy = (xx / nx, - yy / ny)
 
-    return Grid(proj=projloc, corner=corner, nxny=(nx, ny), dxdy=dxdy,
+    return Grid(proj=projloc, x0y0=corner, nxny=(nx, ny), dxdy=dxdy,
                 pixel_ref='corner')

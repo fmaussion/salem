@@ -82,7 +82,7 @@ def read_shapefile(fpath, cached=False):
 
 @memory.cache(ignore=['grid'])
 def _memory_transform(shape_cpath, grid=None, grid_str=None):
-    """Quick solution using joblib in order to not transform many times the
+    """Quick solution using joblib in origin to not transform many times the
     same shape (useful for maps).
 
     Since grid is a complex object joblib seemed to have trouble with it,
@@ -195,8 +195,7 @@ def _wrf_grid_from_dataset(ds):
         e, n = gis.transform_proj(wgs84, proj, cen_lon, cen_lat)
         x0 = -(nx-1) / 2. * dx + e  # DL corner
         y0 = -(ny-1) / 2. * dy + n  # DL corner
-    grid = gis.Grid(nxny=(nx, ny), ll_corner=(x0, y0), dxdy=(dx, dy),
-                    proj=proj)
+    grid = gis.Grid(nxny=(nx, ny), x0y0=(x0, y0), dxdy=(dx, dy), proj=proj)
 
     if tmp_check_wrf:
         #  Temporary asserts
@@ -261,8 +260,8 @@ def _lonlat_grid_from_dataset(ds):
     # Make the grid
     dx = lon[1]-lon[0]
     dy = lat[1]-lat[0]
-    args = dict(nxny=(lon.shape[0], lat.shape[0]), proj=wgs84, dxdy=(dx, dy))
-    args['corner'] = (lon[0], lat[0])
+    args = dict(nxny=(lon.shape[0], lat.shape[0]), proj=wgs84, dxdy=(dx, dy),
+                x0y0=(lon[0], lat[0]))
     return gis.Grid(**args)
 
 
@@ -307,8 +306,8 @@ def _salem_grid_from_dataset(ds):
     # Make the grid
     dx = x[1]-x[0]
     dy = y[1]-y[0]
-    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy))
-    args['corner'] = (x[0], y[0])
+    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy),
+                x0y0=(x[0], y[0]))
     return gis.Grid(**args)
 
 

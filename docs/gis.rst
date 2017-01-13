@@ -53,7 +53,7 @@ this projection, a grid spacing and a number of grid points:
     import salem
     from salem import wgs84
 
-    grid = salem.Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0.5, 0.5), proj=wgs84)
+    grid = salem.Grid(nxny=(3, 2), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=wgs84)
     x, y = grid.xy_coordinates
     x
     y
@@ -75,7 +75,7 @@ the two conventions are identical:
 
 .. ipython:: python
 
-    grid_c = salem.Grid(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0),
+    grid_c = salem.Grid(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0),
                         proj=wgs84, pixel_ref='corner')
     assert grid_c == grid
 

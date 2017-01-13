@@ -345,7 +345,7 @@ class TestGraphics(unittest.TestCase):
         cmap = copy.deepcopy(mpl.cm.get_cmap('jet'))
 
         # ll_corner (type geotiff)
-        g = Grid(nxny=(5, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         c = graphics.Map(g, ny=4, countries=False)
         c.set_cmap(cmap)
@@ -360,7 +360,7 @@ class TestGraphics(unittest.TestCase):
         assert_array_equal(rgb1, c.to_rgb())
 
         # centergrid (type WRF)
-        g = Grid(nxny=(5, 4), dxdy=(1, 1), ll_corner=(0.5, 0.5), proj=wgs84,
+        g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=wgs84,
                  pixel_ref='center')
         c = graphics.Map(g, ny=4, countries=False)
         c.set_cmap(cmap)

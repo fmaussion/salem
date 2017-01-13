@@ -1,7 +1,7 @@
 from __future__ import division
 
 import unittest
-import os
+import warnings
 
 import time
 import pyproj
@@ -17,6 +17,7 @@ from salem.tests import requires_xarray, requires_shapely, requires_geopandas, \
     requires_cartopy, requires_rasterio
 
 
+
 class SimpleNcDataSet():
     """Exploratory object to play around. For testing only."""
 
@@ -27,14 +28,12 @@ class SimpleNcDataSet():
         y = self.nc.variables['y']
         dxdy = (x[1]-x[0], y[1]-y[0])
         nxny = (len(x), len(y))
-        ll_corner = None
-        ul_corner = None
+        x0y0 = None
         if dxdy[1] > 0:
-            ll_corner = (x[0], y[0])
+            x0y0 = (x[0], y[0])
         if dxdy[1] < 0:
-            ul_corner = (x[0], y[0])
-        self.grid = Grid(nxny=nxny, dxdy=dxdy, proj=proj,
-                         ll_corner=ll_corner, ul_corner=ul_corner)
+            x0y0 = (x[0], y[0])
+        self.grid = Grid(nxny=nxny, dxdy=dxdy, proj=proj, x0y0=x0y0)
 
     def __enter__(self):
         return self
@@ -54,12 +53,12 @@ class TestGrid(unittest.TestCase):
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
         for proj in projs:
-            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             g = Grid(**args)
             self.assertTrue(isinstance(g, Grid))
             self.assertEqual(g.center_grid, g.corner_grid)
 
-            oargs = dict(nxny=(3, 3), dxdy=(1, 1), corner=(0, 0), proj=proj)
+            oargs = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             og = Grid(**oargs)
             self.assertEqual(g, og)
 
@@ -87,7 +86,13 @@ class TestGrid(unittest.TestCase):
             args['nxny'] = (3, 3)
 
             args['dxdy'] = (1, -1)
-            self.assertRaises(ValueError, Grid, **args)
+            # args['ll_corner'] = args['x0y0']
+            # del args['x0y0']
+            # with warnings.catch_warnings(record=True) as w:
+            #     self.assertRaises(ValueError, Grid, **args)
+            #     self.assertEqual(len(w), 1)
+            # args['x0y0'] = args['ll_corner']
+            # del args['ll_corner']
 
             # Center VS corner - multiple times because it was a bug
             assert_allclose(g.center_grid.xy_coordinates,
@@ -102,13 +107,12 @@ class TestGrid(unittest.TestCase):
             assert_allclose(g.center_grid.extent,
                                        g.corner_grid.extent)
 
-            del args['ll_corner']
-            args['ul_corner'] = (0, 0)
+            args['x0y0'] = (0, 0)
 
             g = Grid(**args)
             self.assertTrue(isinstance(g, Grid))
 
-            oargs = dict(nxny=(3, 3), dxdy=(1, -1), corner=(0, 0), proj=proj)
+            oargs = dict(nxny=(3, 3), dxdy=(1, -1), x0y0=(0, 0), proj=proj)
             og = Grid(**oargs)
             self.assertEqual(g, og)
 
@@ -152,7 +156,7 @@ class TestGrid(unittest.TestCase):
             assert_allclose(x, exp_x)
             assert_allclose(y, exp_y)
 
-            args = dict(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0))
+            args = dict(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0))
             g = Grid(**args)
             self.assertTrue(isinstance(g, Grid))
             self.assertTrue(g.xy_coordinates[0].shape == (2, 3))
@@ -161,33 +165,49 @@ class TestGrid(unittest.TestCase):
     def test_comparisons(self):
         """See if the grids can compare themselves"""
 
-        args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g1 = Grid(**args)
         self.assertEqual(g1.center_grid, g1.corner_grid)
+        self.assertTrue(g1.center_grid.almost_equal(g1.center_grid))
 
         g2 = Grid(**args)
         self.assertEqual(g1, g2)
+        self.assertTrue(g1.almost_equal(g2))
 
         args['dxdy'] = (1. + 1e-6, 1. + 1e-6)
         g2 = Grid(**args)
         self.assertNotEqual(g1, g2)
+        self.assertTrue(g1.almost_equal(g2))
 
         args['proj'] = pyproj.Proj(init='epsg:26915')
         g2 = Grid(**args)
         self.assertNotEqual(g1, g2)
+        self.assertFalse(g1.almost_equal(g2))
 
         # New instance, same proj
         args['proj'] = pyproj.Proj(init='epsg:26915')
         g1 = Grid(**args)
         self.assertEqual(g1, g2)
+        self.assertTrue(g1.almost_equal(g2))
 
-    def test_str(self):
+    def test_reprs(self):
+        from textwrap import dedent
 
-        args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g1 = Grid(**args)
-        ref = 'x0: -0.5; y0: -0.5; nx: 3; ny: 3; dx: 1.0; dy: 1.0; ' \
-              'order: ll; proj: +datum=WGS84 +proj=latlong +units=m '
-        self.assertEqual(str(g1), ref)
+
+        self.assertEqual(g1.__repr__(), g1.__str__())
+
+        expected = dedent("""\
+        <salem.Grid>
+          proj: +datum=WGS84 +proj=latlong +units=m
+          pixel_ref: center
+          origin: lower-left
+          (nx, ny): (3, 3)
+          (dx, dy): (1.0, 1.0)
+          (x0, y0): (0.0, 0.0)
+        """)
+        self.assertEqual(g1.__repr__(), expected)
 
     def test_errors(self):
         """Check that errors are occurring"""
@@ -195,31 +215,33 @@ class TestGrid(unittest.TestCase):
         # It should work exact same for any projection
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
-        for proj in projs:
-            args = dict(nxny=(3, 3), dxdy=(1, -1), ll_corner=(0, 0), proj=proj)
-            self.assertRaises(ValueError, Grid, **args)
-            args = dict(nxny=(3, 3), dxdy=(-1, 0), ul_corner=(0, 0), proj=proj)
-            self.assertRaises(ValueError, Grid, **args)
-            args = dict(nxny=(3, 3), dxdy=(1, 1), proj=proj)
-            self.assertRaises(ValueError, Grid, **args)
-            args = dict(nxny=(3, -3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
-            self.assertRaises(ValueError, Grid, **args)
-            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0),
-                        proj=proj, pixel_ref='areyoudumb')
-            self.assertRaises(ValueError, Grid, **args)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for proj in projs:
+                args = dict(nxny=(3, 3), dxdy=(1, -1), ll_corner=(0, 0), proj=proj)
+                self.assertRaises(ValueError, Grid, **args)
+                args = dict(nxny=(3, 3), dxdy=(-1, 0), ul_corner=(0, 0), proj=proj)
+                self.assertRaises(ValueError, Grid, **args)
+                args = dict(nxny=(3, 3), dxdy=(1, 1), proj=proj)
+                self.assertRaises(ValueError, Grid, **args)
+                args = dict(nxny=(3, -3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+                self.assertRaises(ValueError, Grid, **args)
+                args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0),
+                            proj=proj, pixel_ref='areyoudumb')
+                self.assertRaises(ValueError, Grid, **args)
 
-            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
-            g = Grid(**args)
-            self.assertRaises(ValueError, g.transform, 0, 0, crs=None)
-            self.assertRaises(ValueError, g.transform, 0, 0, crs='areyou?')
-            self.assertRaises(ValueError, g.map_gridded_data,
-                              np.zeros((3, 3)), 'areyou?')
-            self.assertRaises(ValueError, g.map_gridded_data,
-                              np.zeros(3), g)
-            self.assertRaises(ValueError, g.map_gridded_data,
-                              np.zeros((3, 4)), g)
-            self.assertRaises(ValueError, g.map_gridded_data,
-                              np.zeros((3, 3)), g, interp='youare')
+                args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+                g = Grid(**args)
+                self.assertRaises(ValueError, g.transform, 0, 0, crs=None)
+                self.assertRaises(ValueError, g.transform, 0, 0, crs='areyou?')
+                self.assertRaises(ValueError, g.map_gridded_data,
+                                  np.zeros((3, 3)), 'areyou?')
+                self.assertRaises(ValueError, g.map_gridded_data,
+                                  np.zeros(3), g)
+                self.assertRaises(ValueError, g.map_gridded_data,
+                                  np.zeros((3, 4)), g)
+                self.assertRaises(ValueError, g.map_gridded_data,
+                                  np.zeros((3, 3)), g, interp='youare')
 
     def test_ij_to_crs(self):
         """Converting to projection"""
@@ -229,7 +251,7 @@ class TestGrid(unittest.TestCase):
 
         for proj in projs:
 
-            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
 
             g = Grid(**args)
             exp_i, exp_j = np.meshgrid(np.arange(3), np.arange(3))
@@ -251,7 +273,7 @@ class TestGrid(unittest.TestCase):
             assert_allclose(exp_i, r_i, atol=1e-03)
             assert_allclose(exp_j, r_j, atol=1e-03)
 
-            args = dict(nxny=(3, 3), dxdy=(1, -1), ul_corner=(0, 0), proj=proj)
+            args = dict(nxny=(3, 3), dxdy=(1, -1), x0y0=(0, 0), proj=proj)
             g = Grid(**args)
             exp_i, exp_j = np.meshgrid(np.arange(3), -np.arange(3))
             in_i, in_j = np.meshgrid(np.arange(3), np.arange(3))
@@ -290,13 +312,13 @@ class TestGrid(unittest.TestCase):
 
         for proj in projs:
 
-            kargs = [dict(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0),
+            kargs = [dict(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0),
                          proj=proj),
-                     dict(nxny=(3, 2), dxdy=(1, -1), ul_corner=(0, 0),
+                     dict(nxny=(3, 2), dxdy=(1, -1), x0y0=(0, 0),
                          proj=proj),
-                     dict(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0),
+                     dict(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0),
                          proj=proj, pixel_ref='corner'),
-                     dict(nxny=(3, 2), dxdy=(1, -1), ul_corner=(0, 0),
+                     dict(nxny=(3, 2), dxdy=(1, -1), x0y0=(0, 0),
                          proj=proj, pixel_ref='corner')]
 
             for ka in kargs:
@@ -333,7 +355,7 @@ class TestGrid(unittest.TestCase):
 
         for proj in projs:
 
-            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
 
             g = Grid(**args)
             exp_i, exp_j = np.meshgrid(np.arange(3), np.arange(3))
@@ -408,8 +430,7 @@ class TestGrid(unittest.TestCase):
             assert_array_equal(ey.mask, r_j.mask)
 
             del args['pixel_ref']
-            del args['ll_corner']
-            args['ul_corner'] = (0, 0)
+            args['x0y0'] = (0, 0)
             args['dxdy'] = (1, -1)
             g = Grid(**args)
             in_i, in_j = np.meshgrid(np.arange(3), -np.arange(3))
@@ -425,13 +446,13 @@ class TestGrid(unittest.TestCase):
     def test_lookup_grid(self):
 
         data = np.arange(12).reshape((4, 3))
-        args = dict(nxny=(3, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(3, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g = Grid(**args)
         lut = g.grid_lookup(g)
         for ji, l in lut.items():
             self.assertEqual(data[ji], data[l[:, 0], l[:, 1]])
 
-        args = dict(nxny=(2, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(2, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g2 = Grid(**args)
         lut = g2.grid_lookup(g)
         for ji, l in lut.items():
@@ -444,7 +465,7 @@ class TestGrid(unittest.TestCase):
             else:
                 self.assertEqual(data[j, i], data[l[:, 0], l[:, 1]])
 
-        args = dict(nxny=(1, 1), dxdy=(10, 10), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(1, 1), dxdy=(10, 10), x0y0=(0, 0), proj=wgs84)
         g3 = Grid(**args)
 
         lut = g3.grid_lookup(g)
@@ -458,7 +479,7 @@ class TestGrid(unittest.TestCase):
         data3d = np.stack([data2d, data2d, data2d])
         data4d = np.stack([data3d, data3d])
 
-        args = dict(nxny=(3, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(3, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g = Grid(**args)
 
         odata = g.lookup_transform(data2d, g)
@@ -474,7 +495,7 @@ class TestGrid(unittest.TestCase):
         odata = g.lookup_transform(data2d, g, lut=lut)
         assert_allclose(odata, data2d)
 
-        args = dict(nxny=(2, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(2, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g2 = Grid(**args)
         odata = g2.lookup_transform(data2d, g)
         assert_allclose(odata, data2d[:-1, :-1])
@@ -483,7 +504,7 @@ class TestGrid(unittest.TestCase):
         odata = g2.lookup_transform(data4d, g)
         assert_allclose(odata, data4d[..., :-1, :-1])
 
-        with self.assertRaisesRegexp(ValueError, 'dimension not compatible'):
+        with self.assertRaisesRegex(ValueError, 'dimension not compatible'):
             g.lookup_transform(data2d[:-1, :-1], g)
 
         odata = g.lookup_transform(data2d[:-1, :-1], g2)
@@ -496,7 +517,7 @@ class TestGrid(unittest.TestCase):
         odata = g.lookup_transform(data2d[:-1, :-1], g2, method=len)
         assert_allclose(odata, 1-ref)
 
-        args = dict(nxny=(1, 1), dxdy=(10, 10), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(1, 1), dxdy=(10, 10), x0y0=(0, 0), proj=wgs84)
         g3 = Grid(**args)
 
         odata = g3.lookup_transform(data2d, g)
@@ -513,7 +534,7 @@ class TestGrid(unittest.TestCase):
 
         # total back and forth
         data = np.arange(12).reshape((4, 3))
-        args = dict(nxny=(3, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(3, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g = Grid(**args)
         rg = g.regrid(factor=3)
         tdata = rg.map_gridded_data(data, g, interp='nearest')
@@ -529,7 +550,7 @@ class TestGrid(unittest.TestCase):
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
         for proj in projs:
-            args = dict(nxny=(3, 2), dxdy=(1, 1), ll_corner=(0, 0),
+            args = dict(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0),
                         proj=proj, pixel_ref='corner')
             g = Grid(**args)
             x, y = g.xstagg_xy_coordinates
@@ -580,20 +601,20 @@ class TestGrid(unittest.TestCase):
             data = np.arange(nx*ny).reshape((ny, nx))
 
             # Nearest Neighbor
-            args = dict(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(nx, ny), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             g = Grid(**args)
             odata = g.map_gridded_data(data, g)
             self.assertTrue(odata.shape == data.shape)
             assert_allclose(data, odata, atol=1e-03)
 
             # Out of the grid
-            go = Grid(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(9, 9), proj=proj)
+            go = Grid(nxny=(nx, ny), dxdy=(1, 1), x0y0=(9, 9), proj=proj)
             odata = g.map_gridded_data(data, go)
             odata.set_fill_value(-999)
             self.assertTrue(odata.shape == data.shape)
             self.assertTrue(np.all(odata.mask))
 
-            args = dict(nxny=(nx-1, ny-1), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(nx-1, ny-1), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             ig = Grid(**args)
             odata = g.map_gridded_data(data[0:ny-1, 0:nx-1], ig)
             self.assertTrue(odata.shape == (ny, nx))
@@ -609,9 +630,9 @@ class TestGrid(unittest.TestCase):
             # Bilinear
             data = np.arange(nx*ny).reshape((ny, nx))
             exp_data = np.array([ 2.,  3.,  5.,  6.,  8.,  9.]).reshape((ny-1, nx-1))
-            args = dict(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(nx, ny), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             gfrom = Grid(**args)
-            args = dict(nxny=(nx-1, ny-1), dxdy=(1, 1), ll_corner=(0.5, 0.5), proj=proj)
+            args = dict(nxny=(nx-1, ny-1), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=proj)
             gto = Grid(**args)
             odata = gto.map_gridded_data(data, gfrom, interp='linear')
             self.assertTrue(odata.shape == (ny-1, nx-1))
@@ -620,11 +641,11 @@ class TestGrid(unittest.TestCase):
     def test_extent(self):
 
         # It should work exact same for any projection
-        args = dict(nxny=(9, 9), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        args = dict(nxny=(9, 9), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g1 = Grid(**args)
         assert_allclose(g1.extent, g1.extent_in_crs(crs=g1.proj), atol=1e-3)
 
-        args = dict(nxny=(9, 9), dxdy=(30000, 30000), ll_corner=(0., 1577463),
+        args = dict(nxny=(9, 9), dxdy=(30000, 30000), x0y0=(0., 1577463),
                     proj=pyproj.Proj(init='epsg:26915'))
         g2 = Grid(**args)
         assert_allclose(g2.extent, g2.extent_in_crs(crs=g2.proj), atol=1e-3)
@@ -661,7 +682,7 @@ class TestGrid(unittest.TestCase):
         nc = SimpleNcDataSet(get_demo_file('dem_mercator_ul.nc'))
         data_gdal = nc.nc.variables['dem_gdal']
         grid_to = nc.grid
-        self.assertTrue(grid_to.order == 'ul')
+        self.assertTrue(grid_to.origin == 'upper-left')
         odata = grid_to.map_gridded_data(data_from, grid_from, interp='linear')
         assert_allclose(data_gdal, odata)
 
@@ -736,7 +757,7 @@ class TestGrid(unittest.TestCase):
 
         import shapely.geometry as shpg
 
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
         roi = g.region_of_interest(geometry=p)
@@ -770,21 +791,21 @@ class TestGrid(unittest.TestCase):
         roi = g.region_of_interest(geometry=p, roi=roi)
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,1]], roi)
 
-        g = Grid(nxny=(4, 2), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(4, 2), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
         roi = g.region_of_interest(geometry=p)
         np.testing.assert_array_equal([[0,0,0,0],[0,1,0,0]], roi)
 
-        g = Grid(nxny=(2, 4), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(2, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
         roi = g.region_of_interest(geometry=p)
         np.testing.assert_array_equal([[0,0], [0,1], [0,0], [0,0]], roi)
 
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
-        g2 = Grid(nxny=(1, 1), dxdy=(0.2, 0.2), ll_corner=(1.4, 1.4),
+        g2 = Grid(nxny=(1, 1), dxdy=(0.2, 0.2), x0y0=(1.4, 1.4),
                   proj=wgs84, pixel_ref='corner')
         roi = g.region_of_interest(grid=g2)
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
@@ -797,7 +818,7 @@ class TestGrid(unittest.TestCase):
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
         for proj in projs:
-            args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=proj)
+            args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             g = Grid(**args)
             exp_i, exp_j = np.meshgrid(np.arange(3), np.arange(3))
             exp_i, exp_j = (xr.DataArray(exp_i, dims=['y', 'x']),
@@ -823,8 +844,7 @@ class TestGrid(unittest.TestCase):
             data.attrs = {'test': 'attr'}
 
             # Nearest Neighbor
-            args = dict(nxny=(nx, ny), dxdy=(1, 1), ll_corner=(0, 0),
-                        proj=proj)
+            args = dict(nxny=(nx, ny), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             g = Grid(**args)
             odata = g.map_gridded_data(data, g)
             self.assertTrue(odata.shape == data.shape)
@@ -905,7 +925,7 @@ class TestTransform(unittest.TestCase):
 
         import shapely.geometry as shpg
 
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
         o = gis.transform_geometry(p, to_crs=g)
@@ -941,7 +961,7 @@ class TestTransform(unittest.TestCase):
         assert_allclose(sti.geometry[0].exterior.coords,
                                    sref.geometry[0].exterior.coords)
 
-        g = Grid(nxny=(1, 1), dxdy=(1, 1), ll_corner=(10., 46.), proj=wgs84)
+        g = Grid(nxny=(1, 1), dxdy=(1, 1), x0y0=(10., 46.), proj=wgs84)
         so = read_shapefile(get_demo_file('Hintereisferner.shp'))
         st = gis.transform_geopandas(so, to_crs=g)
 
@@ -959,8 +979,8 @@ class TestGrids(unittest.TestCase):
         lon1, lat1 = grid.center_grid.ll_coordinates
         e1 = grid.extent
         grid = gis.mercator_grid(center_ll=(11.38, 47.26),
-                                         extent=(2000000, 2000000),
-                                         order='ul')
+                                 extent=(2000000, 2000000),
+                                 origin='upper-left')
         lon2, lat2 = grid.center_grid.ll_coordinates
         e2 = grid.extent
 
@@ -974,9 +994,9 @@ class TestGrids(unittest.TestCase):
         lon1, lat1 = grid.pixcorner_ll_coordinates
         e1 = grid.extent
         grid = gis.mercator_grid(center_ll=(11.38, 47.26),
-                                         extent=(2000, 2000),
-                                         order='ul',
-                                         nx=100)
+                                 extent=(2000, 2000),
+                                 origin='upper-left',
+                                 nx=100)
         lon2, lat2 = grid.pixcorner_ll_coordinates
         e2 = grid.extent
 
@@ -989,9 +1009,9 @@ class TestGrids(unittest.TestCase):
                                          nx=10)
         e1 = grid.extent
         grid = gis.mercator_grid(center_ll=(11.38, 47.26),
-                                         extent=(2000, 2000),
-                                         order='ul',
-                                         nx=9)
+                                 extent=(2000, 2000),
+                                 origin='upper-left',
+                                 nx=9)
         e2 = grid.extent
         assert_allclose(e1, e2)
 
