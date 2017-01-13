@@ -141,13 +141,19 @@ class Grid(object):
         nxny : (int, int)
             (nx, ny) number of grid points
         dxdy : (float, float)
-            (dx, dy) grid spacing in proj coordinates
+            (dx, dy) grid spacing in proj coordinates. dx must be positive,
+            while dy can be positive or negative depending on the origin
+            grid point's lecation (upper-left or lower-left)
         x0y0 : (float, float)
             (x0, y0) cartesian coordinates (in proj) of the upper left
             or lower left corner, depending on the sign of dy
         pixel_ref : str
             either 'center' or 'corner' (default: 'center'). Tells
-            the Grid object where the (x0, y0) is located in the grid point
+            the Grid object where the (x0, y0) is located in the grid point.
+            If ``pixel_ref`` is set to 'corner' and dy < 0, the ``x0y0``
+            kwarg specifies the **grid point's upper left** corner
+            coordinates.  Equivalently, if dy > 0, x0y0 specifies the
+            **grid point's lower left** coordinate.
         corner : (float, float)
             DEPRECATED in favor of ``x0y0``
             (x0, y0) cartesian coordinates (in proj) of the upper left
@@ -158,13 +164,6 @@ class Grid(object):
         ll_corner : (float, float)
             DEPRECATED in favor of ``x0y0``
             (x0, y0) cartesian coordinates (in proj) of the lower left corner
-
-        Notes
-        -----
-        If pixel_ref is set to 'corner' and dy < 0, the x0y0
-        parameter specifies the **grid point's upper left** corner
-        coordinates.  Equivalently, if dy > 0 parameter x0y0 then specifies the
-        **grid point's lower left** coordinate.
 
         Examples
         --------

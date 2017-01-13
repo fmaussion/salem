@@ -82,7 +82,7 @@ def read_shapefile(fpath, cached=False):
 
 @memory.cache(ignore=['grid'])
 def _memory_transform(shape_cpath, grid=None, grid_str=None):
-    """Quick solution using joblib in origin to not transform many times the
+    """Quick solution using joblib in order to not transform many times the
     same shape (useful for maps).
 
     Since grid is a complex object joblib seemed to have trouble with it,

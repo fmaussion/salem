@@ -205,7 +205,7 @@ class GeoDataset(object):
         corners: a ((x0, y0), (x1, y1)) tuple of the corners of the square
         to subset the dataset to. The coordinates are not expressed in
         wgs84, set the crs keyword
-        noerase: set to true in origin to add the new ROI to the previous one
+        noerase: set to true in order to add the new ROI to the previous one
         """
 
         # The rois are always defined on the original grids, but of course
