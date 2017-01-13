@@ -14,7 +14,7 @@ from salem import wgs84
 import salem.gis as gis
 from salem.utils import get_demo_file
 from salem.tests import requires_xarray, requires_shapely, requires_geopandas, \
-    requires_cartopy, requires_rasterio
+    requires_cartopy, requires_rasterio, python_version
 
 
 
@@ -86,13 +86,14 @@ class TestGrid(unittest.TestCase):
             args['nxny'] = (3, 3)
 
             args['dxdy'] = (1, -1)
-            # args['ll_corner'] = args['x0y0']
-            # del args['x0y0']
-            # with warnings.catch_warnings(record=True) as w:
-            #     self.assertRaises(ValueError, Grid, **args)
-            #     self.assertEqual(len(w), 1)
-            # args['x0y0'] = args['ll_corner']
-            # del args['ll_corner']
+            args['ll_corner'] = args['x0y0']
+            del args['x0y0']
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
+                self.assertRaises(ValueError, Grid, **args)
+                self.assertEqual(len(w), 1)
+            args['x0y0'] = args['ll_corner']
+            del args['ll_corner']
 
             # Center VS corner - multiple times because it was a bug
             assert_allclose(g.center_grid.xy_coordinates,
@@ -504,6 +505,7 @@ class TestGrid(unittest.TestCase):
         odata = g2.lookup_transform(data4d, g)
         assert_allclose(odata, data4d[..., :-1, :-1])
 
+        f = self.assertRaisesRegex if python_version == 'py3' else self.assertRaisesRegexp
         with self.assertRaisesRegex(ValueError, 'dimension not compatible'):
             g.lookup_transform(data2d[:-1, :-1], g)
 
