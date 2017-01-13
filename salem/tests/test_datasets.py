@@ -2,7 +2,6 @@ from __future__ import division
 
 import unittest
 import warnings
-import os
 from datetime import datetime
 
 
@@ -44,7 +43,7 @@ class TestDataset(unittest.TestCase):
     def test_period(self):
         """See if simple operations work well"""
 
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         d = GeoDataset(g)
         self.assertTrue(d.time is None)
         self.assertTrue(d.sub_t is None)
@@ -87,7 +86,7 @@ class TestDataset(unittest.TestCase):
     def test_subset(self):
         """See if simple operations work well"""
 
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84)
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         d = GeoDataset(g)
         self.assertTrue(isinstance(d, GeoDataset))
         self.assertEqual(g, d.grid)
@@ -109,7 +108,7 @@ class TestDataset(unittest.TestCase):
         d.set_subset(corners=([0.51, 0.51], [1.9, 1.9]), crs=wgs84)
         self.assertNotEqual(g, d.grid)
 
-        gm = Grid(nxny=(1, 1), dxdy=(1, 1), ll_corner=(1, 1), proj=wgs84)
+        gm = Grid(nxny=(1, 1), dxdy=(1, 1), x0y0=(1, 1), proj=wgs84)
         d.set_subset(corners=([1, 1], [1, 1]), crs=wgs84)
         self.assertEqual(gm, d.grid)
 
@@ -119,7 +118,7 @@ class TestDataset(unittest.TestCase):
         d.set_subset(toroi=True)
         self.assertEqual(gm, d.grid)
 
-        gm = Grid(nxny=(1, 1), dxdy=(1, 1), ll_corner=(2, 2), proj=wgs84)
+        gm = Grid(nxny=(1, 1), dxdy=(1, 1), x0y0=(2, 2), proj=wgs84)
         d.set_subset(corners=([2, 2], [2, 2]), crs=wgs84)
         self.assertEqual(gm, d.grid)
 
@@ -149,7 +148,7 @@ class TestDataset(unittest.TestCase):
         # same errors as IDL: ENVI is just wrong
         self.assertTrue(np.sum(ref != d.roi) < 9)
 
-        g = Grid(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0), proj=wgs84,
+        g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
         roi = g.region_of_interest(geometry=p)
@@ -241,7 +240,7 @@ class TestGeoNetcdf(unittest.TestCase):
 
         f = get_demo_file('era_interim_tibet.nc')
         d = GeoNetcdf(f)
-        assert d.grid.order == 'ul'
+        assert d.grid.origin == 'upper-left'
 
         stat_lon = 91.1
         stat_lat = 31.1

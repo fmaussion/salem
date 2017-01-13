@@ -9,6 +9,7 @@ import os
 import shutil
 import time
 import zipfile
+from collections import OrderedDict
 
 import numpy as np
 from joblib import Memory
@@ -17,7 +18,74 @@ from six.moves.urllib.error import HTTPError, URLError
 from six.moves.urllib.request import urlretrieve, urlopen
 
 # Joblib
-memory = Memory(cachedir=cache_dir, verbose=0)
+
+
+
+def _joblib_cache_dir():
+    """Get the path to the right joblib directory.
+
+    We need to make sure that cached files correspond to the same
+    environment. To this end we make a unique directory hash, depending on the
+    version and location of several packages we thought are important
+    (because they change often, or because conda versions give different
+    results than pip versions).
+
+    Returns
+    -------
+    path to the dir
+    """
+    import hashlib
+
+    out = OrderedDict(python_version=python_version)
+
+    try:
+        import shapely
+        out['shapely_version'] = shapely.__version__
+        out['shapely_file'] = shapely.__file__
+    except ImportError:
+        pass
+    try:
+        import fiona
+        out['fiona_version'] = fiona.__version__
+        out['fiona_file'] = fiona.__file__
+    except ImportError:
+        pass
+    try:
+        import geopandas
+        out['geopandas_version'] = geopandas.__version__
+        out['geopandas_file'] = geopandas.__file__
+    except ImportError:
+        pass
+    try:
+        import osgeo
+        out['osgeo_version'] = osgeo.__version__
+        out['osgeo_file'] = osgeo.__file__
+    except ImportError:
+        pass
+    try:
+        import pyproj
+        out['pyproj_version'] = pyproj.__version__
+        out['pyproj_file'] = pyproj.__file__
+    except ImportError:
+        pass
+    try:
+        import salem
+        out['salem_version'] = salem.__version__
+        out['salem_file'] = salem.__file__
+    except ImportError:
+        pass
+
+    # ok, now make a dummy str that we will hash
+    strout = ''
+    for k, v in out.items():
+        strout += k + v
+    strout = 'salem_hash_' + hashlib.md5(strout.encode()).hexdigest()
+    dirout = os.path.join(cache_dir, 'joblib', strout)
+    if not os.path.exists(dirout):
+        os.makedirs(dirout)
+    return dirout
+
+memory = Memory(cachedir=_joblib_cache_dir(), verbose=0)
 
 # A series of variables and dimension names that Salem will understand
 valid_names = dict()
@@ -79,7 +147,8 @@ def cached_shapefile_path(fpath):
 
     # Cached directory and file
     cp = os.path.commonprefix([cache_dir, p])
-    cp = os.path.join(cache_dir, python_version, os.path.relpath(p, cp))
+    cp = os.path.join(cache_dir, python_version + '_cache',
+                      os.path.relpath(p, cp))
     ct = '{:d}'.format(int(round(os.path.getmtime(fpath)*1000.)))
     of = os.path.join(cp, ct + '.p')
     if os.path.exists(cp):

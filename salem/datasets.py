@@ -184,8 +184,7 @@ class GeoDataset(object):
         dxdy = (self._ogrid.dx, self._ogrid.dy)
         xy0 = (self._ogrid.x0 + sub_x[0] * self._ogrid.dx,
                self._ogrid.y0 + sub_y[0] * self._ogrid.dy)
-        self.grid = Grid(proj=self._ogrid.proj, nxny=nxny, dxdy=dxdy,
-                         corner=xy0)
+        self.grid = Grid(proj=self._ogrid.proj, nxny=nxny, dxdy=dxdy, x0y0=xy0)
         # If we arrived here, we can safely set the subset
         self.sub_x = sub_x
         self.sub_y = sub_y
@@ -280,7 +279,7 @@ class GeoTiff(GeoDataset):
                 ul_corner = (src.bounds.left, src.bounds.top)
                 proj = pyproj.Proj(src.crs)
                 dxdy = (src.res[0], -src.res[1])
-                grid = Grid(ul_corner=ul_corner, nxny=nxny, dxdy=dxdy,
+                grid = Grid(x0y0=ul_corner, nxny=nxny, dxdy=dxdy,
                             pixel_ref='corner', proj=proj)
         # done
         self.file = file
@@ -330,7 +329,7 @@ class EsriITMIX(GeoDataset):
                 nxny = (src.width, src.height)
                 ul_corner = (src.bounds.left, src.bounds.top)
                 dxdy = (src.res[0], -src.res[1])
-                grid = Grid(ul_corner=ul_corner, nxny=nxny, dxdy=dxdy,
+                grid = Grid(x0y0=ul_corner, nxny=nxny, dxdy=dxdy,
                             pixel_ref='corner', proj=proj)
         # done
         self.file = file

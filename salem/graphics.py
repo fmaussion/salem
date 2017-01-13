@@ -413,7 +413,7 @@ class Map(DataLevels):
             ny = None
 
         self.grid = grid.center_grid.regrid(nx=nx, ny=ny, factor=factor)
-        self.origin = 'lower' if self.grid.order == 'll' else 'upper'
+        self.origin = 'lower' if self.grid.origin == 'lower-left' else 'upper'
 
         DataLevels.__init__(self, **kwargs)
 
@@ -887,7 +887,7 @@ class Map(DataLevels):
                 img = imread(utils.get_natural_earth_file(natural_earth))
             ny, nx = img.shape[0], img.shape[1]
             dx, dy = 360. / nx, 180. / ny
-            grid = Grid(nxny=(nx, ny), dxdy=(dx, -dy), ul_corner=(-180., 90.),
+            grid = Grid(nxny=(nx, ny), dxdy=(dx, -dy), x0y0=(-180., 90.),
                         pixel_ref='corner').center_grid
             return self.set_rgb(img, grid, interp='linear')
 

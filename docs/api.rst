@@ -29,7 +29,7 @@ Grid attributes
     Grid.dy
     Grid.x0
     Grid.y0
-    Grid.order
+    Grid.origin
     Grid.pixel_ref
     Grid.x_coord
     Grid.y_coord
@@ -52,12 +52,17 @@ Grid methods
 
     Grid.extent_in_crs
     Grid.ij_to_crs
-    Grid.map_gridded_data
+    Grid.almost_equal
     Grid.region_of_interest
     Grid.regrid
     Grid.transform
+    Grid.map_gridded_data
     Grid.grid_lookup
     Grid.lookup_transform
+    Grid.to_dict
+    Grid.from_dict
+    Grid.to_json
+    Grid.from_json
 
 
 Georeferencing utils

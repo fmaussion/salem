@@ -81,13 +81,15 @@ def read_shapefile(fpath, cached=False):
 
 
 @memory.cache(ignore=['grid'])
-def _memory_transform(shape_cpath, grid=None, grid_str=None):
+def _memory_shapefile_to_grid(shape_cpath, grid=None,
+                              nxny=None, pixel_ref=None, x0y0=None, dxdy=None,
+                              proj=None):
     """Quick solution using joblib in order to not transform many times the
     same shape (useful for maps).
 
-    Since grid is a complex object joblib seemed to have trouble with it,
-    so joblib is checking its cache according to grid_str while the job is
-    done with grid.
+    Since grid is a complex object, joblib seems to have trouble with it.
+    So joblib is checking its cache according to the grid params while the job
+    is done with grid.
     """
 
     shape = read_shapefile(shape_cpath, cached=True)
@@ -101,7 +103,7 @@ def _memory_transform(shape_cpath, grid=None, grid_str=None):
     return shape
 
 
-def read_shapefile_to_grid(fpath, grid, use_cache=True):
+def read_shapefile_to_grid(fpath, grid):
     """Same as read_shapefile but directly transformed to a grid.
 
     The whole thing is cached so that the second call will
@@ -111,17 +113,17 @@ def read_shapefile_to_grid(fpath, grid, use_cache=True):
     ----------
     fpath: path to the file
     grid: the arrival grid
-    use_cache: use the cache or not
     """
 
     # ensure it is a cached pickle (copy code smell)
     shape_cpath = cached_shapefile_path(fpath)
-    if not os.path.exists(shape_cpath) or not use_cache:
+    if not os.path.exists(shape_cpath):
         out = read_shapefile(fpath, cached=False)
         with open(shape_cpath, 'wb') as f:
             pickle.dump(out, f)
 
-    return _memory_transform(shape_cpath, grid=grid, grid_str=str(grid))
+    return _memory_shapefile_to_grid(shape_cpath, grid=grid,
+                                     **grid.to_dict())
 
 
 # TODO: remove this once we sure that we have all WRF files right
@@ -195,8 +197,7 @@ def _wrf_grid_from_dataset(ds):
         e, n = gis.transform_proj(wgs84, proj, cen_lon, cen_lat)
         x0 = -(nx-1) / 2. * dx + e  # DL corner
         y0 = -(ny-1) / 2. * dy + n  # DL corner
-    grid = gis.Grid(nxny=(nx, ny), ll_corner=(x0, y0), dxdy=(dx, dy),
-                    proj=proj)
+    grid = gis.Grid(nxny=(nx, ny), x0y0=(x0, y0), dxdy=(dx, dy), proj=proj)
 
     if tmp_check_wrf:
         #  Temporary asserts
@@ -261,8 +262,8 @@ def _lonlat_grid_from_dataset(ds):
     # Make the grid
     dx = lon[1]-lon[0]
     dy = lat[1]-lat[0]
-    args = dict(nxny=(lon.shape[0], lat.shape[0]), proj=wgs84, dxdy=(dx, dy))
-    args['corner'] = (lon[0], lat[0])
+    args = dict(nxny=(lon.shape[0], lat.shape[0]), proj=wgs84, dxdy=(dx, dy),
+                x0y0=(lon[0], lat[0]))
     return gis.Grid(**args)
 
 
@@ -307,8 +308,8 @@ def _salem_grid_from_dataset(ds):
     # Make the grid
     dx = x[1]-x[0]
     dy = y[1]-y[0]
-    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy))
-    args['corner'] = (x[0], y[0])
+    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy),
+                x0y0=(x[0], y[0]))
     return gis.Grid(**args)
 
 

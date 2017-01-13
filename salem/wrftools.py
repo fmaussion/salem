@@ -661,8 +661,7 @@ def geogrid_simulator(fpath, do_maps=True):
     y0 = -(ny-1) / 2. * dy + n
 
     # parent grid
-    grid = gis.Grid(nxny=(nx, ny), ll_corner=(x0, y0), dxdy=(dx, dy),
-                    proj=pwrf)
+    grid = gis.Grid(nxny=(nx, ny), x0y0=(x0, y0), dxdy=(dx, dy), proj=pwrf)
 
     # child grids
     out = [grid]
@@ -689,7 +688,7 @@ def geogrid_simulator(fpath, do_maps=True):
         dx = prevgrid.dx / ratio
         dy = prevgrid.dy / ratio
         grid = gis.Grid(nxny=(we, sn),
-                        ll_corner=(xx[ips], yy[jps]),
+                        x0y0=(xx[ips], yy[jps]),
                         dxdy=(dx, dy),
                         pixel_ref='corner',
                         proj=pwrf)

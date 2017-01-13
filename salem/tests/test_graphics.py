@@ -178,12 +178,12 @@ def test_simple_map():
     fs = _create_dummy_shp('fs.shp')
 
     # UL Corner
-    g1 = Grid(nxny=(5, 4), dxdy=(1, -1), ul_corner=(-1, 3), proj=wgs84,
+    g1 = Grid(nxny=(5, 4), dxdy=(1, -1), x0y0=(-1, 3), proj=wgs84,
               pixel_ref='corner')
     c1 = Map(g1, ny=4, countries=False)
 
     # LL Corner
-    g2 = Grid(nxny=(5, 4), dxdy=(1, 1), ll_corner=(-1, -1), proj=wgs84,
+    g2 = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(-1, -1), proj=wgs84,
               pixel_ref='corner')
     c2 = Map(g2, ny=4, countries=False)
 
@@ -243,7 +243,7 @@ def test_contourf():
     a[3, 3] = 9
 
     # UL Corner
-    g = Grid(nxny=(5, 4), dxdy=(1, -1), ul_corner=(-1, 3), proj=wgs84,
+    g = Grid(nxny=(5, 4), dxdy=(1, -1), x0y0=(-1, 3), proj=wgs84,
              pixel_ref='corner')
     c = Map(g, ny=400, countries=False)
 
@@ -284,7 +284,7 @@ def test_merca_map():
 
     grid = mercator_grid(center_ll=(11.38, 47.26),
                          extent=(2000000, 2000000),
-                         order='ul')
+                         origin='upper-left')
     m2 = Map(grid)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -331,7 +331,7 @@ def test_oceans():
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_geometries():
     # UL Corner
-    g = Grid(nxny=(5, 4), dxdy=(10, 10), ll_corner=(-20, -15), proj=wgs84,
+    g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
              pixel_ref='corner')
     c = Map(g, ny=4)
     c.set_lonlat_contours(interval=10., colors='crimson')
@@ -371,7 +371,7 @@ def test_geometries():
 @pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
 def test_text():
     # UL Corner
-    g = Grid(nxny=(5, 4), dxdy=(10, 10), ll_corner=(-20, -15), proj=wgs84,
+    g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
              pixel_ref='corner')
     c = Map(g, ny=4, countries=False)
     c.set_lonlat_contours(interval=5., colors='crimson')
