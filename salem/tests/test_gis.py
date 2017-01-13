@@ -297,7 +297,8 @@ class TestGrid(unittest.TestCase):
                 args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0),
                             proj=proj)
                 Grid(**args)
-                self.assertEqual(len(w), 3)
+                if python_version == 'py3':
+                    self.assertEqual(len(w), 3)
 
     def test_ij_to_crs(self):
         """Converting to projection"""

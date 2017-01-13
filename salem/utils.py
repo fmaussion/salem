@@ -26,8 +26,9 @@ def _joblib_cache_dir():
 
     We need to make sure that cached files correspond to the same
     environment. To this end we make a unique directory hash, depending on the
-    version and location of several packages we thought are important because
-    they change often.
+    version and location of several packages we thought are important
+    (because they change often, or because conda versions give different
+    results than pip versions).
 
     Returns
     -------
@@ -59,6 +60,12 @@ def _joblib_cache_dir():
         import osgeo
         out['osgeo_version'] = osgeo.__version__
         out['osgeo_file'] = osgeo.__file__
+    except ImportError:
+        pass
+    try:
+        import pyproj
+        out['pyproj_version'] = pyproj.__version__
+        out['pyproj_file'] = pyproj.__file__
     except ImportError:
         pass
     try:

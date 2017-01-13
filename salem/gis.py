@@ -55,6 +55,10 @@ def check_crs(crs):
     except:
         pass
 
+    if isinstance(crs, string_types):
+        # necessary for python 2
+        crs = str(crs)
+
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
