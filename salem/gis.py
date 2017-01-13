@@ -1027,6 +1027,71 @@ class Grid(object):
 
         return mask
 
+    def to_dict(self):
+        """Serialize this grid to a dictionary.
+
+        Returns
+        -------
+        a grid dictionary
+
+        See Also
+        --------
+        ``Grid.from_dict``
+        """
+        return dict(proj=self.proj.srs, x0y0=(self.x0, self.y0),
+                    nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
+                    pixel_ref=self.pixel_ref)
+
+    @classmethod
+    def from_dict(self, d):
+        """Create a Grid from a dictionary
+
+        Parameters
+        ----------
+        d : dict, required
+            the dict
+
+        Returns
+        -------
+        a salem.Grid instance
+        """
+        return Grid(**d)
+
+    def to_json(self, fpath):
+        """Serialize this grid to a json file.
+
+        Parameters
+        ----------
+        fpath : str, required
+            the path to the file to create
+
+        See Also
+        --------
+        ``Grid.from_json``
+        """
+        import json
+        with open(fpath, 'w') as fp:
+            json.dump(self.to_dict(), fp)
+
+    @classmethod
+    def from_json(self, fpath):
+        """Create a Grid from a json file
+
+        Parameters
+        ----------
+        fpath : str, required
+            the path to the file to open
+
+        Returns
+        -------
+        a salem.Grid instance
+        """
+        import json
+        with open(fpath, 'r') as fp:
+            d = json.load(fp)
+        return Grid.from_dict(d)
+
+
 
 def proj_is_same(p1, p2):
     """Checks is two pyproj projections are equal.

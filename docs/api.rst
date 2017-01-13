@@ -59,6 +59,10 @@ Grid methods
     Grid.map_gridded_data
     Grid.grid_lookup
     Grid.lookup_transform
+    Grid.to_dict
+    Grid.from_dict
+    Grid.to_json
+    Grid.from_json
 
 
 Georeferencing utils

@@ -28,6 +28,8 @@ Enhancements
   By `Daniel Rothenberg <https://github.com/darothen>`_
 - new :py:func:`~DataArrayAccessor.lookup_transform` projection transform
 - ``Grid`` objects now have a decent ``__repr__``
+- new serialization methods for grid: ``to_dict``, ``from_dict``, ``to_json``,
+  ``from_json``.
 
 
 Bug fixes

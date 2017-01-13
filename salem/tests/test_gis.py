@@ -58,6 +58,14 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(isinstance(g, Grid))
             self.assertEqual(g.center_grid, g.corner_grid)
 
+            # serialization
+            d = g.to_dict()
+            rg = Grid.from_dict(d)
+            self.assertEqual(g, rg)
+            g.to_json('test.json')
+            rg = Grid.from_json('test.json')
+            self.assertEqual(g, rg)
+
             oargs = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             og = Grid(**oargs)
             self.assertEqual(g, og)
@@ -116,6 +124,11 @@ class TestGrid(unittest.TestCase):
             oargs = dict(nxny=(3, 3), dxdy=(1, -1), x0y0=(0, 0), proj=proj)
             og = Grid(**oargs)
             self.assertEqual(g, og)
+
+            # serialization
+            d = og.to_dict()
+            rg = Grid.from_dict(d)
+            self.assertEqual(og, rg)
 
             # The simple test should work here too
             i, j = g.ij_coordinates
@@ -180,6 +193,24 @@ class TestGrid(unittest.TestCase):
         self.assertNotEqual(g1, g2)
         self.assertTrue(g1.almost_equal(g2))
 
+        # serialization
+        d = g1.to_dict()
+        rg = Grid.from_dict(d)
+        self.assertEqual(g1, rg)
+        d = g2.to_dict()
+        rg = Grid.from_dict(d)
+        self.assertEqual(g2, rg)
+        self.assertNotEqual(g1, rg)
+        self.assertTrue(g1.almost_equal(rg))
+        g1.to_json('test.json')
+        rg = Grid.from_json('test.json')
+        self.assertEqual(g1, rg)
+        g2.to_json('test.json')
+        rg = Grid.from_json('test.json')
+        self.assertEqual(g2, rg)
+        self.assertNotEqual(g1, rg)
+        self.assertTrue(g1.almost_equal(rg))
+
         args['proj'] = pyproj.Proj(init='epsg:26915')
         g2 = Grid(**args)
         self.assertNotEqual(g1, g2)
@@ -190,6 +221,15 @@ class TestGrid(unittest.TestCase):
         g1 = Grid(**args)
         self.assertEqual(g1, g2)
         self.assertTrue(g1.almost_equal(g2))
+        # serialization
+        d = g1.to_dict()
+        rg = Grid.from_dict(d)
+        self.assertEqual(g1, rg)
+        self.assertTrue(g1.almost_equal(rg))
+        g1.to_json('test.json')
+        rg = Grid.from_json('test.json')
+        self.assertEqual(g1, rg)
+        self.assertTrue(g1.almost_equal(rg))
 
     def test_reprs(self):
         from textwrap import dedent
@@ -216,9 +256,9 @@ class TestGrid(unittest.TestCase):
         # It should work exact same for any projection
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            for proj in projs:
+        for proj in projs:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
                 args = dict(nxny=(3, 3), dxdy=(1, -1), ll_corner=(0, 0), proj=proj)
                 self.assertRaises(ValueError, Grid, **args)
                 args = dict(nxny=(3, 3), dxdy=(-1, 0), ul_corner=(0, 0), proj=proj)
@@ -243,6 +283,21 @@ class TestGrid(unittest.TestCase):
                                   np.zeros((3, 4)), g)
                 self.assertRaises(ValueError, g.map_gridded_data,
                                   np.zeros((3, 3)), g, interp='youare')
+
+        # deprecation warnings
+        for proj in projs:
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                args = dict(nxny=(3, 3), dxdy=(1, -1), corner=(0, 0),
+                            proj=proj)
+                Grid(**args)
+                args = dict(nxny=(3, 3), dxdy=(1, -1), ul_corner=(0, 0),
+                            proj=proj)
+                Grid(**args)
+                args = dict(nxny=(3, 3), dxdy=(1, 1), ll_corner=(0, 0),
+                            proj=proj)
+                Grid(**args)
+                self.assertEqual(len(w), 3)
 
     def test_ij_to_crs(self):
         """Converting to projection"""
