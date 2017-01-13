@@ -161,7 +161,7 @@ class Grid(object):
         corner : (float, float)
             DEPRECATED in favor of ``x0y0``
             (x0, y0) cartesian coordinates (in proj) of the upper left
-             or lower left corner, depending on the sign of dy
+            or lower left corner, depending on the sign of dy
         ul_corner : (float, float)
             DEPRECATED in favor of ``x0y0``
             (x0, y0) cartesian coordinates (in proj) of the upper left corner
@@ -1038,9 +1038,9 @@ class Grid(object):
         -------
         a grid dictionary
 
-        See Also
+        See also
         --------
-        ``Grid.from_dict``
+        from_dict : create a Grid from a dict
         """
         return dict(proj=self.proj.srs, x0y0=(self.x0, self.y0),
                     nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
@@ -1053,11 +1053,15 @@ class Grid(object):
         Parameters
         ----------
         d : dict, required
-            the dict
+            the dict the necessary information
 
         Returns
         -------
         a salem.Grid instance
+
+        See also
+        --------
+        to_dict : create a dict from a Grid
         """
         return Grid(**d)
 
@@ -1071,7 +1075,7 @@ class Grid(object):
 
         See Also
         --------
-        ``Grid.from_json``
+        from_json : read a json file
         """
         import json
         with open(fpath, 'w') as fp:
@@ -1089,6 +1093,10 @@ class Grid(object):
         Returns
         -------
         a salem.Grid instance
+
+        See Also
+        --------
+        to_json : create a json file
         """
         import json
         with open(fpath, 'r') as fp:
