@@ -506,7 +506,7 @@ class TestGrid(unittest.TestCase):
         assert_allclose(odata, data4d[..., :-1, :-1])
 
         f = self.assertRaisesRegex if python_version == 'py3' else self.assertRaisesRegexp
-        with self.assertRaisesRegex(ValueError, 'dimension not compatible'):
+        with f(ValueError, 'dimension not compatible'):
             g.lookup_transform(data2d[:-1, :-1], g)
 
         odata = g.lookup_transform(data2d[:-1, :-1], g2)
