@@ -319,7 +319,7 @@ class DataLevels(object):
 
         More useful for child classes.
 
-        Returns: imshow primitive
+        Returns an imshow primitive
         """
         data = np.atleast_2d(self.data)
         toplot = self.cmap(self.norm(data))
@@ -958,7 +958,7 @@ class Map(DataLevels):
         It first plots the image and then adds all the cartographic
         information on top of it.
 
-        Returns: imshow primitive
+        Returns an imshow primitive
         """
 
         # Image is the easiest

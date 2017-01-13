@@ -885,9 +885,9 @@ def open_xr_dataset(file):
     to be understood alone, and datasets tend to loose their attrs with
     operations...
 
-    Returns:
-    --------
-    xr.Dataset
+    Returns
+    -------
+    an xarray Dataset
     """
 
     # if geotiff, use Salem
@@ -944,9 +944,9 @@ def open_wrf_dataset(file, **kwargs):
     **kwargs : optional
         Additional arguments passed on to ``xarray.open_dataset``.
 
-    Returns:
-    --------
-    xr.Dataset
+    Returns
+    -------
+    an xarray Dataset
     """
 
     nc = netCDF4.Dataset(file)

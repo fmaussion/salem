@@ -2,12 +2,11 @@
 Salem
 =====
 
-Salem is a `cat`_. Salem is also a small library to do geoscientific data
+Salem is a small library to do geoscientific data
 processing and plotting. It extends `xarray`_ to add geolocalised
 subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 `DataSet`_ structures.
 
-.. _cat: https://drive.google.com/file/d/0B-0AsTwFw61uSE0zaktOOVN5X1E/view?usp=sharing
 .. _xarray: http://xarray.pydata.org/en/stable/
 .. _DataArray: http://xarray.pydata.org/en/stable/data-structures.html#dataarray
 .. _DataSet: http://xarray.pydata.org/en/stable/data-structures.html#dataset
@@ -15,14 +14,10 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 
 .. warning::
 
-    Salem is at an early development stage and is more a proof of
-    feasibility than a library for "everything you'll ever have to do with
-    geoscientific data". There are plenty of more mature tools out there (see
-    :ref:`faqtools`). Salem basically reinvents the wheel, but in the way I
-    want the wheel to be. Some might still find it useful: as an addition to
-    xarray, or if you use the `WRF model`_ for example.
-
-.. _WRF Model: http://www2.mmm.ucar.edu/wrf/users/
+    Salem is at an early development stage, and its API
+    might change in the future. See :ref:`examples` for a quick overview
+    of Salem's functionalities, and see also the :ref:`faq` for more
+    information and a list of related tools.
 
 
 Documentation
