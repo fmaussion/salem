@@ -1053,7 +1053,7 @@ class Grid(object):
         Parameters
         ----------
         d : dict, required
-            the dict the necessary information
+            the dict with the necessary information
 
         Returns
         -------
