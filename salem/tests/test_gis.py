@@ -2,6 +2,7 @@ from __future__ import division
 
 import unittest
 import warnings
+import os
 
 import time
 import pyproj
@@ -64,6 +65,7 @@ class TestGrid(unittest.TestCase):
             self.assertEqual(g, rg)
             g.to_json('test.json')
             rg = Grid.from_json('test.json')
+            os.remove('test.json')
             self.assertEqual(g, rg)
 
             oargs = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
@@ -204,9 +206,11 @@ class TestGrid(unittest.TestCase):
         self.assertTrue(g1.almost_equal(rg))
         g1.to_json('test.json')
         rg = Grid.from_json('test.json')
+        os.remove('test.json')
         self.assertEqual(g1, rg)
         g2.to_json('test.json')
         rg = Grid.from_json('test.json')
+        os.remove('test.json')
         self.assertEqual(g2, rg)
         self.assertNotEqual(g1, rg)
         self.assertTrue(g1.almost_equal(rg))
@@ -228,6 +232,7 @@ class TestGrid(unittest.TestCase):
         self.assertTrue(g1.almost_equal(rg))
         g1.to_json('test.json')
         rg = Grid.from_json('test.json')
+        os.remove('test.json')
         self.assertEqual(g1, rg)
         self.assertTrue(g1.almost_equal(rg))
 

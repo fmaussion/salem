@@ -6,9 +6,9 @@ Frequently Asked Questions
 Is your library mature for production code?
 -------------------------------------------
 
-No. The API is not always as clever as I wish it would, and it will probably
-change in the future. It is quite well tested though, at least for the cases
-I encounter in my daily work.
+Not really. The API is not always as clever as I wish it would, and it will
+probably change in the future. Salem is well tested though, at least for the
+cases I encounter in my daily work.
 
 
 .. _faqtools:
@@ -16,17 +16,34 @@ I encounter in my daily work.
 What others tools should I know about?
 --------------------------------------
 
-If you want to plot on maps, `cartopy`_ is probably one of the best tools you
-could pick. For reprojection workflows on large or numerous gridded files you
-probably want to use `rasterio`_.
+The python atmospheric sciences community is a bit spread between `iris`_ and
+`xarray`_ for N-Dimensional data handling. I find that xarray is very intuitive
+to learn thanks to its strong interaction with `pandas`_.
 
-The python atmopsheric sciences community is a bit spread between `iris`_ and
-`xarray`_ for N-Dimensional data handling (I picked the later for it's
-strong interaction with `pandas`_). Several great libraries are available to
-meteorologists and climatologists, for example `MetPy`_,
-`windspharm`_, `xgcm`_, and all the ones I forgot to mention.
+Here are some tools that share functionalities with Salem:
+
+- `cartopy`_ is the reference tool for plotting on maps. Salem provides a way
+  to plot with cartopy in addition to Salem's homegrowm graphics.
+  (see :ref:`plotting`)
+- Salem provides useful reprojection tools (see :ref:`gis`). The transformation
+  routines are quite fast (we use pyproj for the map transformations and
+  scipy for the interpolation) but they are all done on memory (i.e. not
+  adapted for large datasets). For large reprojection workflows you might want
+  to have a look at `cartopy`_ and `pyresample`_.
+- `regionmask`_ provides similar tools as salem's region-of-interest
+  functionalities if you are woking with shapefiles. regionmask seems a bit
+  more general than Salem, but I'm not sure if it works with any map
+  projection as Salem does.
+- In the future, I hope that `pangeo-data`_ will overtake most of the
+  functionalities I need. But this is not going to happen tomorrow...
+
+
+Several libraries are available to meteorologists and climatologists, but I
+don't think they share much functionality with Salem: for example `MetPy`_,
+`windspharm`_, `xgcm`_, `aospy`_, and all the ones I forgot to mention.
 
 .. _cartopy: http://scitools.org.uk/cartopy/docs/latest/index.html
+.. _pyresample: https://github.com/pytroll/pyresample
 .. _rasterio: https://github.com/mapbox/rasterio
 .. _iris: http://scitools.org.uk/iris/
 .. _xarray: http://xarray.pydata.org/en/stable/
@@ -34,18 +51,20 @@ meteorologists and climatologists, for example `MetPy`_,
 .. _windspharm: http://ajdawson.github.io/windspharm/
 .. _xgcm: https://github.com/xgcm/xgcm
 .. _MetPy: http://metpy.readthedocs.io/en/stable/
+.. _aospy: https://github.com/spencerahill/aospy
+.. _regionmask: https://github.com/mathause/regionmask
+.. _pangeo-data: https://pangeo-data.github.io/
 
 
-But then, why developing Salem?
--------------------------------
+Why developing Salem?
+---------------------
 
 As an atmospheric scientist, I hate to have to take care about projections and
 maps. Salem was created to hide all these concerns. By the time I started, it
 seemed a good idea to provide map transformation tools without depending on
 GDAL (thanks to `conda-forge`_  GDAL is now much easier to install).
 It is still possible to do reprojection work in Salem using scipy and
-pyproj alone. It is al done in python and on memory,
-so don't expect miracles on that side.
+pyproj alone.
 
 Furthermore, I use the atmospheric model WRF quite often in my work.
 Its output files are absolutely not compliant with the CF conventions.
