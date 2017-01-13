@@ -740,7 +740,8 @@ class Grid(object):
         according to a user given rule (e.g. ``np.mean``, ``len``, ``np.std``),
         applied to all grid points found below a grid point in ``self``.
 
-        See Also: :py:meth:`Grid.grid_lookup` method, and examples in the docs
+        
+        : :py:meth:`Grid.grid_lookup` method, and examples in the docs
 
         Parameters
         ----------
@@ -1038,7 +1039,7 @@ class Grid(object):
         -------
         a grid dictionary
 
-        See also
+        See Also
         --------
         from_dict : create a Grid from a dict
         """
@@ -1059,7 +1060,7 @@ class Grid(object):
         -------
         a salem.Grid instance
 
-        See also
+        See Also
         --------
         to_dict : create a dict from a Grid
         """
