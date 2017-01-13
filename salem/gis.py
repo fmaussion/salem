@@ -741,7 +741,7 @@ class Grid(object):
         applied to all grid points found below a grid point in ``self``.
 
         
-        : :py:meth:`Grid.grid_lookup` method, and examples in the docs
+        See also the :py:meth:`Grid.grid_lookup` method, and examples in the docs
 
         Parameters
         ----------
