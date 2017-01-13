@@ -6,6 +6,9 @@
 from setuptools import setup, find_packages  # Always prefer setuptools
 from codecs import open  # To use a consistent encoding
 from os import path, walk
+import re
+import sys
+import warnings
 import importlib
 
 MAJOR = 0
@@ -45,7 +48,45 @@ FULLVERSION = VERSION
 write_version = True
 
 if not ISRELEASED:
-    FULLVERSION += '.dev0'
+    import subprocess
+    FULLVERSION += '.dev'
+
+    pipe = None
+    for cmd in ['git', 'git.cmd']:
+        try:
+            pipe = subprocess.Popen(
+                [cmd, "describe", "--always", "--match", "v[0-9]*"],
+                stdout=subprocess.PIPE)
+            (so, serr) = pipe.communicate()
+            if pipe.returncode == 0:
+                break
+        except:
+            pass
+
+    if pipe is None or pipe.returncode != 0:
+        # no git, or not in git dir
+        if path.exists('salem/version.py'):
+            warnings.warn("WARNING: Couldn't get git revision, using existing "
+                          "salem/version.py")
+            write_version = False
+        else:
+            warnings.warn("WARNING: Couldn't get git revision, using generic "
+                          "version string")
+    else:
+        # have git, in git dir, but may have used a shallow clone (travis)
+        rev = so.strip()
+        # makes distutils blow up on Python 2.7
+        if sys.version_info[0] >= 3:
+            rev = rev.decode('ascii')
+
+        if not rev.startswith('v') and re.match("[a-zA-Z0-9]{7,9}", rev):
+            # partial clone, manually construct version string
+            # this is the format before we started using git-describe
+            # to get an ordering on dev version strings.
+            rev = "v%s.dev-%s" % (VERSION, rev)
+
+        # Strip leading v from tags format "vx.y.z" to get th version string
+        FULLVERSION = rev.lstrip('v')
 else:
     FULLVERSION += QUALIFIER
 

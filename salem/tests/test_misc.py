@@ -69,6 +69,11 @@ class TestUtils(unittest.TestCase):
     def test_empty_cache(self):
         utils.empty_cache()
 
+    def test_joblibcache(self):
+        h1 = utils._joblib_cache_dir()
+        h2 = utils._joblib_cache_dir()
+        self.assertEqual(h1, h2)
+
     def test_demofiles(self):
 
         self.assertTrue(os.path.exists(utils.get_demo_file('dem_wgs84.nc')))
@@ -132,11 +137,28 @@ class TestIO(unittest.TestCase):
         g = GeoTiff(utils.get_demo_file('hef_srtm.tif'))
         sf = utils.get_demo_file('Hintereisferner_UTM.shp')
 
-        df1 = read_shapefile_to_grid(sf, g.grid, use_cache=False)
+        df1 = read_shapefile_to_grid(sf, g.grid)
 
         df2 = transform_geopandas(read_shapefile(sf), to_crs=g.grid)
         assert_allclose(df1.geometry[0].exterior.coords,
                         df2.geometry[0].exterior.coords)
+
+        # test for caching
+        d = g.grid.to_dict()
+        # change key ordering by chance
+        d2 = dict((k, v) for k, v in d.items())
+
+        from salem.sio import _memory_shapefile_to_grid, cached_shapefile_path
+        shape_cpath = cached_shapefile_path(sf)
+        res = _memory_shapefile_to_grid.call_and_shelve(shape_cpath,
+                                                        grid=g.grid,
+                                                        **d)
+        h1 = res.argument_hash
+        res = _memory_shapefile_to_grid.call_and_shelve(shape_cpath,
+                                                        grid=g.grid,
+                                                        **d2)
+        h2 = res.argument_hash
+        self.assertEqual(h1, h2)
 
 
     @requires_xarray

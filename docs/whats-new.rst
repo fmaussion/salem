@@ -35,9 +35,14 @@ Enhancements
 Bug fixes
 ~~~~~~~~~
 
-- ``grid.transform()`` now works with non numpy array type
+- ``grid.transform()`` now works with non-numpy array type
 - ``transform_geopandas()`` won't do inplace operation per default anymore
 - fixed bugs to prepare for upcoming xarray v0.9.0
+- ``setup.py`` makes cleaner version strings for development versions (like
+  xarray's)
+- joblib's caching directory is now "environment dependant" in order  to avoid
+  conda/not conda mismatches, and avoid other black-magic curses related to
+  caching.
 
 
 v0.2.0 (08 November 2016)

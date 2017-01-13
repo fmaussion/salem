@@ -81,13 +81,15 @@ def read_shapefile(fpath, cached=False):
 
 
 @memory.cache(ignore=['grid'])
-def _memory_transform(shape_cpath, grid=None, grid_str=None):
+def _memory_shapefile_to_grid(shape_cpath, grid=None,
+                              nxny=None, pixel_ref=None, x0y0=None, dxdy=None,
+                              proj=None):
     """Quick solution using joblib in order to not transform many times the
     same shape (useful for maps).
 
-    Since grid is a complex object joblib seemed to have trouble with it,
-    so joblib is checking its cache according to grid_str while the job is
-    done with grid.
+    Since grid is a complex object, joblib seems to have trouble with it.
+    So joblib is checking its cache according to the grid params while the job
+    is done with grid.
     """
 
     shape = read_shapefile(shape_cpath, cached=True)
@@ -101,7 +103,7 @@ def _memory_transform(shape_cpath, grid=None, grid_str=None):
     return shape
 
 
-def read_shapefile_to_grid(fpath, grid, use_cache=True):
+def read_shapefile_to_grid(fpath, grid):
     """Same as read_shapefile but directly transformed to a grid.
 
     The whole thing is cached so that the second call will
@@ -111,17 +113,17 @@ def read_shapefile_to_grid(fpath, grid, use_cache=True):
     ----------
     fpath: path to the file
     grid: the arrival grid
-    use_cache: use the cache or not
     """
 
     # ensure it is a cached pickle (copy code smell)
     shape_cpath = cached_shapefile_path(fpath)
-    if not os.path.exists(shape_cpath) or not use_cache:
+    if not os.path.exists(shape_cpath):
         out = read_shapefile(fpath, cached=False)
         with open(shape_cpath, 'wb') as f:
             pickle.dump(out, f)
 
-    return _memory_transform(shape_cpath, grid=grid, grid_str=str(grid))
+    return _memory_shapefile_to_grid(shape_cpath, grid=grid,
+                                     **grid.to_dict())
 
 
 # TODO: remove this once we sure that we have all WRF files right
