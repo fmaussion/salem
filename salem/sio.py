@@ -988,6 +988,7 @@ def open_wrf_dataset(file, **kwargs):
         time = netcdf_time(ds)
         if time is not None:
             ds['Time'] = time
+        ds.rename({'Time':'time'}, inplace=True)
     tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
     tr = {k: tr[k] for k in tr.keys() if k in ds.variables}
     ds.rename(tr, inplace=True)

@@ -532,7 +532,6 @@ class TestXarray(unittest.TestCase):
             ds = sio.open_wrf_dataset(fg)
             self.assertFalse('Time' in ds.dims)
             self.assertTrue('time' in ds.dims)
-            self.assertTrue('time' in ds.coords)
             self.assertTrue('south_north' in ds.dims)
             self.assertTrue('south_north' in ds.coords)
 
