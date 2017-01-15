@@ -43,6 +43,7 @@ Bug fixes
 - joblib's caching directory is now "environment dependant" in order  to avoid
   conda/not conda mismatches, and avoid other black-magic curses related to
   caching.
+- fixed a bug with opening geo_em files using xarray or open_wrf_dataset
 
 
 v0.2.0 (08 November 2016)

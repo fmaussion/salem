@@ -525,6 +525,17 @@ class TestXarray(unittest.TestCase):
             g = t2.salem.grid
 
     @requires_xarray
+    def test_geo_em(self):
+
+        for i in [1, 2, 3]:
+            fg = get_demo_file('geo_em_d0{}_lambert.nc'.format(i))
+            ds = sio.open_wrf_dataset(fg)
+            self.assertFalse('Time' in ds.dims)
+            self.assertTrue('time' in ds.dims)
+            self.assertTrue('south_north' in ds.dims)
+            self.assertTrue('south_north' in ds.coords)
+
+    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_wrf(self):
         import xarray as xr

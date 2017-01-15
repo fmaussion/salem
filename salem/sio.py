@@ -211,6 +211,16 @@ def _wrf_grid_from_dataset(ds):
                 reflat = reflat[0, :, :]
             assert np.allclose(reflon, mylon, atol=1e-4)
             assert np.allclose(reflat, mylat, atol=1e-4)
+        elif 'XLONG_M' in ds.variables:
+            # geo_em
+            mylon, mylat = grid.ll_coordinates
+            reflon = ds.variables['XLONG_M']
+            reflat = ds.variables['XLAT_M']
+            if len(reflon.shape) == 3:
+                reflon = reflon[0, :, :]
+                reflat = reflat[0, :, :]
+            assert np.allclose(reflon, mylon, atol=1e-4)
+            assert np.allclose(reflat, mylat, atol=1e-4)
         elif 'lon' in ds.variables:
             # HAR
             mylon, mylat = grid.ll_coordinates
@@ -912,7 +922,7 @@ def open_xr_dataset(file):
     # did we get it? If not no need to go further
     try:
         grid = ds.salem.grid
-    except:
+    except AttributeError:
         warnings.warn('File not recognised as Salem grid. Fall back to xarray',
                       RuntimeWarning)
         return ds
@@ -975,7 +985,10 @@ def open_wrf_dataset(file, **kwargs):
 
     # Convert time (if necessary)
     if 'Time' in ds.dims:
-        ds['Time'] = netcdf_time(ds)
+        time = netcdf_time(ds)
+        if time is not None:
+            ds['Time'] = time
+        ds.rename({'Time':'time'}, inplace=True)
     tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
     tr = {k: tr[k] for k in tr.keys() if k in ds.variables}
     ds.rename(tr, inplace=True)
