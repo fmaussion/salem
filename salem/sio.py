@@ -919,13 +919,8 @@ def open_xr_dataset(file):
     # otherwise rely on xarray
     ds = xr.open_dataset(file)
 
-    # did we get it? If not no need to go further
-    try:
-        grid = ds.salem.grid
-    except AttributeError:
-        warnings.warn('File not recognised as Salem grid. Fall back to xarray',
-                      RuntimeWarning)
-        return ds
+    # did we get the grid? If not no need to go further
+    grid = ds.salem.grid
 
     # add cartesian coords for WRF
     if 'west_east' in ds.dims:

@@ -14,6 +14,9 @@ Deprecations
   initialisation have been deprecated in favor of the more explicit ``x0y0``.
 - the Grid attribue ``order`` is now called ``origin``, and can have the values
   ``"lower-left"`` or ``"upper-left"``
+- ``salem.open_xr_dataset`` now succeeds if and only if the grid is understood
+  by salem. This makes more sense, as unexpected errors should not be
+  silently ignored
 
 Enhancements
 ~~~~~~~~~~~~
