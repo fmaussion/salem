@@ -14,7 +14,7 @@ dependencies:
   - rasterio
   - pandas
   - dask
-  - matplotlib=1.5.3
+  - matplotlib
   - Pillow
   - descartes
   - cartopy
