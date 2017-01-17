@@ -37,7 +37,8 @@ elif MPL_VERSION >= LooseVersion('1.5'):
     baseline_subdir = '1.5.x'
 else:
     raise ImportError('Matplotlib version not supported: ' + MPL_VERSION)
-baseline_dir = os.path.join(cache_dir, 'baseline_images', baseline_subdir)
+baseline_dir = os.path.join(cache_dir, 'salem-sample-data-master',
+                            'baseline_images', baseline_subdir)
 
 tolpy2 = 5 if python_version == 'py3' else 10
 
