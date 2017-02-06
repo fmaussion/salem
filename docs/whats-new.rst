@@ -47,6 +47,8 @@ Bug fixes
   conda/not conda mismatches, and avoid other black-magic curses related to
   caching.
 - fixed a bug with opening geo_em files using xarray or open_wrf_dataset
+- various bug fixes and enhancements to the graphics (including the
+  relocation of testing baseline images to the demo repo)
 
 
 v0.2.0 (08 November 2016)

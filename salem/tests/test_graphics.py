@@ -347,7 +347,7 @@ def test_geometries():
     g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
              pixel_ref='corner')
     c = Map(g, ny=4)
-    c.set_lonlat_contours(interval=10., colors='crimson')
+    c.set_lonlat_contours(interval=10., colors='crimson', linewidths=1)
 
     c.set_geometry(shpg.Point(10, 10), color='darkred', markersize=60)
     c.set_geometry(shpg.Point(5, 5), s=500, marker='s',
@@ -387,7 +387,7 @@ def test_text():
     g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
              pixel_ref='corner')
     c = Map(g, ny=4, countries=False)
-    c.set_lonlat_contours(interval=5., colors='crimson')
+    c.set_lonlat_contours(interval=5., colors='crimson', linewidths=1)
 
     c.set_text(-5, -5, 'Less Middle', color='green', style='italic', size=25)
     c.set_geometry(shpg.Point(-10, -10), s=500, marker='o',

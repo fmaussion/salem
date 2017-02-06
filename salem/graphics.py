@@ -652,6 +652,9 @@ class Map(DataLevels):
             kwargs.setdefault('zorder', 1.5)
             return self.set_shapefile(shapefiles['world_borders'], **kwargs)
 
+        # Defaults
+        kwargs.setdefault('color', 'k')
+
         # Reset?
         if shape is None:
             self._collections = []
@@ -792,6 +795,7 @@ class Map(DataLevels):
         # Done
         kwargs.setdefault('colors', 'gray')
         kwargs.setdefault('linestyles', 'dashed')
+        kwargs.setdefault('linewidths', 0.8)
         kwargs.setdefault('zorder', 1.5)
         self.ll_contour_kw = kwargs
 
