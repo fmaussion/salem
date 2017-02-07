@@ -4,8 +4,11 @@ What's New
 ==========
 
 
-v0.2.X (Unreleased)
--------------------
+v0.2.1 (07 February 2017)
+-------------------------
+
+Minor release containing a couple of enhancements and deprecations, but mostly
+fixes for bugs and for the recent xarray and matplotlib upgrades.
 
 Deprecations
 ~~~~~~~~~~~~
