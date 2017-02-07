@@ -646,11 +646,15 @@ class Map(DataLevels):
             kwargs.setdefault('alpha', 1)
             return self.set_shapefile(shapefiles['oceans'], **kwargs)
         if rivers:
-            kwargs.setdefault('colors', (0.08984375, 0.65625, 0.8515625))
+            kwargs.setdefault('color', (0.08984375, 0.65625, 0.8515625))
             return self.set_shapefile(shapefiles['rivers'], **kwargs)
         if countries:
             kwargs.setdefault('zorder', 1.5)
             return self.set_shapefile(shapefiles['world_borders'], **kwargs)
+
+        # Defaults
+        if not all(k in kwargs for k in ('facecolor', 'edgecolor')):
+            kwargs.setdefault('color', 'k')
 
         # Reset?
         if shape is None:
@@ -792,6 +796,7 @@ class Map(DataLevels):
         # Done
         kwargs.setdefault('colors', 'gray')
         kwargs.setdefault('linestyles', 'dashed')
+        kwargs.setdefault('linewidths', 0.8)
         kwargs.setdefault('zorder', 1.5)
         self.ll_contour_kw = kwargs
 

@@ -1102,7 +1102,8 @@ def fuzzy_proj_tester(p1, p2, atol=1e-16):
                 # strings
                 continue
             else:
-                assert_allclose(d1[k], d2[k], atol=atol)
+                assert_allclose(d1[k], d2[k], atol=atol,
+                                err_msg='key: {}'.format(k))
 
 
 class TestCartopy(unittest.TestCase):

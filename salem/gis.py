@@ -9,7 +9,7 @@ from six import string_types
 import copy
 import warnings
 from functools import partial
-from collections import OrderedDict
+from distutils.version import LooseVersion
 
 # External libs
 import pyproj
@@ -1105,7 +1105,6 @@ class Grid(object):
         return Grid.from_dict(d)
 
 
-
 def proj_is_same(p1, p2):
     """Checks is two pyproj projections are equal.
 
@@ -1250,6 +1249,7 @@ def proj_to_cartopy(proj):
 
     """
 
+    import cartopy
     import cartopy.crs as ccrs
 
     proj = check_crs(proj)
@@ -1269,6 +1269,7 @@ def proj_to_cartopy(proj):
                'lat_0': 'central_latitude',
                'x_0': 'false_easting',
                'y_0': 'false_northing',
+               'lat_ts': 'latitude_true_scale',
                'k': 'scale_factor',
                'zone': 'zone',
                }
@@ -1317,6 +1318,10 @@ def proj_to_cartopy(proj):
     if cl.__name__ == 'Mercator':
         kw_proj.pop('false_easting', None)
         kw_proj.pop('false_northing', None)
+        if LooseVersion(cartopy.__version__) < LooseVersion('0.15'):
+            kw_proj.pop('latitude_true_scale', None)
+    else:
+        kw_proj.pop('latitude_true_scale', None)
 
     return cl(globe=globe, **kw_proj)
 
