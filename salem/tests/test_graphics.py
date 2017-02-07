@@ -332,6 +332,7 @@ def test_oceans():
     m = Map(grid, countries=False)
     m.set_shapefile(rivers=True, linewidths=2)
     m.set_shapefile(oceans=True, edgecolor='k', linewidth=3)
+    m.set_lonlat_contours(linewidths=1)
 
     fig, ax = plt.subplots(1, 1)
     m.visualize(ax=ax, addcbar=False)
