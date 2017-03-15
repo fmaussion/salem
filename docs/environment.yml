@@ -25,4 +25,4 @@ dependencies:
   - pip:
     - motionless
     - sphinx-gallery
-    - cartopy
+    - cartopy==0.13.1
