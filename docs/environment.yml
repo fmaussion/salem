@@ -16,6 +16,7 @@ dependencies:
   - descartes
   - pyproj=1.9.5.1
   - krb5
+  - proj4=4.9.2
   - geos=3.5.0 # https://github.com/conda-forge/fiona-feedstock/issues/21
   - rasterio=1.0a7
   - xarray=0.9.1
@@ -26,4 +27,4 @@ dependencies:
   - pip:
     - motionless
     - sphinx-gallery
-    - cartopy==0.13.1
+    - cartopy==0.14.2
