@@ -53,6 +53,8 @@ shapefiles['oceans'] = path.join(file_dir, 'shapes', 'oceans',
                                  'ne_50m_ocean.shp')
 shapefiles['rivers'] = path.join(file_dir, 'shapes', 'rivers',
                                  'ne_50m_rivers_lake_centerlines.shp')
+shapefiles['lakes'] = path.join(file_dir, 'shapes', 'lakes',
+                                'ne_50m_lakes.shp')
 
 # Be sure we have the directory
 if ~ os.path.exists(shapefiles['world_borders']):
@@ -618,7 +620,7 @@ class Map(DataLevels):
         self._text.append((x, y, text, kwargs))
 
     def set_shapefile(self, shape=None, countries=False, oceans=False,
-                      rivers=False, **kwargs):
+                      rivers=False, lakes=False, **kwargs):
         """Add a shapefile to the plot.
 
         Salem is shipped with a few default settings for country borders,
@@ -632,6 +634,7 @@ class Map(DataLevels):
         countries: if True, add country borders
         oceans: if True, add oceans
         rivers: if True, add rivers
+        lakes: if True, add lakes
         kwargs: all keywords accepted by the corresponding collection.
         For LineStrings::
             linewidths, colors, linestyles, ...
@@ -648,6 +651,9 @@ class Map(DataLevels):
         if rivers:
             kwargs.setdefault('color', (0.08984375, 0.65625, 0.8515625))
             return self.set_shapefile(shapefiles['rivers'], **kwargs)
+        if lakes:
+            kwargs.setdefault('color', (0.08984375, 0.65625, 0.8515625))
+            return self.set_shapefile(shapefiles['lakes'], **kwargs)
         if countries:
             kwargs.setdefault('zorder', 1.5)
             return self.set_shapefile(shapefiles['world_borders'], **kwargs)
