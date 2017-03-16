@@ -1222,6 +1222,8 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
         project = partial(transform_proj, from_crs, to_crs)
     elif isinstance(to_crs, Grid):
         project = partial(to_crs.transform, crs=from_crs)
+    elif isinstance(from_crs, Grid):
+        project = partial(from_crs.ij_to_crs, crs=to_crs)
     else:
         raise NotImplementedError()
 

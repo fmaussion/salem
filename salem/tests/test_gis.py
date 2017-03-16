@@ -1032,6 +1032,11 @@ class TestTransform(unittest.TestCase):
         ref = ref - np.floor(ref)
         assert_allclose(ref, st.geometry[0].exterior.coords)
 
+        # round trip
+        so_back = gis.transform_geopandas(st, to_crs=so.crs)
+        assert_allclose(so_back.geometry[0].exterior.coords,
+                        so.geometry[0].exterior.coords)
+
 
 class TestGrids(unittest.TestCase):
 
