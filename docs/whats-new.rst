@@ -4,6 +4,15 @@ What's New
 ==========
 
 
+v0.3.0 (unreleased)
+-------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+- :py:func:`~transform_geopandas` can now handle grid to proj transformations.
+
+
 v0.2.1 (07 February 2017)
 -------------------------
 
