@@ -14,11 +14,11 @@
 
 import os
 import sys
-import shutil
 
 # see if packages are here
 print("python exec:", sys.executable)
 print("sys.path:", sys.path)
+print("python version:", sys.version)
 try:
     import numpy
     print("numpy: %s, %s" % (numpy.__version__, numpy.__file__))
@@ -29,16 +29,6 @@ try:
     print("scipy: %s, %s" % (scipy.__version__, scipy.__file__))
 except ImportError:
     print("no scipy")
-try:
-    import pandas
-    print("pandas: %s, %s" % (pandas.__version__, pandas.__file__))
-except ImportError:
-    print("no pandas")
-try:
-    import xarray
-    print("xarray: %s, %s" % (xarray.__version__, xarray.__file__))
-except ImportError:
-    print("no xarray")
 try:
     import pyproj
     print("pyproj: %s, %s" % (pyproj.__version__, pyproj.__file__))
@@ -66,6 +56,26 @@ try:
 except ImportError:
     print("no matplotlib")
 try:
+    import cartopy
+    print("cartopy: %s, %s" % (cartopy.__version__, cartopy.__file__))
+except ImportError:
+    print("no cartopy")
+try:
+    import netCDF4
+    print("netCDF4: %s, %s" % (netCDF4.__version__, netCDF4.__file__))
+except ImportError:
+    print("no netCDF4")
+try:
+    import pandas
+    print("pandas: %s, %s" % (pandas.__version__, pandas.__file__))
+except ImportError:
+    print("no pandas")
+try:
+    import xarray
+    print("xarray: %s, %s" % (xarray.__version__, xarray.__file__))
+except ImportError:
+    print("no xarray")
+try:
     import dask
     print("dask: %s, %s" % (dask.__version__, dask.__file__))
 except ImportError:
@@ -76,21 +86,16 @@ try:
 except ImportError:
     print("no ipython")
 try:
-    import cartopy
-    print("cartopy: %s, %s" % (cartopy.__version__, cartopy.__file__))
+    import sphinx
+    print("sphinx: %s, %s" % (sphinx.__version__, sphinx.__file__))
 except ImportError:
-    print("no cartopy")
-try:
-    import netCDF4
-    print("netCDF4: %s, %s" % (netCDF4.__version__, netCDF4.__file__))
-except ImportError:
-    print("no netCDF4")
+    print("no sphinx")
 
 # If we are on a proper salem install, we should be able to import all modules
 import salem
 import salem.version
 
-print("Python version: %s" % salem.python_version)
+print("salem version: %s" % salem.__version__)
 
 # -- General configuration ------------------------------------------------
 

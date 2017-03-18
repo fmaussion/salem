@@ -13,6 +13,7 @@ dependencies:
   - descartes
   - pyproj
   - rasterio
+  - cartopy
   - xarray
   - filelock
   - numpydoc
