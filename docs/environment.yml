@@ -3,23 +3,21 @@ channels:
   - conda-forge
 dependencies:
   - python=3.5
-  - six
   - numpy
   - scipy
-  - pyproj
+  - matplotlib
+  - geopandas
+  - Pillow=3.0.0  # because RTD installs this version anyway
   - joblib
   - netCDF4
-  - shapely
-  - geopandas
-  - rasterio
-  - pandas
-  - xarray
-  - matplotlib=1.5.3
-  - Pillow
   - descartes
+  - pyproj
+  - rasterio
   - cartopy
+  - xarray
+  - filelock
   - numpydoc
-  - ipython=4.0.3  # https://github.com/ipython/ipython/issues/8733
+  - ipython
   - sphinx
   - pip:
     - motionless
