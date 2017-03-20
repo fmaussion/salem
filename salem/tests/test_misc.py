@@ -89,6 +89,26 @@ class TestUtils(unittest.TestCase):
         assert_allclose(cl[4, :], (153,100, 43))
         assert_allclose(cl[-1, :], (255,255,255))
 
+    def test_reduce(self):
+
+        arr = [[1, 1, 2, 2], [1, 1, 2, 2]]
+        assert_allclose(utils.reduce(arr, 1), arr)
+        assert_allclose(utils.reduce(arr, 2), [[1, 2]])
+        assert_allclose(utils.reduce(arr, 2, how=np.sum), [[4, 8]])
+
+        arr = np.stack([arr, arr, arr])
+        assert_allclose(arr.shape, (3, 2, 4))
+        assert_allclose(utils.reduce(arr, 1), arr)
+        assert_allclose(utils.reduce(arr, 2), [[[1, 2]], [[1, 2]], [[1, 2]]])
+        assert_allclose(utils.reduce(arr, 2, how=np.sum),
+                        [[[4, 8]], [[4, 8]], [[4, 8]]])
+        arr[0, ...] = 0
+        assert_allclose(utils.reduce(arr, 2, how=np.sum),
+                        [[[0, 0]], [[4, 8]], [[4, 8]]])
+        arr[1, ...] = 1
+        assert_allclose(utils.reduce(arr, 2, how=np.sum),
+                        [[[0, 0]], [[4, 4]], [[4, 8]]])
+
 
 class TestIO(unittest.TestCase):
 
