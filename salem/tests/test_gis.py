@@ -393,6 +393,9 @@ class TestGrid(unittest.TestCase):
                 assert_array_equal(g.extent, rg.extent)
                 assert_array_equal(g.extent, rg.extent)
 
+                bg = rg.regrid(factor=1/3)
+                self.assertEqual(g, bg)
+
                 gx, gy = g.center_grid.xy_coordinates
                 rgx, rgy = rg.center_grid.xy_coordinates
                 assert_allclose(gx, rgx[1::3, 1::3], atol=1e-7)
@@ -872,6 +875,20 @@ class TestGrid(unittest.TestCase):
                   proj=wgs84, pixel_ref='corner')
         roi = g.region_of_interest(grid=g2)
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+
+    @requires_xarray
+    def test_to_dataset(self):
+        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+
+        for proj in projs:
+            g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
+            ds = g.to_dataset()
+            self.assertTrue(g == ds.salem.grid)
+
+            g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj,
+                     pixel_ref='corner')
+            ds = g.to_dataset()
+            self.assertTrue(g == ds.salem.grid)
 
     @requires_xarray
     def test_xarray_support(self):

@@ -11,6 +11,8 @@ Enhancements
 ~~~~~~~~~~~~
 
 - :py:func:`~transform_geopandas` can now handle grid to proj transformations.
+- New :py:func:`~reduce` function, usefull to aggregate structured high-res
+  grids to lower-res grids (:ref:`sphx_glr_auto_examples_plot_subgrid_mask.py`)
 
 
 v0.2.1 (07 February 2017)

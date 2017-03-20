@@ -323,3 +323,31 @@ def joblib_read_img_url(url):
     from matplotlib.image import imread
     fd = urlopen(url, timeout=10)
     return imread(io.BytesIO(fd.read()))
+
+
+def reduce(arr, factor=1, how=np.mean):
+    """Reduces an array's size by a given factor.
+
+    The reduction can be done by any reduction function (default is mean).
+
+    Parameters
+    ----------
+    arr : ndarray
+        an array of at least 2 dimensions (the reduction is done on the two
+        last dimensions).
+    factor : int
+        the factor to apply for reduction (must be a divider of the original
+        axis dimension!).
+    how : func
+        the reduction function
+
+    Returns
+    -------
+    the reduced array
+    """
+    arr = np.asarray(arr)
+    shape = list(arr.shape)
+    newshape = shape[:-2] + [np.round(shape[-2] / factor).astype(int), factor,
+                             np.round(shape[-1] / factor).astype(int), factor]
+    return how(how(arr.reshape(*newshape), axis=len(newshape)-3),
+               axis=len(newshape)-2)

@@ -1104,6 +1104,23 @@ class Grid(object):
             d = json.load(fp)
         return Grid.from_dict(d)
 
+    def to_dataset(self):
+        """Creates an empty dataset based on the Grid's geolocalisation.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        An xarray.Dataset object ready to be filled with data
+        """
+        import xarray as xr
+        ds = xr.Dataset(coords={'x': (['x', ], self.center_grid.x_coord),
+                                'y': (['y', ], self.center_grid.y_coord)}
+                        )
+        ds.attrs['pyproj_srs'] = self.proj.srs
+        return ds
+
 
 def proj_is_same(p1, p2):
     """Checks is two pyproj projections are equal.

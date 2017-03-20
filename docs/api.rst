@@ -63,6 +63,7 @@ Grid methods
     Grid.from_dict
     Grid.to_json
     Grid.from_json
+    Grid.to_dataset
 
 
 Georeferencing utils
@@ -80,6 +81,7 @@ Georeferencing utils
     transform_geopandas
     mercator_grid
     grid_from_dataset
+    reduce
 
 
 Graphics

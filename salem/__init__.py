@@ -56,6 +56,6 @@ from salem.datasets import *
 from salem.sio import read_shapefile, read_shapefile_to_grid, grid_from_dataset
 from salem.sio import open_xr_dataset, open_wrf_dataset, open_mf_wrf_dataset
 from salem.sio import DataArrayAccessor, DatasetAccessor
-from salem.utils import get_demo_file
+from salem.utils import get_demo_file, reduce
 from salem.graphics import get_cmap, DataLevels, Map
 from salem.wrftools import geogrid_simulator
