@@ -18,8 +18,8 @@ from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
 try:
     import xarray as xr
-    from xarray.backends.netCDF4_ import NetCDF4DataStore, close_on_error, \
-        _nc4_group
+    from xarray.backends.netCDF4_ import (NetCDF4DataStore, close_on_error,
+        _nc4_group, _open_netcdf4_group, is_remote_uri)
     from xarray.core.pycompat import basestring
     from xarray.backends.api import _MultiFileCloser, _default_lock
     has_xarray = True
@@ -874,20 +874,21 @@ class _NetCDF4DataStore(NetCDF4DataStore):
     def __init__(self, filename, mode='r', format='NETCDF4', group=None,
                  writer=None, clobber=True, diskless=False, persist=False,
                  ds=None):
-        import netCDF4 as nc4
         if format is None:
             format = 'NETCDF4'
         if ds is None:
-            ds = nc4.Dataset(filename, mode=mode, clobber=clobber,
-                             diskless=diskless, persist=persist,
-                             format=format)
-        with close_on_error(ds):
-            self.ds = _nc4_group(ds, group, mode)
+            opener = partial(_open_netcdf4_group, filename, mode=mode,
+                             group=group, clobber=clobber, diskless=diskless,
+                             persist=persist, format=format)
+            self.ds = opener()
+        else:
+            self.ds = ds
         self.format = format
-        self.is_remote = False
+        self.is_remote = is_remote_uri(filename)
+        self._opener = opener
         self._filename = filename
+        self._mode = 'a' if mode == 'w' else mode
         super(NetCDF4DataStore, self).__init__(writer)
-
 
 def open_xr_dataset(file):
     """Thin wrapper around xarray's open_dataset.
