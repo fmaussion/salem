@@ -612,7 +612,8 @@ class _XarrayAccessorBase(object):
             coords[self.x_dim] = self._obj[self.x_dim]
             coords[self.y_dim] = self._obj[self.y_dim]
 
-            rdata = xr.DataArray(rdata, coords=coords, attrs=var.attrs, dims=dims)
+            rdata = xr.DataArray(rdata, coords=coords, attrs=var.attrs,
+                                 dims=dims)
             rdata.attrs['pyproj_srs'] = self.grid.proj.srs
             out[v] = rdata
 

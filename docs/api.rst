@@ -64,6 +64,7 @@ Grid methods
     Grid.to_json
     Grid.from_json
     Grid.to_dataset
+    Grid.to_geometry
 
 
 Georeferencing utils
