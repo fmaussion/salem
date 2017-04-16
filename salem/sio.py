@@ -892,18 +892,20 @@ class _NetCDF4DataStore(NetCDF4DataStore):
     """
     def __init__(self, filename, mode='r', format='NETCDF4', group=None,
                  writer=None, clobber=True, diskless=False, persist=False,
-                 ds=None):
+                 autoclose=False, ds=None):
         if format is None:
             format = 'NETCDF4'
         opener = partial(_open_netcdf4_group, filename, mode=mode,
                          group=group, clobber=clobber, diskless=diskless,
                          persist=persist, format=format, ds=ds)
         self.ds = opener()
+        self._autoclose = autoclose
+        self._isopen = True
         self.format = format
         self.is_remote = is_remote_uri(filename)
-        self._opener = opener
         self._filename = filename
         self._mode = 'a' if mode == 'w' else mode
+        self._opener = partial(opener, mode=self._mode)
         super(NetCDF4DataStore, self).__init__(writer)
 
 
