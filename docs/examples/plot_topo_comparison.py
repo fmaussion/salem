@@ -30,7 +30,7 @@ wrf = open_xr_dataset(get_demo_file('riosan_wrf_hgt.nc')).HGT
 # transform the high-res topography onto the coarse grid
 # we ask for the lookup table to speed up the second transform
 srtm_on_wrf, lut = wrf.salem.lookup_transform(srtm, return_lut=True)
-srtm_on_wrf_std = wrf.salem.lookup_transform(srtm, method=np.std)
+srtm_on_wrf_std = wrf.salem.lookup_transform(srtm, method=np.std, lut=lut)
 
 # for fun we compute the max and min for each grid point
 srtm_on_wrf_min = wrf.salem.lookup_transform(srtm, method=np.min, lut=lut)

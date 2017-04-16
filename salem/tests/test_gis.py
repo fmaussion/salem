@@ -890,6 +890,21 @@ class TestGrid(unittest.TestCase):
             ds = g.to_dataset()
             self.assertTrue(g == ds.salem.grid)
 
+    @requires_geopandas
+    def test_geometry(self):
+        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        from shapely.geometry import Point
+        for proj in projs:
+            g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=proj)
+            gdf = g.to_geometry()
+            self.assertEqual(len(gdf), 9)
+            self.assertTrue(gdf.contains(Point(1.5, 1.5))[4])
+            self.assertFalse(gdf.contains(Point(1.5, 1.5))[5])
+
+        gdf = g.to_geometry(to_crs=wgs84)
+        # This is now quite off
+        self.assertFalse(gdf.contains(Point(1.5, 1.5))[4])
+
     @requires_xarray
     def test_xarray_support(self):
         # what happens if we use salem's funcs with xarray?

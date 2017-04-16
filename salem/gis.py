@@ -741,7 +741,7 @@ class Grid(object):
         applied to all grid points found below a grid point in ``self``.
 
         
-        See also the :py:meth:`Grid.grid_lookup` method, and examples in the docs
+        See also :py:meth:`Grid.grid_lookup` and examples in the docs
 
         Parameters
         ----------
@@ -1107,9 +1107,6 @@ class Grid(object):
     def to_dataset(self):
         """Creates an empty dataset based on the Grid's geolocalisation.
 
-        Parameters
-        ----------
-
         Returns
         -------
         An xarray.Dataset object ready to be filled with data
@@ -1120,6 +1117,41 @@ class Grid(object):
                         )
         ds.attrs['pyproj_srs'] = self.proj.srs
         return ds
+
+    def to_geometry(self, to_crs=None):
+        """Makes a geometrical representation of the grid (e.g. for drawing).
+        
+        This can come also handy when doing shape-to-raster operations.
+        
+        TODO: currently returns one polygon of each grid points, but this 
+        could do more.
+        
+        Returns
+        -------
+        a geopandas.GeoDataFrame
+        """
+        from geopandas import GeoDataFrame
+        from shapely.geometry import Polygon
+        out = GeoDataFrame()
+        geoms = []
+        ii = []
+        jj = []
+        xx = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
+        yy = self.corner_grid.y0 + np.arange(self.ny+1) * self.dy
+        for j, (y0, y1) in enumerate(zip(yy[:-1], yy[1:])):
+            for i, (x0, x1) in enumerate(zip(xx[:-1], xx[1:])):
+                coords = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
+                geoms.append(Polygon(coords))
+                jj.append(j)
+                ii.append(i)
+        out['j'] = jj
+        out['i'] = ii
+        out['geometry'] = geoms
+        out.crs = self.proj.srs
+
+        if check_crs(to_crs):
+            transform_geopandas(out, to_crs=to_crs, inplace=True)
+        return out
 
 
 def proj_is_same(p1, p2):
@@ -1250,7 +1282,10 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     result.crs = to_crs
     out.geometry = result
     out.crs = to_crs
-
+    out['min_x'] = [g.bounds[0] for g in out.geometry]
+    out['max_x'] = [g.bounds[2] for g in out.geometry]
+    out['min_y'] = [g.bounds[1] for g in out.geometry]
+    out['max_y'] = [g.bounds[3] for g in out.geometry]
     return out
 
 

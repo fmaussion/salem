@@ -722,20 +722,31 @@ class Map(DataLevels):
 
     def set_lonlat_contours(self, interval=None, xinterval=None,
                             yinterval=None, add_tick_labels=True,
+                            add_xtick_labels=True, add_ytick_labels=True,
                             max_nticks=8, **kwargs):
         """Add longitude and latitude contours to the map.
 
-        Calling it with interval=0. remove all conours.
+        Calling it with interval=0 will remove all contours.
 
         Parameters
         ----------
-        interval : interval (in degrees) between the contours (same for lon
-        and lat)
-        xinterval: set a different interval for lons
-        yinterval: set a different interval for lats
-        add_tick_label: add the ticks labels to the map
-        max_nticks: when automatic, max num ber of contours to draw
-        kwargs: any keyword accepted by contour()
+        interval : float
+            interval (in degrees) between the contours (same for lon and lat)
+        xinterval : float
+            set a different interval for lons
+        yinterval : float
+            set a different interval for lats
+        add_tick_label : bool
+            add ticks labels to the axes
+        add_xtick_label : bool
+            add ticks labels to the x axis
+        add_ytick_label : bool
+            add ticks labels to the y axis
+        max_nticks : int
+            maximum number of contour levels (when chosen automatically). 
+            Ignore if ``interval`` is set to a value 
+        kwargs : {}
+            any keyword accepted by contour()
         """
 
         # Defaults
@@ -773,31 +784,32 @@ class Map(DataLevels):
         self.ytick_pos = []
         self.ytick_val = []
         if add_tick_labels:
-            _xx = xx[0 if self.origin == 'lower' else -1, :]
-            _xi = np.arange(self.grid.nx+1)
-            for xl in self.xtick_levs:
-                if (xl > _xx[-1]) or (xl < _xx[0]):
-                    continue
-                self.xtick_pos.append(np.interp(xl, _xx, _xi))
-                label = ('{:.' + d + 'f}').format(xl)
-                label += 'W' if (xl < 0) else 'E'
-                if xl == 0:
-                    label = '0'
-                self.xtick_val.append(label)
-
-            _yy = np.sort(yy[:, 0])
-            _yi = np.arange(self.grid.ny+1)
-            if self.origin == 'upper':
-                _yi = _yi[::-1]
-            for yl in self.ytick_levs:
-                if (yl > _yy[-1]) or (yl < _yy[0]):
-                    continue
-                self.ytick_pos.append(np.interp(yl, _yy, _yi))
-                label = ('{:.' + d + 'f}').format(yl)
-                label += 'S' if (yl < 0) else 'N'
-                if yl == 0:
-                    label = 'Eq.'
-                self.ytick_val.append(label)
+            if add_xtick_labels:
+                _xx = xx[0 if self.origin == 'lower' else -1, :]
+                _xi = np.arange(self.grid.nx+1)
+                for xl in self.xtick_levs:
+                    if (xl > _xx[-1]) or (xl < _xx[0]):
+                        continue
+                    self.xtick_pos.append(np.interp(xl, _xx, _xi))
+                    label = ('{:.' + d + 'f}').format(xl)
+                    label += 'W' if (xl < 0) else 'E'
+                    if xl == 0:
+                        label = '0'
+                    self.xtick_val.append(label)
+            if add_ytick_labels:
+                _yy = np.sort(yy[:, 0])
+                _yi = np.arange(self.grid.ny+1)
+                if self.origin == 'upper':
+                    _yi = _yi[::-1]
+                for yl in self.ytick_levs:
+                    if (yl > _yy[-1]) or (yl < _yy[0]):
+                        continue
+                    self.ytick_pos.append(np.interp(yl, _yy, _yi))
+                    label = ('{:.' + d + 'f}').format(yl)
+                    label += 'S' if (yl < 0) else 'N'
+                    if yl == 0:
+                        label = 'Eq.'
+                    self.ytick_val.append(label)
 
         # Done
         kwargs.setdefault('colors', 'gray')

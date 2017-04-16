@@ -17,9 +17,6 @@ from salem import cache_dir, download_dir, python_version
 from six.moves.urllib.error import HTTPError, URLError
 from six.moves.urllib.request import urlretrieve, urlopen
 
-# Joblib
-
-
 
 def _joblib_cache_dir():
     """Get the path to the right joblib directory.
