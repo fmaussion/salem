@@ -19,7 +19,7 @@ from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 try:
     import xarray as xr
     from xarray.backends.netCDF4_ import (NetCDF4DataStore, close_on_error,
-        _nc4_group, _open_netcdf4_group, is_remote_uri)
+        _nc4_group, is_remote_uri)
     from xarray.core.pycompat import basestring
     from xarray.backends.api import _MultiFileCloser, _default_lock
     has_xarray = True
@@ -865,6 +865,25 @@ class DatasetAccessor(_XarrayAccessorBase):
         return out
 
 
+def _open_netcdf4_group(filename, mode, group=None, ds=None, **kwargs):
+    """
+    This code is adapted from xarray's _open_netcdf4_group func. The xarray
+    license is reproduced in the salem/licenses directory.
+    """
+    import netCDF4 as nc4
+
+    if ds is None:
+        ds = nc4.Dataset(filename, mode=mode, **kwargs)
+
+    with close_on_error(ds):
+        ds = _nc4_group(ds, group, mode)
+
+    for var in ds.variables.values():
+        # we handle masking and scaling ourselves
+        var.set_auto_maskandscale(False)
+    return ds
+
+
 class _NetCDF4DataStore(NetCDF4DataStore):
     """Just another way to init xarray's datastore.
 
@@ -876,19 +895,17 @@ class _NetCDF4DataStore(NetCDF4DataStore):
                  ds=None):
         if format is None:
             format = 'NETCDF4'
-        if ds is None:
-            opener = partial(_open_netcdf4_group, filename, mode=mode,
-                             group=group, clobber=clobber, diskless=diskless,
-                             persist=persist, format=format)
-            self.ds = opener()
-        else:
-            self.ds = ds
+        opener = partial(_open_netcdf4_group, filename, mode=mode,
+                         group=group, clobber=clobber, diskless=diskless,
+                         persist=persist, format=format, ds=ds)
+        self.ds = opener()
         self.format = format
         self.is_remote = is_remote_uri(filename)
         self._opener = opener
         self._filename = filename
         self._mode = 'a' if mode == 'w' else mode
         super(NetCDF4DataStore, self).__init__(writer)
+
 
 def open_xr_dataset(file):
     """Thin wrapper around xarray's open_dataset.
