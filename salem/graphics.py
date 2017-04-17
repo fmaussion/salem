@@ -281,6 +281,17 @@ class DataLevels(object):
 
         return self.cmap(self.norm(self.data))
 
+    def get_colorbarbase_kwargs(self):
+        """If you need to make a colorbar based on a given DataLevel state."""
+
+        # This is a discutable choice: with more than 60 colors (could be
+        # less), we assume a continuous colorbar.
+        if self.nlevels < 60:
+            norm = self.norm
+        else:
+            norm = mpl.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
+        return dict(extend=self.extend, cmap=self.cmap, norm=norm)
+
     def colorbarbase(self, cax, **kwargs):
         """Returns a ColorbarBase to add to the cax axis. All keywords are
         passed to matplotlib.colorbar.ColorbarBase
