@@ -27,8 +27,6 @@ except ImportError:
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
-if not os.path.exists(testdir):
-    os.makedirs(testdir)
 
 
 @requires_geopandas
@@ -496,6 +494,13 @@ class TestSkyIsFalling(unittest.TestCase):
 
 class TestXarray(unittest.TestCase):
 
+    def setUp(self):
+        if not os.path.exists(testdir):
+            os.makedirs(testdir)
+
+    def tearDown(self):
+        delete_test_dir()
+
     @requires_xarray
     def test_era(self):
 
@@ -904,9 +909,6 @@ class TestXarray(unittest.TestCase):
     def test_mf_datasets(self):
 
         import xarray as xr
-
-        if not os.path.exists(testdir):
-            os.makedirs(testdir)
 
         # prepare the data
         f = get_demo_file('wrf_d01_allvars_cropped.nc')

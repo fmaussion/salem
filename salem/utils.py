@@ -18,8 +18,8 @@ from six.moves.urllib.error import HTTPError, URLError
 from six.moves.urllib.request import urlretrieve, urlopen
 
 
-def _joblib_cache_dir():
-    """Get the path to the right joblib directory.
+def _hash_cache_dir():
+    """Get the path to the right cache directory.
 
     We need to make sure that cached files correspond to the same
     environment. To this end we make a unique directory hash, depending on the
@@ -45,6 +45,12 @@ def _joblib_cache_dir():
         import fiona
         out['fiona_version'] = fiona.__version__
         out['fiona_file'] = fiona.__file__
+    except ImportError:
+        pass
+    try:
+        import pandas
+        out['pandas_version'] = pandas.__version__
+        out['pandas_file'] = pandas.__file__
     except ImportError:
         pass
     try:
@@ -77,12 +83,13 @@ def _joblib_cache_dir():
     for k, v in out.items():
         strout += k + v
     strout = 'salem_hash_' + hashlib.md5(strout.encode()).hexdigest()
-    dirout = os.path.join(cache_dir, 'joblib', strout)
+    dirout = os.path.join(cache_dir, 'cache', strout)
     if not os.path.exists(dirout):
         os.makedirs(dirout)
     return dirout
 
-memory = Memory(cachedir=_joblib_cache_dir(), verbose=0)
+hash_cache_dir = _hash_cache_dir()
+memory = Memory(cachedir=hash_cache_dir + '_joblib', verbose=0)
 
 # A series of variables and dimension names that Salem will understand
 valid_names = dict()
@@ -144,7 +151,7 @@ def cached_shapefile_path(fpath):
 
     # Cached directory and file
     cp = os.path.commonprefix([cache_dir, p])
-    cp = os.path.join(cache_dir, python_version + '_cache',
+    cp = os.path.join(cache_dir, hash_cache_dir + '_shp',
                       os.path.relpath(p, cp))
     ct = '{:d}'.format(int(round(os.path.getmtime(fpath)*1000.)))
     of = os.path.join(cp, ct + '.p')
