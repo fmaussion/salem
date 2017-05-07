@@ -2,7 +2,7 @@ name: test_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.5
+  - python=3.6
   - six
   - numpy
   - scipy
@@ -13,13 +13,13 @@ dependencies:
   - geopandas
   - rasterio
   - pandas
+  - xarray
   - dask
   - matplotlib
   - Pillow
   - descartes
   - cartopy
   - pip:
-    - git+https://github.com/pydata/xarray.git
     - coveralls
     - pytest-cov
     - pytest-mpl

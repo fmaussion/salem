@@ -15,25 +15,25 @@ matrix:
   include:
   - python: 2.7
     env: CONDA_ENV=py27-all MPL=--mpl
-  - python: 3.5
-    env: CONDA_ENV=py35-all MPL=--mpl
-  - python: 3.5
-    env: CONDA_ENV=py35-all-mpl1 MPL=--mpl
-  - python: 3.5
-    env: CONDA_ENV=py35-min MPL=
-  - python: 3.5
-    env: CONDA_ENV=py35-xr MPL=
-  - python: 3.5
-    env: CONDA_ENV=py35-xarray-dev MPL=--mpl
-  - python: 3.5
-    env: CONDA_ENV=py35-all-rc MPL=--mpl
+  - python: 3.6
+    env: CONDA_ENV=py36-all MPL=--mpl
+  - python: 3.6
+    env: CONDA_ENV=py36-all-mpl1 MPL=--mpl
+  - python: 3.6
+    env: CONDA_ENV=py36-min MPL=
+  - python: 3.6
+    env: CONDA_ENV=py36-xr MPL=
+  - python: 3.6
+    env: CONDA_ENV=py36-xarray-dev MPL=--mpl
+  - python: 3.6
+    env: CONDA_ENV=py36-all-rc MPL=--mpl
   allow_failures:
-  - python: 3.5
-    env: CONDA_ENV=py35-xr MPL=
-  - python: 3.5
-    env: CONDA_ENV=py35-xarray-dev MPL=--mpl
-  - python: 3.5
-    env: CONDA_ENV=py35-all-rc MPL=--mpl
+  - python: 3.6
+    env: CONDA_ENV=py36-xr MPL=
+  - python: 3.6
+    env: CONDA_ENV=py36-xarray-dev MPL=--mpl
+  - python: 3.6
+    env: CONDA_ENV=py36-all-rc MPL=--mpl
 
 before_install:
   - "export DISPLAY=:99.0"
