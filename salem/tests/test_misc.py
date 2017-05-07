@@ -67,9 +67,9 @@ class TestUtils(unittest.TestCase):
     def test_empty_cache(self):
         utils.empty_cache()
 
-    def test_joblibcache(self):
-        h1 = utils._joblib_cache_dir()
-        h2 = utils._joblib_cache_dir()
+    def test_hash_cache_dir(self):
+        h1 = utils._hash_cache_dir()
+        h2 = utils._hash_cache_dir()
         self.assertEqual(h1, h2)
 
     def test_demofiles(self):

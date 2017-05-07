@@ -84,8 +84,6 @@ def _hash_cache_dir():
         strout += k + v
     strout = 'salem_hash_' + hashlib.md5(strout.encode()).hexdigest()
     dirout = os.path.join(cache_dir, 'cache', strout)
-    if not os.path.exists(dirout):
-        os.makedirs(dirout)
     return dirout
 
 hash_cache_dir = _hash_cache_dir()
