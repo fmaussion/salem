@@ -2,7 +2,7 @@ name: salem
 channels:
   - conda-forge
 dependencies:
-  - python=3.6
+  - python=3.5
   - numpy
   - scipy
   - matplotlib
