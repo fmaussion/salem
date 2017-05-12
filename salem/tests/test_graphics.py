@@ -709,7 +709,7 @@ def test_cartopy():
 
 @requires_matplotlibv2
 @requires_cartopy
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=7)
 def test_cartopy_polar():
 
     import cartopy
