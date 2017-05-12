@@ -15,6 +15,7 @@ Enhancements
   grids to lower-res grids (:ref:`sphx_glr_auto_examples_plot_subgrid_mask.py`)
 - new :py:func:`~Grid.to_geometry` method, useful to compute precise
   vector to raster masks (TODO: example showing its use)
+- new projection for WRF files: polar stereographic
 
 
 Bug fixes

@@ -25,7 +25,8 @@ from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
     read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
     open_wrf_dataset, open_xr_dataset, python_version, cache_dir
 from salem.utils import get_demo_file
-from salem.tests import requires_matplotlib, requires_cartopy
+from salem.tests import (requires_matplotlib, requires_cartopy,
+                         requires_matplotlibv2)
 
 # Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -703,4 +704,43 @@ def test_cartopy():
     ax.coastlines()
     ax.scatter(ds.lon, ds.lat, transform=cartopy.crs.PlateCarree())
 
+    return fig
+
+
+@requires_matplotlibv2
+@requires_cartopy
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+def test_cartopy_polar():
+
+    import cartopy
+
+    fig = plt.figure(figsize=(8, 8))
+
+    ods = open_wrf_dataset(get_demo_file('geo_em_d02_polarstereo.nc')).isel(time=0)
+
+    ax = plt.subplot(2, 2, 1)
+    smap = ods.salem.get_map()
+    smap.plot(ax=ax)
+
+    p = ods.salem.cartopy()
+    ax = plt.subplot(2, 2, 2, projection=p)
+    ax.coastlines(resolution='50m')
+    ax.gridlines()
+    ax.set_extent(ods.salem.grid.extent, crs=p)
+
+    ds = ods.salem.subset(corners=((-52.8, 70.11), (-52.8, 70.11)), margin=12)
+
+    ax = plt.subplot(2, 2, 3)
+    smap = ds.HGT_M.salem.quick_map(ax=ax, cmap='Oranges')
+    ax.scatter(ds.XLONG_M, ds.XLAT_M, s=5,
+               transform=smap.transform(ax=ax))
+
+    p = ds.salem.cartopy()
+    ax = plt.subplot(2, 2, 4, projection=p)
+    ds.HGT_M.plot.imshow(ax=ax, transform=p, cmap='Oranges')
+    ax.coastlines(resolution='50m')
+    ax.gridlines()
+    ax.scatter(ds.XLONG_M, ds.XLAT_M, transform=cartopy.crs.PlateCarree(), s=5)
+
+    plt.tight_layout()
     return fig

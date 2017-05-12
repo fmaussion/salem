@@ -160,12 +160,20 @@ def _wrf_grid_from_dataset(ds):
         pargs['center_lon'] = ds.CEN_LON
         proj_id = ds.MAP_PROJ
 
+    atol = 1e-4
     if proj_id == 1:
         # Lambert
         p4 = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
              '+lat_0={lat_0} +lon_0={lon_0} ' \
              '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         p4 = p4.format(**pargs)
+    elif proj_id == 2:
+        # Polar stereo
+        p4 = '+proj=stere +lat_ts={lat_1} +lon_0={lon_0} +lat_0=90.0' \
+             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        p4 = p4.format(**pargs)
+        # pyproj and WRF do not agree well close to the pole
+        atol = 5e-3
     elif proj_id == 3:
         # Mercator
         p4 = '+proj=merc +lat_ts={lat_1} ' \
@@ -203,36 +211,25 @@ def _wrf_grid_from_dataset(ds):
         #  Temporary asserts
         if 'XLONG' in ds.variables:
             # Normal WRF
-            mylon, mylat = grid.ll_coordinates
             reflon = ds.variables['XLONG']
             reflat = ds.variables['XLAT']
-            if len(reflon.shape) == 3:
-                reflon = reflon[0, :, :]
-                reflat = reflat[0, :, :]
-            assert np.allclose(reflon, mylon, atol=1e-4)
-            assert np.allclose(reflat, mylat, atol=1e-4)
         elif 'XLONG_M' in ds.variables:
             # geo_em
-            mylon, mylat = grid.ll_coordinates
             reflon = ds.variables['XLONG_M']
             reflat = ds.variables['XLAT_M']
-            if len(reflon.shape) == 3:
-                reflon = reflon[0, :, :]
-                reflat = reflat[0, :, :]
-            assert np.allclose(reflon, mylon, atol=1e-4)
-            assert np.allclose(reflat, mylat, atol=1e-4)
         elif 'lon' in ds.variables:
             # HAR
-            mylon, mylat = grid.ll_coordinates
             reflon = ds.variables['lon']
             reflat = ds.variables['lat']
-            if len(reflon.shape) == 3:
-                reflon = reflon[0, :, :]
-                reflat = reflat[0, :, :]
-            assert np.allclose(reflon, mylon, atol=1e-4)
-            assert np.allclose(reflat, mylat, atol=1e-4)
         else:
             raise RuntimeError("couldn't test for correct WRF lon-lat")
+
+        if len(reflon.shape) == 3:
+            reflon = reflon[0, :, :]
+            reflat = reflat[0, :, :]
+        mylon, mylat = grid.ll_coordinates
+        np.testing.assert_allclose(reflon, mylon, atol=atol)
+        np.testing.assert_allclose(reflat, mylat, atol=atol)
 
     return grid
 

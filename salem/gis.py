@@ -1355,6 +1355,8 @@ def proj_to_cartopy(proj):
                 cl = ccrs.Mercator
             if v == 'utm':
                 cl = ccrs.UTM
+            if v == 'stere':
+                cl = ccrs.Stereographic
         if k in km_proj:
             kw_proj[km_proj[k]] = v
         if k in km_globe:
@@ -1373,6 +1375,11 @@ def proj_to_cartopy(proj):
         kw_proj.pop('false_easting', None)
         kw_proj.pop('false_northing', None)
         if LooseVersion(cartopy.__version__) < LooseVersion('0.15'):
+            kw_proj.pop('latitude_true_scale', None)
+    elif cl.__name__ == 'Stereographic':
+        kw_proj.pop('scale_factor', None)
+        if 'latitude_true_scale' in kw_proj:
+            kw_proj['true_scale_latitude'] = kw_proj['latitude_true_scale']
             kw_proj.pop('latitude_true_scale', None)
     else:
         kw_proj.pop('latitude_true_scale', None)

@@ -413,7 +413,7 @@ class GeoNetcdf(GeoDataset):
         item = []
         for d in v.dimensions:
             it = slice(None)
-            if d == self.t_dim:
+            if d == self.t_dim and self.sub_t is not None:
                 it = slice(self.sub_t[0], self.sub_t[1]+1)
             elif d == self.y_dim:
                 it = slice(self.sub_y[0], self.sub_y[1]+1)
