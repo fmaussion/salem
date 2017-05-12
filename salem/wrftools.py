@@ -639,13 +639,16 @@ def geogrid_simulator(fpath, do_maps=True):
     # define projection
     if map_proj == 'LAMBERT':
         pwrf = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
-             '+lat_0={lat_0} +lon_0={lon_0} ' \
-             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+               '+lat_0={lat_0} +lon_0={lon_0} ' \
+               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         pwrf = pwrf.format(**pargs)
     elif map_proj == 'MERCATOR':
-        pwrf = '+proj=merc +lat_ts={lat_1} ' \
-             '+lon_0={lon_0} ' \
-             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = '+proj=merc +lat_ts={lat_1} +lon_0={lon_0} ' \
+               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = pwrf.format(**pargs)
+    elif map_proj == 'POLAR':
+        pwrf = '+proj=stere +lat_ts={lat_1} +lat_0=90.0 +lon_0={lon_0} ' \
+               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         pwrf = pwrf.format(**pargs)
     else:
         raise NotImplementedError('WRF proj not implemented yet: '

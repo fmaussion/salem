@@ -983,3 +983,19 @@ class TestGeogridSim(unittest.TestCase):
             lon, lat = g[i-1].ll_coordinates
             assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
             assert_allclose(lat, ds['XLAT_M'][0, ...], atol=1e-4)
+
+    @requires_geopandas
+    def test_polar(self):
+
+        from salem.wrftools import geogrid_simulator
+
+        g, m = geogrid_simulator(get_demo_file('namelist_polar.wps'))
+
+        assert len(g) == 2
+
+        for i in [1, 2]:
+            fg = get_demo_file('geo_em_d0{}_polarstereo.nc'.format(i))
+            ds = netCDF4.Dataset(fg)
+            lon, lat = g[i-1].ll_coordinates
+            assert_allclose(lon, ds['XLONG_M'][0, ...], atol=5e-3)
+            assert_allclose(lat, ds['XLAT_M'][0, ...], atol=5e-3)
