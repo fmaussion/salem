@@ -18,6 +18,7 @@ f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 7))
 grid = mercator_grid(center_ll=(10.76, 46.79), extent=(18000, 14000))
 sm = Map(grid, countries=False)
 sm.set_lonlat_contours(interval=0)
+sm.set_scale_bar()
 
 # add topography
 fpath = get_demo_file('hef_srtm.tif')

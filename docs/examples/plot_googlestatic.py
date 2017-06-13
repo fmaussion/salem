@@ -44,6 +44,7 @@ ax1.set_title('Google static map')
 sm = Map(g.grid, factor=1, countries=False)
 sm.set_shapefile(shp)  # add the glacier outlines
 sm.set_rgb(ggl_img)  # add the background rgb image
+sm.set_scale_bar(location=(0.88, 0.94))  # add scale
 sm.visualize(ax=ax2)  # plot it
 ax2.set_title('GPR measurements')
 

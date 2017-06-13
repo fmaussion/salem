@@ -133,6 +133,7 @@ Map methods
     Map.set_shapefile
     Map.set_text
     Map.set_topography
+    Map.set_scale_bar
     Map.transform
     Map.visualize
     Map.plot

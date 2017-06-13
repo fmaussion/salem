@@ -87,12 +87,6 @@ def requires_matplotlib(test):
     return test if has_matplotlib else unittest.skip(msg)(test)
 
 
-def requires_matplotlibv2(test):
-    msg = "requires matplotlib v2+"
-    return test if mpl_version >= LooseVersion('2.0.0') \
-        else unittest.skip(msg)(test)
-
-
 def requires_motionless(test):
     msg = "requires motionless"
     return test if has_motionless else unittest.skip(msg)(test)

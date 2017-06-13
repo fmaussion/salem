@@ -28,7 +28,7 @@ try:
     from matplotlib.colors import LinearSegmentedColormap
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from matplotlib.collections import PatchCollection, LineCollection
-    from shapely.geometry import MultiPoint
+    from shapely.geometry import MultiPoint, LineString
     from descartes.patch import PolygonPatch
     from matplotlib.transforms import Transform as MPLTranform
     import matplotlib.path as mpath
@@ -933,6 +933,63 @@ class Map(DataLevels):
         for i in range(img.shape[-1]):
             out.append(self._check_data(img[..., i], crs=crs, interp=interp))
         self._rgb = np.dstack(out)
+
+    def set_scale_bar(self, location=None, length=None, maxlen=0.25,
+                      **kwargs):
+        """Add a legend bar showing the scale to the plot.
+
+        Parameters
+        ----------
+        location : tuple
+            the location of the bar (in the plot's relative coordinates)
+        length : float
+            the length of the bar in proj units (m or deg). Default is to
+            find the nicest number satisfying ``maxlen``
+        maxlen : float
+            the maximum lenght of the bar (in the plot's relative coordinates)
+            when choosing the length automatically
+        kwargs : dict
+            any kwarg accepted by ``set_geometry``. Defaults are put on
+            ``color``, ``linewidth``, ``text``, ``text_kwargs``... But you can
+            do whatever you want
+        """
+
+        x0, x1, y0, y1 = self.grid.extent
+
+        # Find a sensible length for the scale
+        if length is None:
+            length = utils.nice_scale(x1 - x0, maxlen=maxlen)
+
+        if location is None:
+            location = (0.96 - length/2/(x1 - x0), 0.04)
+
+        # scalebar center location in proj coordinates
+        sbcx, sbcy = x0 + (x1 - x0) * location[0], y0 + (y1 - y0) * location[1]
+
+        # coordinates for the scalebar
+        line = LineString(([sbcx - length/2, sbcy], [sbcx + length/2, sbcy]))
+
+        # Units
+        if self.grid.proj.is_latlong():
+            units = 'deg'
+        elif length > 1000.:
+            length /= 1000
+            units = 'km'
+        else:
+            units = 'm'
+        # Nice number
+        if int(length) == length:
+            length = int(length)
+        # Defaults
+        kwargs.setdefault('color', 'k')
+        kwargs.setdefault('text', '{} '.format(length) + units)
+        kwargs.setdefault('text_delta', (0.0, 0.015))
+        kwargs.setdefault('linewidth', 3)
+        tkw = kwargs.get('text_kwargs', {})
+        tkw.setdefault('horizontalalignment', 'center')
+        tkw.setdefault('color', kwargs['color'])
+        kwargs['text_kwargs'] = tkw
+        self.set_geometry(line, crs=self.grid.proj, **kwargs)
 
     def transform(self, crs=wgs84, ax=None):
         """Get a matplotlib transform object for a given reference system

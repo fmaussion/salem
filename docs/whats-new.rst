@@ -16,6 +16,7 @@ Enhancements
 - new :py:func:`~Grid.to_geometry` method, useful to compute precise
   vector to raster masks (TODO: example showing its use)
 - new projection for WRF files: polar stereographic
+- you can now add a scale bar to maps (see :py:func:`~Map.set_scale_bar`)
 
 
 Bug fixes
