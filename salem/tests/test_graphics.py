@@ -25,8 +25,7 @@ from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
     read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
     open_wrf_dataset, open_xr_dataset, python_version, cache_dir
 from salem.utils import get_demo_file
-from salem.tests import (requires_matplotlib, requires_cartopy,
-                         requires_matplotlibv2)
+from salem.tests import (requires_matplotlib, requires_cartopy)
 
 # Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -295,11 +294,13 @@ def test_merca_map():
                          extent=(2000000, 2000000))
 
     m1 = Map(grid)
+    m1.set_scale_bar(color='red')
 
     grid = mercator_grid(center_ll=(11.38, 47.26),
                          extent=(2000000, 2000000),
                          origin='upper-left')
     m2 = Map(grid)
+    m2.set_scale_bar(length=700000, location=(0.3, 0.05))
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     m1.visualize(ax=ax1, addcbar=False)
@@ -371,6 +372,8 @@ def test_geometries():
     mpoints = shpg.MultiPoint([p1, p2, p3])
     c.set_geometry(mpoints, s=250, marker='s',
                    c='purple', hatch='||||')
+
+    c.set_scale_bar(color='blue')
 
     fig, ax = plt.subplots(1, 1)
     c.visualize(ax=ax, addcbar=False)
@@ -707,7 +710,6 @@ def test_cartopy():
     return fig
 
 
-@requires_matplotlibv2
 @requires_cartopy
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=7)
 def test_cartopy_polar():

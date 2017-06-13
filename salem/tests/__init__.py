@@ -52,8 +52,8 @@ except ImportError:
 
 try:
     import matplotlib
-    has_matplotlib = True
     mpl_version = LooseVersion(matplotlib.__version__)
+    has_matplotlib = mpl_version >= LooseVersion('2')
 except ImportError:
     has_matplotlib = False
     mpl_version = LooseVersion('0.0.0')
@@ -85,12 +85,6 @@ def requires_matplotlib_and_py3(test):
 def requires_matplotlib(test):
     msg = "requires matplotlib"
     return test if has_matplotlib else unittest.skip(msg)(test)
-
-
-def requires_matplotlibv2(test):
-    msg = "requires matplotlib v2+"
-    return test if mpl_version >= LooseVersion('2.0.0') \
-        else unittest.skip(msg)(test)
 
 
 def requires_motionless(test):
