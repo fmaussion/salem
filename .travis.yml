@@ -18,8 +18,6 @@ matrix:
   - python: 3.6
     env: CONDA_ENV=py36-all MPL=--mpl
   - python: 3.6
-    env: CONDA_ENV=py36-all-mpl1 MPL=--mpl
-  - python: 3.6
     env: CONDA_ENV=py36-min MPL=
   - python: 3.6
     env: CONDA_ENV=py36-xr MPL=

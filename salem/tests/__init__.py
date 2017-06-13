@@ -52,8 +52,8 @@ except ImportError:
 
 try:
     import matplotlib
-    has_matplotlib = True
     mpl_version = LooseVersion(matplotlib.__version__)
+    has_matplotlib = mpl_version >= LooseVersion('2')
 except ImportError:
     has_matplotlib = False
     mpl_version = LooseVersion('0.0.0')
