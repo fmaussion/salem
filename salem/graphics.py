@@ -972,7 +972,7 @@ class Map(DataLevels):
         # Units
         if self.grid.proj.is_latlong():
             units = 'deg'
-        elif length > 1000.:
+        elif length >= 1000.:
             length /= 1000
             units = 'km'
         else:

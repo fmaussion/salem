@@ -421,7 +421,9 @@ class GeoNetcdf(GeoDataset):
                 it = slice(self.sub_x[0], self.sub_x[1]+1)
             item.append(it)
 
-        out = v[tuple(item)]
+        with np.errstate(invalid='ignore'):
+            # This is due to some numpy warnings
+            out = v[tuple(item)]
 
         if as_xarray:
             # convert to xarray
