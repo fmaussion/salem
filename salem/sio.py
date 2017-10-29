@@ -199,8 +199,8 @@ def _wrf_grid_from_dataset(ds):
         ny = ds.dims['south_north']
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR
-        x0 = ds['west_east'][0].values
-        y0 = ds['south_north'][0].values
+        x0 = ds['west_east'][0]
+        y0 = ds['south_north'][0]
     else:
         # Normal WRF file
         e, n = gis.transform_proj(wgs84, proj, cen_lon, cen_lat)
