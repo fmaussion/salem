@@ -42,18 +42,16 @@ except ImportError:
     mpl = d1()
     MPLTranform = object
 
-from salem import utils, gis, sio, Grid, wgs84, cache_dir, GeoTiff
+from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff
 
-# Path to the file directory
-file_dir = path.join(cache_dir, 'salem-sample-data-master')
 shapefiles = dict()
-shapefiles['world_borders'] = path.join(file_dir, 'shapes', 'world_borders',
-                                        'world_borders.shp')
-shapefiles['oceans'] = path.join(file_dir, 'shapes', 'oceans',
+shapefiles['world_borders'] = path.join(sample_data_dir, 'shapes',
+                                        'world_borders', 'world_borders.shp')
+shapefiles['oceans'] = path.join(sample_data_dir, 'shapes', 'oceans',
                                  'ne_50m_ocean.shp')
-shapefiles['rivers'] = path.join(file_dir, 'shapes', 'rivers',
+shapefiles['rivers'] = path.join(sample_data_dir, 'shapes', 'rivers',
                                  'ne_50m_rivers_lake_centerlines.shp')
-shapefiles['lakes'] = path.join(file_dir, 'shapes', 'lakes',
+shapefiles['lakes'] = path.join(sample_data_dir, 'shapes', 'lakes',
                                 'ne_50m_lakes.shp')
 
 # Be sure we have the directory

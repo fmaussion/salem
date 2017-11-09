@@ -11,7 +11,8 @@ from collections import OrderedDict
 
 import numpy as np
 from joblib import Memory
-from salem import cache_dir, download_dir, python_version
+from salem import (cache_dir, sample_data_dir, sample_data_gh_commit,
+                   download_dir, python_version)
 from six.moves.urllib.request import urlretrieve, urlopen
 
 
@@ -104,7 +105,6 @@ valid_names['lat_var'] = ['lat', 'latitude', 'latitudes', 'lats']
 valid_names['time_var'] = ['time', 'times']
 
 sample_data_gh_repo = 'fmaussion/salem-sample-data'
-sample_data_gh_commit = 'aeb4cff0f61138701ab62a5b2ed2ceac7b809317'
 nearth_base = 'http://naturalearth.springercarto.com/ne3_data/'
 
 
@@ -189,9 +189,6 @@ def download_demo_files():
 
     master_zip_url = 'https://github.com/%s/archive/%s.zip' % \
                      (sample_data_gh_repo, sample_data_gh_commit)
-
-    sdir = os.path.join(cache_dir,
-                        'salem-sample-data-' + sample_data_gh_commit)
     ofile = os.path.join(cache_dir,
                          'salem-sample-data-%s.zip' % sample_data_gh_commit)
     odir = os.path.join(cache_dir)
@@ -215,7 +212,7 @@ def download_demo_files():
 
     # list of files for output
     out = dict()
-    for root, directories, filenames in os.walk(sdir):
+    for root, directories, filenames in os.walk(sample_data_dir):
         for filename in filenames:
             out[filename] = os.path.join(root, filename)
 
