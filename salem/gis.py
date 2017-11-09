@@ -1123,7 +1123,7 @@ class Grid(object):
         
         This can come also handy when doing shape-to-raster operations.
         
-        TODO: currently returns one polygon of each grid points, but this 
+        TODO: currently returns one polygon for each grid point, but this
         could do more.
         
         Returns
