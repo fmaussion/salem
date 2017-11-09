@@ -143,7 +143,8 @@ def _wrf_grid_from_dataset(ds):
         pargs['lat_0'] = ds.PROJ_CENTRAL_LAT
         pargs['lon_0'] = ds.PROJ_CENTRAL_LON
         pargs['center_lon'] = ds.PROJ_CENTRAL_LON
-        if ds.PROJ_NAME == 'Lambert Conformal Conic':
+        if ds.PROJ_NAME in ['Lambert Conformal Conic',
+                            'WRF Lambert Conformal']:
             proj_id = 1
         else:
             proj_id = 99  # pragma: no cover
@@ -198,8 +199,8 @@ def _wrf_grid_from_dataset(ds):
         ny = ds.dims['south_north']
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR
-        x0 = ds.GRID_X00
-        y0 = ds.GRID_Y00
+        x0 = ds['west_east'][0]
+        y0 = ds['south_north'][0]
     else:
         # Normal WRF file
         e, n = gis.transform_proj(wgs84, proj, cen_lon, cen_lat)

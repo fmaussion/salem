@@ -14,9 +14,8 @@ from salem import Grid
 from salem import wgs84
 import salem.gis as gis
 from salem.utils import get_demo_file
-from salem.tests import requires_xarray, requires_shapely, requires_geopandas, \
-    requires_cartopy, requires_rasterio, python_version
-
+from salem.tests import (requires_xarray, requires_shapely, requires_geopandas,
+                         requires_cartopy, requires_rasterio, python_version)
 
 
 class SimpleNcDataSet():
@@ -779,7 +778,9 @@ class TestGrid(unittest.TestCase):
 
         # 3D
         data = ncw.nc.variables['wrf_t2'][:]
-        ref_data = nct.nc.variables['t2_on_trmm_bili'][:]
+        with np.errstate(invalid='ignore'):
+            # I think this is a NetCDF4 warning
+            ref_data = nct.nc.variables['t2_on_trmm_bili'][:]
         odata = grid_to.map_gridded_data(data, grid_from, interp='linear')
         # At the borders IDL and Python take other decision on wether it
         # should be a NaN or not (Python seems to be more conservative)

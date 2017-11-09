@@ -16,7 +16,10 @@ Enhancements
 - new :py:func:`~Grid.to_geometry` method, useful to compute precise
   vector to raster masks (TODO: example showing its use)
 - new projection for WRF files: polar stereographic
-- you can now add a scale bar to maps (see :py:func:`~Map.set_scale_bar`)
+- one can now add a scale bar to maps (see :py:func:`~Map.set_scale_bar`)
+- each salem version is now pinned to a certain commit of the sample-data
+  repository. This is more robust and will avoid future tests to fail
+  for the wrong reasons.
 
 
 Bug fixes
@@ -24,6 +27,7 @@ Bug fixes
 
 - the cache directory is also updated when the ``pandas`` version changes
   (:issue:`74`)
+- small bugfixes in the projections and warning handling
 
 
 v0.2.1 (07 February 2017)

@@ -4,17 +4,15 @@ Some useful functions
 from __future__ import division
 
 import io
-import json
 import os
 import shutil
-import time
 import zipfile
 from collections import OrderedDict
 
 import numpy as np
 from joblib import Memory
-from salem import cache_dir, download_dir, python_version
-from six.moves.urllib.error import HTTPError, URLError
+from salem import (cache_dir, sample_data_dir, sample_data_gh_commit,
+                   download_dir, python_version)
 from six.moves.urllib.request import urlretrieve, urlopen
 
 
@@ -85,6 +83,7 @@ def _hash_cache_dir():
     strout = 'salem_hash_' + hashlib.md5(strout.encode()).hexdigest()
     dirout = os.path.join(cache_dir, 'cache', strout)
     return dirout
+
 
 hash_cache_dir = _hash_cache_dir()
 memory = Memory(cachedir=hash_cache_dir + '_joblib', verbose=0)
@@ -188,46 +187,11 @@ def download_demo_files():
     Borrowed from OGGM.
     """
 
-    master_sha_url = 'https://api.github.com/repos/%s/commits/master' % \
-                     sample_data_gh_repo
-    master_zip_url = 'https://github.com/%s/archive/master.zip' % \
-                     sample_data_gh_repo
-    ofile = os.path.join(cache_dir, 'salem-sample-data.zip')
-    shafile = os.path.join(cache_dir, 'salem-sample-data-commit.txt')
+    master_zip_url = 'https://github.com/%s/archive/%s.zip' % \
+                     (sample_data_gh_repo, sample_data_gh_commit)
+    ofile = os.path.join(cache_dir,
+                         'salem-sample-data-%s.zip' % sample_data_gh_commit)
     odir = os.path.join(cache_dir)
-
-    # a file containing the online's file's hash and the time of last check
-    if os.path.exists(shafile):
-        with open(shafile, 'r') as sfile:
-            local_sha = sfile.read().strip()
-        last_mod = os.path.getmtime(shafile)
-    else:
-        # very first download
-        local_sha = '0000'
-        last_mod = 0
-
-    # test only every hour
-    if time.time() - last_mod > 3600:
-        write_sha = True
-        try:
-            # this might fail with HTTP 403 when server overload
-            resp = urlopen(master_sha_url)
-
-            # following try/finally is just for py2/3 compatibility
-            # https://mail.python.org/pipermail/python-list/2016-March/704073.html
-            try:
-                json_str = resp.read().decode('utf-8')
-            finally:
-                resp.close()
-            json_obj = json.loads(json_str)
-            master_sha = json_obj['sha']
-            # if not same, delete entire dir
-            if local_sha != master_sha:
-                empty_cache()
-        except (HTTPError, URLError):
-            master_sha = 'error'
-    else:
-        write_sha = False
 
     # download only if necessary
     if not os.path.exists(ofile):
@@ -246,15 +210,9 @@ def download_demo_files():
             with zipfile.ZipFile(ofile) as zf:
                 zf.extractall(odir)
 
-    # sha did change, replace
-    if write_sha:
-        with open(shafile, 'w') as sfile:
-            sfile.write(master_sha)
-
     # list of files for output
     out = dict()
-    sdir = os.path.join(cache_dir, 'salem-sample-data-master')
-    for root, directories, filenames in os.walk(sdir):
+    for root, directories, filenames in os.walk(sample_data_dir):
         for filename in filenames:
             out[filename] = os.path.join(root, filename)
 

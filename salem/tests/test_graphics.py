@@ -19,11 +19,11 @@ except ImportError:
     # place holder
     MPL_VERSION = '2.0.0'
 
-
 from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
-from salem import Grid, wgs84, mercator_grid, GeoNetcdf, \
-    read_shapefile_to_grid, GeoTiff, GoogleCenterMap, GoogleVisibleMap, \
-    open_wrf_dataset, open_xr_dataset, python_version, cache_dir
+from salem import (Grid, wgs84, mercator_grid, GeoNetcdf,
+                   read_shapefile_to_grid, GeoTiff, GoogleCenterMap,
+                   GoogleVisibleMap, open_wrf_dataset, open_xr_dataset,
+                   python_version, cache_dir, sample_data_dir)
 from salem.utils import get_demo_file
 from salem.tests import (requires_matplotlib, requires_cartopy)
 
@@ -31,14 +31,9 @@ from salem.tests import (requires_matplotlib, requires_cartopy)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
 
-if MPL_VERSION >= LooseVersion('2'):
-    baseline_subdir = '2.0.x'
-elif MPL_VERSION >= LooseVersion('1.5'):
-    baseline_subdir = '1.5.x'
-else:
-    raise ImportError('Matplotlib version not supported: ' + MPL_VERSION)
-baseline_dir = os.path.join(cache_dir, 'salem-sample-data-master',
-                            'baseline_images', baseline_subdir)
+baseline_subdir = '2.0.x'
+baseline_dir = os.path.join(sample_data_dir, 'baseline_images',
+                            baseline_subdir)
 
 tolpy2 = 5 if python_version == 'py3' else 10
 
@@ -508,7 +503,7 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
@@ -526,7 +521,7 @@ def test_gmap():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap_transformed():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     dem.set_subset(margin=-100)
@@ -555,7 +550,7 @@ def test_gmap_transformed():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap_llconts():
     # This was because some problems were left unnoticed by other tests
     g = GoogleCenterMap(center_ll=(11.38, 47.26), zoom=9)
