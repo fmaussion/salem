@@ -526,7 +526,7 @@ def test_gmap():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap_transformed():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     dem.set_subset(margin=-100)
