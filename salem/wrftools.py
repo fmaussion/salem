@@ -351,7 +351,12 @@ class PRESSURE(FakeVariable):
         return np.all([n in nc.variables for n in ['P', 'PB']])
 
     def __getitem__(self, item):
-        return self.nc.variables['P'][item] + self.nc.variables['PB'][item]
+        res = self.nc.variables['P'][item] + self.nc.variables['PB'][item]
+        if self.nc.variables['P'].units == 'Pa':
+            res /= 100
+        elif self.nc.variables['P'].units == 'hPa':
+            pass
+        return res
 
 
 class GEOPOTENTIAL(FakeVariable):
