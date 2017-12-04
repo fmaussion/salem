@@ -28,6 +28,7 @@ Bug fixes
 - the cache directory is also updated when the ``pandas`` version changes
   (:issue:`74`)
 - small bugfixes in the projections and warning handling
+- PRESSURE variable was given in Pa, not hPa. This is corrected now.
 
 
 v0.2.1 (07 February 2017)
