@@ -722,7 +722,8 @@ class DataArrayAccessor(_XarrayAccessorBase):
 
         return out
 
-    def interpz(self, zcoord, levels, dim_name='', use_multiprocessing=True):
+    def interpz(self, zcoord, levels, dim_name='', fill_value=np.NaN,
+                use_multiprocessing=True):
         """Interpolates the array along the vertical dimension
 
         Parameters
@@ -733,6 +734,9 @@ class DataArrayAccessor(_XarrayAccessorBase):
           the levels at which to interpolate
         dim_name: str
           the name of the new dimension
+        fill_value : np.NaN or 'extrapolate', optional
+          how to handle levels below the topography. Default is to mark them
+          as invalid, but you might want the have them extrapolated.
         use_multiprocessing: bool
           set to false if, for some reason, you don't want to use mp
 
@@ -745,8 +749,8 @@ class DataArrayAccessor(_XarrayAccessorBase):
             raise RuntimeError('zdimension not recognized')
 
         data = wrftools.interp3d(self._obj.values, zcoord.values,
-                                 np.atleast_1d(levels), use_multiprocessing=
-                                 use_multiprocessing)
+                                 np.atleast_1d(levels), fill_value=fill_value,
+                                 use_multiprocessing=use_multiprocessing)
 
         dims = list(self._obj.dims)
         zd = np.nonzero([self.z_dim == d for d in dims])[0][0]
@@ -806,7 +810,8 @@ class DatasetAccessor(_XarrayAccessorBase):
                     new_name = v
                 self._obj[new_name] = out[v]
 
-    def wrf_zlevel(self, varname, levels=None, use_multiprocessing=True):
+    def wrf_zlevel(self, varname, levels=None, fill_value=np.NaN,
+                   use_multiprocessing=True):
         """Interpolates to a specified height above sea level.
 
         Parameters
@@ -815,6 +820,9 @@ class DatasetAccessor(_XarrayAccessorBase):
           the name of the variable to interpolate
         levels: 1d array
           levels at which to interpolate (default: some levels I thought of)
+        fill_value : np.NaN or 'extrapolate', optional
+          how to handle levels below the topography. Default is to mark them
+          as invalid, but you might want the have them extrapolated.
         use_multiprocessing: bool
           set to false if, for some reason, you don't want to use mp
 
@@ -828,13 +836,15 @@ class DatasetAccessor(_XarrayAccessorBase):
 
         zcoord = self._obj['Z']
         out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='z',
+                                               fill_value=fill_value,
                                                use_multiprocessing=
                                                use_multiprocessing)
         out['z'].attrs['description'] = 'height above sea level'
         out['z'].attrs['units'] = 'm'
         return out
 
-    def wrf_plevel(self, varname, levels=None, use_multiprocessing=True):
+    def wrf_plevel(self, varname, levels=None, fill_value=np.NaN,
+                   use_multiprocessing=True):
         """Interpolates to a specified pressure level (hPa).
 
         Parameters
@@ -843,6 +853,9 @@ class DatasetAccessor(_XarrayAccessorBase):
           the name of the variable to interpolate
         levels: 1d array
           levels at which to interpolate (default: some levels I thought of)
+        fill_value : np.NaN or 'extrapolate', optional
+          how to handle levels below the topography. Default is to mark them
+          as invalid, but you might want the have them extrapolated.
         use_multiprocessing: bool
           set to false if, for some reason, you don't want to use mp
 
@@ -856,6 +869,7 @@ class DatasetAccessor(_XarrayAccessorBase):
 
         zcoord = self._obj['PRESSURE']
         out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='p',
+                                               fill_value=fill_value,
                                                use_multiprocessing=
                                                use_multiprocessing)
         out['p'].attrs['description'] = 'pressure'
