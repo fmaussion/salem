@@ -446,7 +446,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         # toimage(img).save(get_demo_file('hef_google_roi.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_roi.png'))
         rmsd = np.sqrt(np.mean((ref - img)**2))
-        self.assertTrue(rmsd < 0.1)
+        self.assertTrue(rmsd < 0.2)
         # assert_allclose(ref, img, atol=2e-2)
 
         gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
@@ -456,7 +456,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         img = gm.get_vardata()
         img[np.nonzero(gm.roi == 0)] /= 2.
         rmsd = np.sqrt(np.mean((ref - img)**2))
-        self.assertTrue(rmsd < 0.1)
+        self.assertTrue(rmsd < 0.2)
         # assert_allclose(ref, img, atol=2e-2)
 
     @requires_internet

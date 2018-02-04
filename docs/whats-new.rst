@@ -11,6 +11,9 @@ Enhancements
 ~~~~~~~~~~~~
 
 - :py:func:`~transform_geopandas` can now handle grid to proj transformations.
+- Thw WRF vertical interpolation methods now accept a `fill_value` kwarg
+  which is `np.NaN` per default but can be set to `'extrapolate'` if
+  needed.
 - New :py:func:`~reduce` function, useful to aggregate structured high-res
   grids to lower-res grids (:ref:`sphx_glr_auto_examples_plot_subgrid_mask.py`)
 - new :py:func:`~Grid.to_geometry` method, useful to compute precise

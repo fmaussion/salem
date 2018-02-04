@@ -883,6 +883,7 @@ class TestXarray(unittest.TestCase):
         out = ds.salem.wrf_zlevel('Z', levels=[6000., 7000.])
         assert_allclose(out.sel(z=6000.), ref_2d)
         assert_allclose(out.sel(z=7000.), ref_2d*0. + 7000.)
+        assert np.all(np.isfinite(out))
 
         out = ds.salem.wrf_zlevel('Z')
         assert_allclose(out.sel(z=7500.), ref_2d*0. + 7500.)
@@ -897,6 +898,11 @@ class TestXarray(unittest.TestCase):
 
         out = ds.salem.wrf_plevel('PRESSURE')
         assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+        assert np.any(~np.isfinite(out))
+
+        out = ds.salem.wrf_plevel('PRESSURE', fill_value='extrapolate')
+        assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+        assert np.all(np.isfinite(out))
 
         ds = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
         ws_h = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.,

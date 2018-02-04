@@ -435,11 +435,13 @@ var_classes.remove('AccumulatedVariable')
 
 
 def _interp1d(args):
-    f = interp1d(args[0], args[1], fill_value=np.NaN, bounds_error=False)
+    f = interp1d(args[0], args[1], fill_value=args[3],
+                 bounds_error=False)
     return f(args[2])
 
 
-def interp3d(data, zcoord, levels, use_multiprocessing=True):
+def interp3d(data, zcoord, levels, fill_value=np.NaN,
+             use_multiprocessing=True):
     """Interpolate on the first dimension of a 3d var
 
     Useful for WRF pressure or geopotential levels
@@ -452,6 +454,9 @@ def interp3d(data, zcoord, levels, use_multiprocessing=True):
       same dims as data, the z coordinates of the data points
     levels: 1darray
       the levels at which to interpolate
+    fill_value : np.NaN or 'extrapolate', optional
+      how to handle levels below the topography. Default is to mark them
+      as invalid, but you might want the have them extrapolated.
     use_multiprocessing: bool
       set to false if, for some reason, you don't want to use mp
 
@@ -464,7 +469,8 @@ def interp3d(data, zcoord, levels, use_multiprocessing=True):
     if ndims == 4:
         out = []
         for d, z in zip(data, zcoord):
-            out.append(np.expand_dims(interp3d(d, z, levels), 0))
+            out.append(np.expand_dims(interp3d(d, z, levels,
+                                               fill_value=fill_value), 0))
         return np.concatenate(out, axis=0)
     if ndims != 3:
         raise ValueError('ndims must be 3')
@@ -473,7 +479,8 @@ def interp3d(data, zcoord, levels, use_multiprocessing=True):
         inp = []
         for j in range(data.shape[-2]):
             for i in range(data.shape[-1]):
-                inp.append((zcoord[:, j, i], data[:, j, i], levels))
+                inp.append((zcoord[:, j, i], data[:, j, i], levels,
+                            fill_value))
         _init_pool()
         out = POOL.map(_interp1d, inp, chunksize=1000)
         out = np.asarray(out).T
@@ -486,7 +493,7 @@ def interp3d(data, zcoord, levels, use_multiprocessing=True):
         for i in range(data.shape[-1]):
             for j in range(data.shape[-2]):
                 f = interp1d(zcoord[:, j, i], data[:, j, i],
-                             fill_value=np.NaN, bounds_error=False)
+                             fill_value=fill_value, bounds_error=False)
                 out[:, j, i] = f(levels)
     return out
 

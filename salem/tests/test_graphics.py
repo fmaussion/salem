@@ -15,9 +15,15 @@ try:
     import shapely.geometry as shpg
     import geopandas as gpd
     MPL_VERSION = LooseVersion(mpl.__version__)
+    ftver = LooseVersion(mpl.ft2font.__freetype_version__)
+    if ftver >= LooseVersion('2.8.0'):
+        freetype_subdir = 'freetype_28'
+    else:
+        freetype_subdir = 'freetype_old'
 except ImportError:
     # place holder
     MPL_VERSION = '2.0.0'
+    freetype_subdir = ''
 
 from salem.graphics import ExtendedNorm, DataLevels, Map, get_cmap, shapefiles
 from salem import (Grid, wgs84, mercator_grid, GeoNetcdf,
@@ -33,7 +39,7 @@ testdir = os.path.join(current_dir, 'tmp')
 
 baseline_subdir = '2.0.x'
 baseline_dir = os.path.join(sample_data_dir, 'baseline_images',
-                            baseline_subdir)
+                            baseline_subdir, freetype_subdir)
 
 tolpy2 = 5 if python_version == 'py3' else 10
 
