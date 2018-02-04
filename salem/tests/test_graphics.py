@@ -32,8 +32,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
 
 baseline_subdir = '2.0.x'
+
+ftver = LooseVersion(mpl.ft2font.__freetype_version__)
+if ftver >= LooseVersion('2.8.0'):
+    freetype_subdir = 'freetype_28'
+else:
+    freetype_subdir = 'freetype_old'
+
 baseline_dir = os.path.join(sample_data_dir, 'baseline_images',
-                            baseline_subdir)
+                            baseline_subdir, freetype_subdir)
 
 tolpy2 = 5 if python_version == 'py3' else 10
 
