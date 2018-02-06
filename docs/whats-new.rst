@@ -32,6 +32,7 @@ Bug fixes
   (:issue:`74`)
 - small bugfixes in the projections and warning handling
 - PRESSURE variable was given in Pa, not hPa. This is corrected now.
+- Small bugfixes in exotic WRF diag variables indexing
 
 
 v0.2.1 (07 February 2017)

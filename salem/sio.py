@@ -1108,8 +1108,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     if preprocess is not None:
         datasets = [preprocess(ds) for ds in datasets]
 
-    # TODO: add compat=compat when xarray 9.0 is out
-    combined = xr.auto_combine(datasets, concat_dim='time')
+    combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
     combined._file_obj = _MultiFileCloser(file_objs)
     combined.attrs = datasets[0].attrs
 

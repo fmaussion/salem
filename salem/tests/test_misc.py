@@ -504,7 +504,7 @@ class TestXarray(unittest.TestCase):
     @requires_xarray
     def test_era(self):
 
-        ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc')).chunk()
         self.assertEqual(ds.salem.x_dim, 'longitude')
         self.assertEqual(ds.salem.y_dim, 'latitude')
 
@@ -525,7 +525,7 @@ class TestXarray(unittest.TestCase):
     def test_basic_wrf(self):
         import xarray as xr
 
-        ds = sio.open_xr_dataset(get_demo_file('wrf_tip_d1.nc'))
+        ds = sio.open_xr_dataset(get_demo_file('wrf_tip_d1.nc')).chunk()
 
         # this is because read_dataset changes some stuff, let's see if
         # georef still ok
@@ -554,7 +554,7 @@ class TestXarray(unittest.TestCase):
 
         for i in [1, 2, 3]:
             fg = get_demo_file('geo_em_d0{}_lambert.nc'.format(i))
-            ds = sio.open_wrf_dataset(fg)
+            ds = sio.open_wrf_dataset(fg).chunk()
             self.assertFalse('Time' in ds.dims)
             self.assertTrue('time' in ds.dims)
             self.assertTrue('south_north' in ds.dims)
@@ -565,7 +565,7 @@ class TestXarray(unittest.TestCase):
     def test_wrf(self):
         import xarray as xr
 
-        ds = sio.open_wrf_dataset(get_demo_file('wrf_tip_d1.nc'))
+        ds = sio.open_wrf_dataset(get_demo_file('wrf_tip_d1.nc')).chunk()
 
         # this is because read_dataset changes some stuff, let's see if
         # georef still ok
@@ -597,7 +597,7 @@ class TestXarray(unittest.TestCase):
         ncl_out = get_demo_file('wrf_cropped_ncl.nc')
 
         with warnings.catch_warnings(record=True) as war:
-            w = sio.open_wrf_dataset(wf)
+            w = sio.open_wrf_dataset(wf).chunk()
             self.assertEqual(len(war), 0)
         nc = xr.open_dataset(ncl_out)
 
@@ -639,8 +639,8 @@ class TestXarray(unittest.TestCase):
 
         wf = get_demo_file('wrf_cropped.nc')
 
-        w = sio.open_wrf_dataset(wf)
-        nc = sio.open_xr_dataset(wf)
+        w = sio.open_wrf_dataset(wf).chunk()
+        nc = sio.open_xr_dataset(wf).chunk()
 
         nc['PH_UNSTAGG'] = nc['P']*0.
         uns = nc['PH'].isel(bottom_top_stag=slice(0, -1)).values + \
@@ -683,19 +683,7 @@ class TestXarray(unittest.TestCase):
     def test_diagvars(self):
 
         wf = get_demo_file('wrf_d01_allvars_cropped.nc')
-        w = sio.open_wrf_dataset(wf)
-
-        # ws
-        w['ws_ref'] = np.sqrt(w['U']**2 + w['V']**2)
-        assert_allclose(w['ws_ref'], w['WS'])
-        wcrop = w.isel(west_east=slice(4, 8), bottom_top=4)
-        assert_allclose(wcrop['ws_ref'], wcrop['WS'])
-
-    @requires_xarray
-    def test_diagvars(self):
-
-        wf = get_demo_file('wrf_d01_allvars_cropped.nc')
-        w = sio.open_wrf_dataset(wf)
+        w = sio.open_wrf_dataset(wf).chunk()
 
         # ws
         w['ws_ref'] = np.sqrt(w['U']**2 + w['V']**2)
@@ -708,7 +696,7 @@ class TestXarray(unittest.TestCase):
 
         wf = get_demo_file('wrfout_d01.nc')
 
-        w = sio.open_wrf_dataset(wf)
+        w = sio.open_wrf_dataset(wf).chunk()
         nc = sio.open_xr_dataset(wf)
 
         nc['REF_PRCP_NC'] = nc['RAINNC']*0.
@@ -764,8 +752,8 @@ class TestXarray(unittest.TestCase):
     def test_transform_logic(self):
 
         # This is just for the naming and dim logic, the rest is tested elsewh
-        ds1 = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
-        ds2 = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+        ds1 = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc')).chunk()
+        ds2 = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc')).chunk()
 
         # 2darray case
         t2 = ds2.T2.isel(time=1)
@@ -820,8 +808,8 @@ class TestXarray(unittest.TestCase):
     @requires_geopandas
     def test_lookup_transform(self):
 
-        dsw = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
-        dse = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        dsw = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc')).chunk()
+        dse = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc')).chunk()
         out = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len)
         # qualitative tests (quantitative testing done elsewhere)
         assert out[0, 0] == 0
@@ -843,7 +831,7 @@ class TestXarray(unittest.TestCase):
 
         # TODO: these tests are qualitative and should be compared against ncl
         f = get_demo_file('wrf_d01_allvars_cropped.nc')
-        ds = sio.open_wrf_dataset(f)
+        ds = sio.open_wrf_dataset(f).chunk()
 
         # making a repr was causing trouble because of the small chunks
         _ = ds.__repr__()
@@ -871,7 +859,7 @@ class TestXarray(unittest.TestCase):
     def test_3d_interp(self):
 
         f = get_demo_file('wrf_d01_allvars_cropped.nc')
-        ds = sio.open_wrf_dataset(f)
+        ds = sio.open_wrf_dataset(f).chunk()
 
         out = ds.salem.wrf_zlevel('Z', levels=6000.)
         ref_2d = out*0. + 6000.
