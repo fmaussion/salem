@@ -112,7 +112,7 @@ class Unstaggerer(object):
         else:
             item[self.ds] = slice(start, stop-1)
             itemr[self.ds] = slice(start+1, stop)
-        return 0.5*(self.ncvar[item] + self.ncvar[itemr])
+        return 0.5*(self.ncvar[tuple(item)] + self.ncvar[tuple(itemr)])
 
 
 class FakeVariable(object):
@@ -212,7 +212,9 @@ class AccumulatedVariable(FakeVariable):
 
         # time is always going to be first dim I hope
         sl = item[0]
+        was_scalar = False
         if np.isscalar(sl) and not isinstance(sl, slice):
+            was_scalar = True
             sl = slice(sl, sl+1)
 
         # Ok, get the indexes right
@@ -243,6 +245,8 @@ class AccumulatedVariable(FakeVariable):
         else:
             out = var[itemr]
             out -= var[item]
+        if was_scalar:
+            out = out[0, ...]
         return out * self._factor
 
 
