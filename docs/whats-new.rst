@@ -33,6 +33,8 @@ Bug fixes
 - small bugfixes in the projections and warning handling
 - PRESSURE variable was given in Pa, not hPa. This is corrected now.
 - Small bugfixes in exotic WRF diag variables indexing
+- Corrected a bug in `proj_to_cartopy` where the spherical parameters were
+  silently ignored. Cartopy maps on WRF domains are now perfect!!!
 
 
 v0.2.1 (07 February 2017)

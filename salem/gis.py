@@ -1366,7 +1366,7 @@ def proj_to_cartopy(proj):
 
     globe = None
     if kw_globe:
-        globe = ccrs.Globe(**kw_globe)
+        globe = ccrs.Globe(ellipse='sphere', **kw_globe)
     if kw_std:
         kw_proj['standard_parallels'] = (kw_std['lat_1'], kw_std['lat_2'])
 
