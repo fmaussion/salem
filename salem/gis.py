@@ -1437,14 +1437,14 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
                 pixel_ref='corner')
 
 
-def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12):
+def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1):
     """Mercator map centered on a specified point (google API conventions).
 
     Mostly useful for google maps.
     """
 
     # Number of pixels in an image with a zoom level of 0.
-    google_pix = 256
+    google_pix = 256 * scale
     # The equitorial radius of the Earth assuming WGS-84 ellipsoid.
     google_earth_radius = 6378137.0
 
@@ -1455,12 +1455,13 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12):
 
     # Meter per pixel
     mpix = (2 * np.pi * google_earth_radius) / google_pix / (2**zoom)
-    xx = nx * mpix
-    yy = ny * mpix
+    xx = nx * scale * mpix
+    yy = ny * scale * mpix
 
     e, n = pyproj.transform(wgs84, projloc, lon, lat)
     corner = (-xx / 2. + e, yy / 2. + n)
-    dxdy = (xx / nx, - yy / ny)
+    dxdy = (xx / nx / scale, - yy / ny / scale)
 
-    return Grid(proj=projloc, x0y0=corner, nxny=(nx, ny), dxdy=dxdy,
+    return Grid(proj=projloc, x0y0=corner, 
+                nxny=(nx * scale, ny * scale), dxdy=dxdy,
                 pixel_ref='corner')
