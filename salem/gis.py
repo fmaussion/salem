@@ -1453,15 +1453,19 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
     proj_params = dict(proj='merc', datum='WGS84')
     projloc = pyproj.Proj(proj_params)
 
+    # The size of the image is multiplied by the scaling factor
+    nx *= scale
+    ny *= scale
+
     # Meter per pixel
     mpix = (2 * np.pi * google_earth_radius) / google_pix / (2**zoom)
-    xx = nx * scale * mpix
-    yy = ny * scale * mpix
+    xx = nx * mpix
+    yy = ny * mpix
 
     e, n = pyproj.transform(wgs84, projloc, lon, lat)
     corner = (-xx / 2. + e, yy / 2. + n)
-    dxdy = (xx / nx / scale, - yy / ny / scale)
+    dxdy = (xx / nx, - yy / ny)
 
     return Grid(proj=projloc, x0y0=corner, 
-                nxny=(nx * scale, ny * scale), dxdy=dxdy,
+                nxny=(nx, ny), dxdy=dxdy,
                 pixel_ref='corner')

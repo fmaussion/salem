@@ -500,9 +500,6 @@ class GoogleCenterMap(GeoDataset):
           any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
         """
 
-        if scale < 0 or scale > 2 or type(scale) is not int:
-            raise ValueError('incompatible value of scale')
-
         # Google grid
         grid = gis.googlestatic_mercator_grid(center_ll=center_ll,
                                                 nx=size_x, ny=size_y,
@@ -568,9 +565,6 @@ class GoogleVisibleMap(GoogleCenterMap):
 
         if 'zoom' in kwargs or 'center_ll' in kwargs:
             raise ValueError('incompatible kwargs.')
-
-        if scale < 0 or scale > 2 or type(scale) is not int:
-            raise ValueError('incompatible value of scale')
 
         # Transform to lonlat
         crs = gis.check_crs(crs)
