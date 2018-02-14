@@ -585,7 +585,6 @@ class GoogleVisibleMap(GoogleCenterMap):
         mc = (np.mean(lon), np.mean(lat))
         zoom = 20
         while zoom >= 0:
-            print zoom
             grid = gis.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
                                                   ny=size_y, zoom=zoom,
                                                   scale=scale)
