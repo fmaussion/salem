@@ -475,7 +475,8 @@ class GoogleCenterMap(GeoDataset):
     """
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
-                 zoom=12, maptype='satellite', use_cache=True, **kwargs):
+                 scale=1, zoom=12, maptype='satellite', use_cache=True, 
+                 **kwargs):
         """Initialize
 
         Parameters
@@ -486,6 +487,8 @@ class GoogleCenterMap(GeoDataset):
           image size
         size_y : int
           image size
+        scale : int
+          image scaling factor
         zoom int
           google zoom level (https://developers.google.com/maps/documentation/
           static-maps/intro#Zoomlevels)
@@ -497,18 +500,16 @@ class GoogleCenterMap(GeoDataset):
           any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
         """
 
-        if 'scale' in kwargs:
-            raise NotImplementedError('scale not supported')
-
         # Google grid
         grid = gis.googlestatic_mercator_grid(center_ll=center_ll,
                                                 nx=size_x, ny=size_y,
-                                                zoom=zoom)
+                                                zoom=zoom, scale=scale)
 
         # Motionless
         googleurl = motionless.CenterMap(lon=center_ll[0], lat=center_ll[1],
                                          size_x=size_x, size_y=size_y,
-                                         maptype=maptype, zoom=zoom, **kwargs)
+                                         maptype=maptype, zoom=zoom, scale=scale, 
+                                         **kwargs)
 
         # done
         self.googleurl = googleurl
@@ -536,7 +537,7 @@ class GoogleVisibleMap(GoogleCenterMap):
     It's usually more practical to use than GoogleCenterMap.
     """
 
-    def __init__(self, x, y, crs=wgs84, size_x=640, size_y=640,
+    def __init__(self, x, y, crs=wgs84, size_x=640, size_y=640, scale=1,
                  maptype='satellite', use_cache=True, **kwargs):
         """Initialize
 
@@ -552,6 +553,8 @@ class GoogleVisibleMap(GoogleCenterMap):
           image size
         size_y : int
           image size
+        scale : int
+          image scaling factor
         maptype : str, default: 'satellite'
           'roadmap', 'satellite', 'hybrid', 'terrain'
         use_cache : bool, default: True
@@ -577,7 +580,8 @@ class GoogleVisibleMap(GoogleCenterMap):
         zoom = 20
         while zoom >= 0:
             grid = gis.googlestatic_mercator_grid(center_ll=mc, nx=size_x,
-                                                  ny=size_y, zoom=zoom)
+                                                  ny=size_y, zoom=zoom,
+                                                  scale=scale)
             dx, dy = grid.transform(lon, lat, maskout=True)
             if np.any(dx.mask):
                 zoom -= 1
@@ -585,5 +589,5 @@ class GoogleVisibleMap(GoogleCenterMap):
                 break
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
-                                 size_y=size_y, zoom=zoom, maptype=maptype,
-                                 use_cache=use_cache, **kwargs)
+                                 size_y=size_y, zoom=zoom, scale=scale,
+                                 maptype=maptype, use_cache=use_cache, **kwargs)
