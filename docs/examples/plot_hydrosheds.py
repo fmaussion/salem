@@ -22,7 +22,8 @@ gdf = salem.read_shapefile(shpf)
 # Get the google map which encompasses all geometries
 g = salem.GoogleVisibleMap(x=[gdf.min_x.min(), gdf.max_x.max()],
                            y=[gdf.min_y.min(), gdf.max_y.max()],
-                           maptype='satellite', size_x=400, size_y=400)
+                           maptype='satellite', scale=2,
+                           size_x=400, size_y=400)
 ggl_img = g.get_vardata()
 
 # Get each level draining into the lake, then into the last level, and so on

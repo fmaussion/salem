@@ -20,6 +20,9 @@ Enhancements
   vector to raster masks (TODO: example showing its use)
 - new projection for WRF files: polar stereographic
 - one can now add a scale bar to maps (see :py:func:`~Map.set_scale_bar`)
+- google static maps now support the `scale` kwarg for higher resolution
+  images (:pull:`91`).
+  By `tbridel <https://github.com/tbridel>`_
 - each salem version is now pinned to a certain commit of the sample-data
   repository. This is more robust and will avoid future tests to fail
   for the wrong reasons.

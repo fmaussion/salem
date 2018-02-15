@@ -33,6 +33,7 @@ shp = salem.read_shapefile(get_demo_file('rgi_kesselwand.shp'))
 # I you need to do a lot of maps you might want
 # to use an API key and set it here with key='YOUR_API_KEY'
 g = GoogleVisibleMap(x=[shp.min_x, shp.max_x], y=[shp.min_y, shp.max_y],
+                     scale=2,  # scale is for more details
                      maptype='satellite')  # try out also: 'terrain'
 
 # the google static image is a standard rgb image

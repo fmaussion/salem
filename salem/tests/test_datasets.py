@@ -457,7 +457,13 @@ class TestGoogleStaticMap(unittest.TestCase):
         img[np.nonzero(gm.roi == 0)] /= 2.
         rmsd = np.sqrt(np.mean((ref - img)**2))
         self.assertTrue(rmsd < 0.2)
-        # assert_allclose(ref, img, atol=2e-2)
+
+        gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
+                             size_x=500, size_y=500)
+        gm2 = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
+                              size_x=500, size_y=500, scale=2)
+        assert (gm.grid.nx * 2) == gm2.grid.nx
+        assert gm.grid.extent == gm2.grid.extent
 
     @requires_internet
     @requires_motionless
@@ -498,6 +504,13 @@ class TestGoogleStaticMap(unittest.TestCase):
         ref = mpl.image.imread(get_demo_file('hef_google_visible_grid.png'))
         rmsd = np.sqrt(np.mean((ref-img)**2))
         self.assertTrue(rmsd < 5e-1)
+
+        gm = GoogleVisibleMap(x=i, y=j, crs=d.grid,
+                              size_x=500, size_y=500)
+        gm2 = GoogleVisibleMap(x=i, y=j, crs=d.grid, scale=2,
+                              size_x=500, size_y=500)
+        assert (gm.grid.nx * 2) == gm2.grid.nx
+        assert gm.grid.extent == gm2.grid.extent
 
 
 class TestWRF(unittest.TestCase):
