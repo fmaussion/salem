@@ -1392,8 +1392,8 @@ def proj_to_cartopy(proj):
 
 
 def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
-                  origin='lower-left'):
-    """Local transverse mercator map centered on a specified point.
+                  origin='lower-left', transverse=True):
+    """Local (transverse) mercator map centered on a specified point.
 
     Parameters
     ----------
@@ -1408,12 +1408,15 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
         with y)
     origin : str
         'lower-left' or 'upper-left'
-
+    transverse : bool
+        wether to use a transverse or regular mercator. Default should have
+        been false, but for backwards compatibility reasons we keep it to True
     """
 
     # Make a local proj
+    pname = 'tmerc' if transverse else 'merc'
     lon, lat = center_ll
-    proj_params = dict(proj='tmerc', lat_0=0., lon_0=lon,
+    proj_params = dict(proj=pname, lat_0=0., lon_0=lon,
                        k=0.9996, x_0=0, y_0=0, datum='WGS84')
     projloc = pyproj.Proj(proj_params)
 
