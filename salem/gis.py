@@ -604,8 +604,12 @@ class Grid(object):
             crs = self.proj
 
         # Convert i, j to x, y
-        x = np.asarray(i) * self.dx + self.x0
-        y = np.asarray(j) * self.dy + self.y0
+        try:
+            x = i * self.dx + self.x0
+            y = j * self.dy + self.y0
+        except TypeError:
+            x = np.asarray(i) * self.dx + self.x0
+            y = np.asarray(j) * self.dy + self.y0
 
         # Convert x, y to crs
         _crs = check_crs(crs)
