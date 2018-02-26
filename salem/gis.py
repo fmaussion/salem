@@ -604,8 +604,8 @@ class Grid(object):
             crs = self.proj
 
         # Convert i, j to x, y
-        x = i * self.dx + self.x0
-        y = j * self.dy + self.y0
+        x = np.asarray(i) * self.dx + self.x0
+        y = np.asarray(j) * self.dy + self.y0
 
         # Convert x, y to crs
         _crs = check_crs(crs)
