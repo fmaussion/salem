@@ -37,7 +37,8 @@ Bug fixes
 - PRESSURE variable was given in Pa, not hPa. This is corrected now.
 - Small bugfixes in exotic WRF diag variables indexing
 - Corrected a bug in `proj_to_cartopy` where the spherical parameters were
-  silently ignored. Cartopy maps on WRF domains are now perfect!!!
+  silently ignored. Cartopy maps on WRF domains are now perfect!
+- ``Grid.ij_to_crs`` should now handle non numpy arrays too
 
 
 v0.2.1 (07 February 2017)

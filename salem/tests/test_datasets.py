@@ -30,7 +30,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from salem import Grid
 from salem.utils import get_demo_file
 from salem import wgs84
-from salem import wrftools
+from salem import wrftools, mercator_grid
 from salem.datasets import GeoDataset, GeoNetcdf, GeoTiff, WRF, \
     GoogleCenterMap, GoogleVisibleMap, EsriITMIX
 from salem.tests import requires_xarray, requires_rasterio, \
@@ -511,6 +511,11 @@ class TestGoogleStaticMap(unittest.TestCase):
                               size_x=500, size_y=500)
         assert (gm.grid.nx * 2) == gm2.grid.nx
         assert gm.grid.extent == gm2.grid.extent
+
+        # Test regression for non array inputs
+        grid = mercator_grid(center_ll=(72.5, 30.),
+                             extent=(2.0e6, 2.0e6))
+        GoogleVisibleMap(x=[0, grid.nx - 1], y=[0, grid.ny - 1], crs=grid)
 
 
 class TestWRF(unittest.TestCase):
