@@ -491,7 +491,7 @@ class _XarrayAccessorBase(object):
             that all grid cells which are  clipped by the shapefile defining
             the region of interest should be included (default=False)
         """
-
+        other = kwargs.pop('other', None) 
         if ds is not None:
             grid = ds.salem.grid
             kwargs.setdefault('grid', grid)
@@ -502,7 +502,7 @@ class _XarrayAccessorBase(object):
         mask = xr.DataArray(mask, coords=coords,
                             dims=(self.y_dim, self.x_dim)) 
         
-        out = self._obj.where(mask, other=kwargs.get('other', None))
+        out = self._obj.where(mask, other=other)
 
         # keep attrs
         out.attrs = self._obj.attrs
