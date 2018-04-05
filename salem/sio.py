@@ -910,7 +910,10 @@ class _NetCDF4DataStore(NetCDF4DataStore):
         opener = partial(_open_netcdf4_group, filename, mode=mode,
                          group=group, clobber=clobber, diskless=diskless,
                          persist=persist, format=format, ds=ds)
-        self.ds = opener()
+        try:
+            self.ds = opener()
+        except AttributeError:
+            self._ds = opener()
         self._autoclose = autoclose
         self._isopen = True
         self.format = format
