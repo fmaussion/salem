@@ -490,6 +490,9 @@ class _XarrayAccessorBase(object):
             pass-through argument for rasterio.features.rasterize, indicating
             that all grid cells which are  clipped by the shapefile defining
             the region of interest should be included (default=False)
+        other : scalar, DataArray or Dataset, optional
+            Value to use for locations in this object where cond is False. By default, these locations filled with NA.
+            As in http://xarray.pydata.org/en/stable/generated/xarray.DataArray.where.html
         """
         other = kwargs.pop('other', None) 
         if ds is not None:
