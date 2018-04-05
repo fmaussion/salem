@@ -462,7 +462,7 @@ class _XarrayAccessorBase(object):
 
     def roi(self, ds=None, **kwargs):
         """roi(self, shape=None, geometry=None, grid=None, corners=None,
-               crs=wgs84, roi=None, all_touched=False)
+               crs=wgs84, roi=None, all_touched=False, other=None)
 
         Make a region of interest (ROI) for the dataset.
 
@@ -489,8 +489,11 @@ class _XarrayAccessorBase(object):
             pass-through argument for rasterio.features.rasterize, indicating
             that all grid cells which are  clipped by the shapefile defining
             the region of interest should be included (default=False)
+        other : scalar, DataArray or Dataset, optional
+            Value to use for locations in this object where cond is False. By default, these locations filled with NA.
+            As in http://xarray.pydata.org/en/stable/generated/xarray.DataArray.where.html
         """
-
+        other = kwargs.pop('other', None) 
         if ds is not None:
             grid = ds.salem.grid
             kwargs.setdefault('grid', grid)
@@ -499,8 +502,9 @@ class _XarrayAccessorBase(object):
         coords = {self.y_dim: self._obj[self.y_dim].values,
                   self.x_dim: self._obj[self.x_dim].values}
         mask = xr.DataArray(mask, coords=coords,
-                            dims=(self.y_dim, self.x_dim))
-        out = self._obj.where(mask)
+                            dims=(self.y_dim, self.x_dim)) 
+        
+        out = self._obj.where(mask, other=other)
 
         # keep attrs
         out.attrs = self._obj.attrs
