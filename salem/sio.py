@@ -21,6 +21,7 @@ try:
     from xarray.backends.netCDF4_ import NetCDF4DataStore
     from xarray.core.pycompat import basestring
     from xarray.backends.api import _MultiFileCloser, _default_lock
+    from xarray.core import dtypes
     has_xarray = True
 except ImportError:
     has_xarray = False
@@ -490,10 +491,11 @@ class _XarrayAccessorBase(object):
             that all grid cells which are  clipped by the shapefile defining
             the region of interest should be included (default=False)
         other : scalar, DataArray or Dataset, optional
-            Value to use for locations in this object where cond is False. By default, these locations filled with NA.
+            Value to use for locations in this object where cond is False. By
+            default, these locations filled with NA.
             As in http://xarray.pydata.org/en/stable/generated/xarray.DataArray.where.html
         """
-        other = kwargs.pop('other', None) 
+        other = kwargs.pop('other', dtypes.NA)
         if ds is not None:
             grid = ds.salem.grid
             kwargs.setdefault('grid', grid)
@@ -503,7 +505,7 @@ class _XarrayAccessorBase(object):
                   self.x_dim: self._obj[self.x_dim].values}
         mask = xr.DataArray(mask, coords=coords,
                             dims=(self.y_dim, self.x_dim)) 
-        
+
         out = self._obj.where(mask, other=other)
 
         # keep attrs
