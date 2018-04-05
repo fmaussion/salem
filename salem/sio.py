@@ -463,7 +463,7 @@ class _XarrayAccessorBase(object):
 
     def roi(self, ds=None, **kwargs):
         """roi(self, shape=None, geometry=None, grid=None, corners=None,
-               crs=wgs84, roi=None, all_touched=False)
+               crs=wgs84, roi=None, all_touched=False, other=None)
 
         Make a region of interest (ROI) for the dataset.
 
@@ -500,8 +500,9 @@ class _XarrayAccessorBase(object):
         coords = {self.y_dim: self._obj[self.y_dim].values,
                   self.x_dim: self._obj[self.x_dim].values}
         mask = xr.DataArray(mask, coords=coords,
-                            dims=(self.y_dim, self.x_dim))
-        out = self._obj.where(mask)
+                            dims=(self.y_dim, self.x_dim)) 
+        
+        out = self._obj.where(mask, other=kwargs.get('other', None))
 
         # keep attrs
         out.attrs = self._obj.attrs
