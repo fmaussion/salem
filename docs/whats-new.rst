@@ -26,6 +26,9 @@ Enhancements
 - each salem version is now pinned to a certain commit of the sample-data
   repository. This is more robust and will avoid future tests to fail
   for the wrong reasons.
+- accessor's ``roi`` method now accepts an ``other`` kwarg to fill masked
+  values with something else than Nan (:pull:`96`).
+  By `Schlump <https://github.com/Schlump>`_
 
 
 Bug fixes
@@ -39,6 +42,8 @@ Bug fixes
 - Corrected a bug in `proj_to_cartopy` where the spherical parameters were
   silently ignored. Cartopy maps on WRF domains are now perfect!
 - ``Grid.ij_to_crs`` should now handle non numpy arrays too
+- Corrected an internal bug with latest xarray version (:pull:`97`). Users
+  will have to update to latest xarray version (v0.10+).
 
 
 v0.2.1 (07 February 2017)
