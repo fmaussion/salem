@@ -44,6 +44,7 @@ Bug fixes
 - ``Grid.ij_to_crs`` should now handle non numpy arrays too
 - Corrected an internal bug with latest xarray version (:pull:`97`). Users
   will have to update to latest xarray version (v0.10+).
+- Added new coordinate names to be understood by salem (:issue:`100`).
 
 
 v0.2.1 (07 February 2017)

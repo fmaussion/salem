@@ -92,10 +92,10 @@ memory = Memory(cachedir=hash_cache_dir + '_joblib', verbose=0)
 valid_names = dict()
 valid_names['x_dim'] = ['west_east', 'lon', 'longitude', 'longitudes', 'lons',
                         'xlong', 'xlong_m', 'dimlon', 'x', 'lon_3', 'long',
-                        'phony_dim_0', 'eastings', 'easting']
+                        'phony_dim_0', 'eastings', 'easting', 'nlon', 'nlong']
 valid_names['y_dim'] = ['south_north', 'lat', 'latitude', 'latitudes', 'lats',
                         'xlat', 'xlat_m', 'dimlat', 'y','lat_3', 'phony_dim_1',
-                        'northings', 'northing']
+                        'northings', 'northing', 'nlat']
 valid_names['z_dim'] = ['levelist','level', 'pressure', 'press', 'zlevel', 'z',
                         'bottom_top']
 valid_names['t_dim'] = ['time', 'times', 'xtime']
