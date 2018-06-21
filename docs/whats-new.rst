@@ -4,8 +4,11 @@ What's New
 ==========
 
 
-v0.3.0 (unreleased)
--------------------
+v0.2.2 (21 June 2018)
+---------------------
+
+A long overdue minor release of the salem package. It contains several
+enhancements and bugfixes.
 
 Enhancements
 ~~~~~~~~~~~~
