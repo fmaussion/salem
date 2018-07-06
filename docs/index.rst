@@ -12,14 +12,6 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 .. _DataSet: http://xarray.pydata.org/en/stable/data-structures.html#dataset
 
 
-.. warning::
-
-    Salem is at an early development stage, and its API
-    might change in the future. See :ref:`examples` for a quick overview
-    of Salem's functionalities, and see also the :ref:`faq` for more
-    information and a list of related tools.
-
-
 Documentation
 -------------
 
