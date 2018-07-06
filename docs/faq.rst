@@ -11,6 +11,31 @@ probably change in the future. Salem is well tested though, at least for the
 cases I encounter in my daily work.
 
 
+How should I cite salem?
+------------------------
+
+If you are using salem and would like to cite it in academic publication, we
+would certainly appreciate it. We recommend to use the zenodo DOI for
+this purpose:
+
+    .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1295582.svg
+       :target: https://doi.org/10.5281/zenodo.1295582
+
+An example BibTeX entry::
+
+    @misc{salem_v022,
+      author       = {Fabien Maussion and
+                      tbridel and
+                      Schlump and
+                      Daniel Rothenberg},
+      title        = {fmaussion/salem: v0.2.2},
+      month        = jun,
+      year         = 2018,
+      doi          = {10.5281/zenodo.1295582},
+      url          = {https://doi.org/10.5281/zenodo.1295582}
+    }
+
+
 .. _faqtools:
 
 What others tools should I know about?

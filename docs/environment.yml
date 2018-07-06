@@ -1,24 +1,12 @@
 name: salem
 channels:
+  - oggm
   - conda-forge
 dependencies:
-  - python=3.5
-  - numpy
-  - scipy
-  - matplotlib
-  - geopandas
-  - Pillow=3.0.0  # because RTD installs this version anyway
-  - joblib
-  - netCDF4
-  - descartes
-  - pyproj
-  - rasterio
-  - cartopy
-  - xarray
-  - filelock
+  - python=3.6
+  - oggm-deps
+  - conda-forge/label/dev::rasterio
   - numpydoc
   - ipython
   - sphinx
-  - pip:
-    - motionless
-    - sphinx-gallery
+  - sphinx-gallery

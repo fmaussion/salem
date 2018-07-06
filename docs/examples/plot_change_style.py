@@ -27,7 +27,7 @@ smap.set_shapefile(lakes=True, facecolor='blue', edgecolor='blue')
 smap.set_lonlat_contours(add_ytick_labels=False, interval=5, linewidths=1.5,
                          linestyles='-', colors='C1')
 
-# Add a scalebar
+# Add a scalebar (experimental)
 smap.set_scale_bar(location=(0.87, 0.04), add_bbox=True)
 
 # done!

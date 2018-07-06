@@ -12,14 +12,6 @@ subsetting, masking, and plotting operations to xarray's `DataArray`_ and
 .. _DataSet: http://xarray.pydata.org/en/stable/data-structures.html#dataset
 
 
-.. warning::
-
-    Salem is at an early development stage, and its API
-    might change in the future. See :ref:`examples` for a quick overview
-    of Salem's functionalities, and see also the :ref:`faq` for more
-    information and a list of related tools.
-
-
 Documentation
 -------------
 
@@ -56,17 +48,38 @@ Salem is available under the open source `3-clause BSD license`_.
 .. _3-clause BSD license: https://en.wikipedia.org/wiki/BSD_licenses
 
 
+Citation
+--------
+
+If you are using salem and would like to cite it in academic publication, we
+would certainly appreciate it. We recommend to use the zenodo DOI for
+this purpose:
+
+    .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1295582.svg
+       :target: https://doi.org/10.5281/zenodo.1295582
+
+
 About
 -----
-
-:Status:
-    Experimental - in development
 
 :License:
     3-clause BSD
 
-:Authors:
-    `Fabien Maussion <http://fabienmaussion.info/>`_
+:Status:
+    .. image:: https://badge.fury.io/py/salem.svg
+        :target: https://badge.fury.io/py/salem
+    .. image:: https://travis-ci.org/fmaussion/salem.svg?branch=master
+        :target: https://travis-ci.org/fmaussion/salem
+    .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
+        :target: https://coveralls.io/github/fmaussion/salem?branch=master
 
-:Funding:
-    .. image:: http://acinn.uibk.ac.at/sites/all/themes/imgi/images/acinn_logo.png
+:Documentation:
+    .. image:: https://readthedocs.org/projects/salem/badge/?version=stable
+        :target: http://salem.readthedocs.io/en/stable/?badge=stable
+
+:Citation:
+    .. image:: https://zenodo.org/badge/42607422.svg
+        :target: https://zenodo.org/badge/latestdoi/42607422
+
+:Contact:
+    `Fabien Maussion <http://fabienmaussion.info/>`_
