@@ -949,6 +949,7 @@ def open_wrf_dataset(file, **kwargs):
     """
 
     nc = netCDF4.Dataset(file)
+    nc.set_auto_mask(False)
 
     # Change staggered variables to unstaggered ones
     for vn, v in nc.variables.items():

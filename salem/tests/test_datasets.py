@@ -244,26 +244,27 @@ class TestGeoNetcdf(unittest.TestCase):
 
         stat_lon = 91.1
         stat_lat = 31.1
-        nc = netCDF4.Dataset(f)
-        flon = nc.variables['longitude'][:]
-        flat = nc.variables['latitude'][:]
-        alon = np.argmin(np.abs(flon - stat_lon))
-        alat = np.argmin(np.abs(flat - stat_lat))
+        with netCDF4.Dataset(f) as nc:
+            nc.set_auto_mask(False)
+            flon = nc.variables['longitude'][:]
+            flat = nc.variables['latitude'][:]
+            alon = np.argmin(np.abs(flon - stat_lon))
+            alat = np.argmin(np.abs(flat - stat_lat))
 
-        d.set_subset(corners=((stat_lon, stat_lat), (stat_lon, stat_lat)))
-        slon, slat = d.grid.ll_coordinates
-        assert_array_equal(flon[alon], slon)
-        assert_allclose(flat[alat], slat)
-        # Exotic subset
-        assert_array_equal(flon[alon], d.get_vardata('longitude'))
-        assert_allclose(flat[alat], d.get_vardata('latitude'))
+            d.set_subset(corners=((stat_lon, stat_lat), (stat_lon, stat_lat)))
+            slon, slat = d.grid.ll_coordinates
+            assert_array_equal(flon[alon], slon)
+            assert_allclose(flat[alat], slat)
+            # Exotic subset
+            assert_array_equal(flon[alon], d.get_vardata('longitude'))
+            assert_allclose(flat[alat], d.get_vardata('latitude'))
 
-        assert_allclose(nc.variables['t2m'][:, alat, alon],
-                        np.squeeze(d.get_vardata('t2m')))
+            assert_allclose(nc.variables['t2m'][:, alat, alon],
+                            np.squeeze(d.get_vardata('t2m')))
 
-        d.set_period(t0='2012-06-01 06:00:00', t1='2012-06-01 12:00:00')
-        assert_allclose(nc.variables['t2m'][1:3, alat, alon],
-                        np.squeeze(d.get_vardata('t2m')))
+            d.set_period(t0='2012-06-01 06:00:00', t1='2012-06-01 12:00:00')
+            assert_allclose(nc.variables['t2m'][1:3, alat, alon],
+                            np.squeeze(d.get_vardata('t2m')))
 
     @requires_xarray
     def test_as_xarray(self):
@@ -524,37 +525,38 @@ class TestWRF(unittest.TestCase):
     def test_unstagger(self):
 
         wf = get_demo_file('wrf_cropped.nc')
-        nc = netCDF4.Dataset(wf)
+        with netCDF4.Dataset(wf) as nc:
+            nc.set_auto_mask(False)
 
-        ref = nc['PH'][:]
-        ref = 0.5 * (ref[:, :-1, ...] + ref[:, 1:, ...])
+            ref = nc['PH'][:]
+            ref = 0.5 * (ref[:, :-1, ...] + ref[:, 1:, ...])
 
-        # Own constructor
-        v = wrftools.Unstaggerer(nc['PH'])
-        assert_allclose(v[:], ref)
-        assert_allclose(v[0:2, 2:12, ...],
-                        ref[0:2, 2:12, ...])
-        assert_allclose(v[:, 2:12, ...],
-                        ref[:, 2:12, ...])
-        assert_allclose(v[0:2, 2:12, 5:10, 15:17],
-                        ref[0:2, 2:12, 5:10, 15:17])
-        assert_allclose(v[1:2, 2:, 5:10, 15:17],
-                        ref[1:2, 2:, 5:10, 15:17])
-        assert_allclose(v[1:2, :-2, 5:10, 15:17],
-                        ref[1:2, :-2, 5:10, 15:17])
-        assert_allclose(v[1:2, 2:-4, 5:10, 15:17],
-                        ref[1:2, 2:-4, 5:10, 15:17])
-        assert_allclose(v[[0, 2], ...],
-                        ref[[0, 2], ...])
-        assert_allclose(v[..., [0, 2]],
-                        ref[..., [0, 2]])
-        assert_allclose(v[0, ...], ref[0, ...])
+            # Own constructor
+            v = wrftools.Unstaggerer(nc['PH'])
+            assert_allclose(v[:], ref)
+            assert_allclose(v[0:2, 2:12, ...],
+                            ref[0:2, 2:12, ...])
+            assert_allclose(v[:, 2:12, ...],
+                            ref[:, 2:12, ...])
+            assert_allclose(v[0:2, 2:12, 5:10, 15:17],
+                            ref[0:2, 2:12, 5:10, 15:17])
+            assert_allclose(v[1:2, 2:, 5:10, 15:17],
+                            ref[1:2, 2:, 5:10, 15:17])
+            assert_allclose(v[1:2, :-2, 5:10, 15:17],
+                            ref[1:2, :-2, 5:10, 15:17])
+            assert_allclose(v[1:2, 2:-4, 5:10, 15:17],
+                            ref[1:2, 2:-4, 5:10, 15:17])
+            assert_allclose(v[[0, 2], ...],
+                            ref[[0, 2], ...])
+            assert_allclose(v[..., [0, 2]],
+                            ref[..., [0, 2]])
+            assert_allclose(v[0, ...], ref[0, ...])
 
-        # Under WRF
-        nc = WRF(wf)
-        assert_allclose(nc.get_vardata('PH'), ref)
-        nc.set_period(1, 2)
-        assert_allclose(nc.get_vardata('PH'), ref[1:3, ...])
+            # Under WRF
+            nc = WRF(wf)
+            assert_allclose(nc.get_vardata('PH'), ref)
+            nc.set_period(1, 2)
+            assert_allclose(nc.get_vardata('PH'), ref[1:3, ...])
 
     @requires_xarray
     def test_ncl_diagvars(self):
@@ -564,14 +566,16 @@ class TestWRF(unittest.TestCase):
 
         w = WRF(wf)
 
-        nc = netCDF4.Dataset(ncl_out)
-        ref = nc.variables['TK'][:]
-        tot = w.get_vardata('TK')
-        assert_allclose(ref, tot, rtol=1e-6)
+        with netCDF4.Dataset(ncl_out) as nc:
+            nc.set_auto_mask(False)
 
-        ref = nc.variables['SLP'][:]
-        tot = w.get_vardata('SLP')
-        assert_allclose(ref, tot, rtol=1e-6)
+            ref = nc.variables['TK'][:]
+            tot = w.get_vardata('TK')
+            assert_allclose(ref, tot, rtol=1e-6)
+
+            ref = nc.variables['SLP'][:]
+            tot = w.get_vardata('SLP')
+            assert_allclose(ref, tot, rtol=1e-6)
 
     @requires_pandas
     def test_staggeredcoords(self):

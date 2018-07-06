@@ -963,10 +963,11 @@ class TestGeogridSim(unittest.TestCase):
 
         for i in [1, 2, 3]:
             fg = get_demo_file('geo_em_d0{}_lambert.nc'.format(i))
-            ds = netCDF4.Dataset(fg)
-            lon, lat = g[i-1].ll_coordinates
-            assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
-            assert_allclose(lat, ds['XLAT_M'][0, ...], atol=1e-4)
+            with netCDF4.Dataset(fg) as nc:
+                nc.set_auto_mask(False)
+                lon, lat = g[i-1].ll_coordinates
+                assert_allclose(lon, nc['XLONG_M'][0, ...], atol=1e-4)
+                assert_allclose(lat, nc['XLAT_M'][0, ...], atol=1e-4)
 
     @requires_geopandas
     def test_mercator(self):
@@ -979,10 +980,11 @@ class TestGeogridSim(unittest.TestCase):
 
         for i in [1, 2, 3, 4]:
             fg = get_demo_file('geo_em_d0{}_mercator.nc'.format(i))
-            ds = netCDF4.Dataset(fg)
-            lon, lat = g[i-1].ll_coordinates
-            assert_allclose(lon, ds['XLONG_M'][0, ...], atol=1e-4)
-            assert_allclose(lat, ds['XLAT_M'][0, ...], atol=1e-4)
+            with netCDF4.Dataset(fg) as nc:
+                nc.set_auto_mask(False)
+                lon, lat = g[i-1].ll_coordinates
+                assert_allclose(lon, nc['XLONG_M'][0, ...], atol=1e-4)
+                assert_allclose(lat, nc['XLAT_M'][0, ...], atol=1e-4)
 
     @requires_geopandas
     def test_polar(self):
@@ -995,7 +997,8 @@ class TestGeogridSim(unittest.TestCase):
 
         for i in [1, 2]:
             fg = get_demo_file('geo_em_d0{}_polarstereo.nc'.format(i))
-            ds = netCDF4.Dataset(fg)
-            lon, lat = g[i-1].ll_coordinates
-            assert_allclose(lon, ds['XLONG_M'][0, ...], atol=5e-3)
-            assert_allclose(lat, ds['XLAT_M'][0, ...], atol=5e-3)
+            with netCDF4.Dataset(fg) as nc:
+                nc.set_auto_mask(False)
+                lon, lat = g[i-1].ll_coordinates
+                assert_allclose(lon, nc['XLONG_M'][0, ...], atol=5e-3)
+                assert_allclose(lat, nc['XLAT_M'][0, ...], atol=5e-3)

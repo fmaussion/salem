@@ -23,6 +23,7 @@ class SimpleNcDataSet():
 
     def __init__(self, file):
         self.nc = netCDF4.Dataset(file)
+        self.nc.set_auto_mask(False)
         proj = gis.check_crs(str(self.nc.proj4_str))
         x = self.nc.variables['x']
         y = self.nc.variables['y']
