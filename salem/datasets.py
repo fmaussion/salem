@@ -373,6 +373,7 @@ class GeoNetcdf(GeoDataset):
         """
 
         self._nc = netCDF4.Dataset(file)
+        self._nc.set_auto_mask(False)
         self.variables = self._nc.variables
         if grid is None:
             grid = sio.grid_from_dataset(self._nc)
