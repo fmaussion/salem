@@ -41,13 +41,10 @@ About
 -----
 
 :Status:
-    Experimental - in development
+    Beta - in development
 
 :License:
     3-clause BSD
 
-:Authors:
+:Contact:
     `Fabien Maussion <http://fabienmaussion.info/>`_
-
-:Funding:
-    .. image:: http://acinn.uibk.ac.at/sites/all/themes/imgi/images/acinn_logo.png
