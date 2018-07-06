@@ -28,7 +28,7 @@ try:
     from matplotlib.colors import LinearSegmentedColormap
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from matplotlib.collections import PatchCollection, LineCollection
-    from shapely.geometry import MultiPoint, LineString
+    from shapely.geometry import MultiPoint, LineString, Polygon
     from descartes.patch import PolygonPatch
     from matplotlib.transforms import Transform as MPLTranform
     import matplotlib.path as mpath
@@ -933,7 +933,8 @@ class Map(DataLevels):
         self._rgb = np.dstack(out)
 
     def set_scale_bar(self, location=None, length=None, maxlen=0.25,
-                      **kwargs):
+                      add_bbox=False, bbox_dx=1.2, bbox_dy=1.2,
+                      bbox_kwargs=None, **kwargs):
         """Add a legend bar showing the scale to the plot.
 
         Parameters
@@ -946,6 +947,17 @@ class Map(DataLevels):
         maxlen : float
             the maximum lenght of the bar (in the plot's relative coordinates)
             when choosing the length automatically
+        add_bbox : bool
+            add a bounding box to the scale bar (WIP: experimental)
+        bbox_dx : bool, default: 1.2
+            a multiplicating factor controlling the x size of the bounding box
+            (trial and error works best for this one)
+        bbox_dy : bool, default: 1.2
+            a multiplicating factor controlling the y size of the bounding box
+            (trial and error works best for this one)
+        bbox_kwargs : dict
+            kwarg to pass to set_geometry() for the bounding box (e.g.
+            facecolor, alpha, etc...)
         kwargs : dict
             any kwarg accepted by ``set_geometry``. Defaults are put on
             ``color``, ``linewidth``, ``text``, ``text_kwargs``... But you can
@@ -966,6 +978,12 @@ class Map(DataLevels):
 
         # coordinates for the scalebar
         line = LineString(([sbcx - length/2, sbcy], [sbcx + length/2, sbcy]))
+        # Of the bounding box
+        bbox = [[sbcx - length / 2 * bbox_dx, sbcy - length / 4 * bbox_dy],
+                [sbcx - length / 2 * bbox_dx, sbcy + length / 4 * bbox_dy],
+                [sbcx + length / 2 * bbox_dx, sbcy + length / 4 * bbox_dy],
+                [sbcx + length / 2 * bbox_dx, sbcy - length / 4 * bbox_dy],
+                ]
 
         # Units
         if self.grid.proj.is_latlong():
@@ -983,10 +1001,20 @@ class Map(DataLevels):
         kwargs.setdefault('text', '{} '.format(length) + units)
         kwargs.setdefault('text_delta', (0.0, 0.015))
         kwargs.setdefault('linewidth', 3)
+        kwargs.setdefault('zorder', 99)
         tkw = kwargs.get('text_kwargs', {})
         tkw.setdefault('horizontalalignment', 'center')
+        tkw.setdefault('zorder', 99)
         tkw.setdefault('color', kwargs['color'])
         kwargs['text_kwargs'] = tkw
+        if add_bbox:
+            if bbox_kwargs is None:
+                bbox_kwargs = {}
+            bbox_kwargs.setdefault('facecolor', 'w')
+            bbox_kwargs.setdefault('edgecolor', 'k')
+            bbox_kwargs.setdefault('zorder', 98)
+            poly = Polygon(np.asarray(bbox))
+            self.set_geometry(poly, crs=self.grid.proj, **bbox_kwargs)
         self.set_geometry(line, crs=self.grid.proj, **kwargs)
 
     def transform(self, crs=wgs84, ax=None):
