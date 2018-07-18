@@ -508,8 +508,11 @@ class _XarrayAccessorBase(object):
 
         out = self._obj.where(mask, other=other)
 
-        # keep attrs
+        # keep attrs and encoding
         out.attrs = self._obj.attrs
+        out.encoding = self._obj.encoding
+        for v in self._obj.variables.keys():
+            out[v].encoding = self._obj[v].encoding
         if isinstance(out, xr.DataArray):
             out.name = self._obj.name
 
