@@ -11,6 +11,9 @@ v0.3.0 (unreleased)
 Enhancements
 ~~~~~~~~~~~~
 
+- new :py:func:`~Grid.extent_as_polygon` method, which creates a polygon
+  drawing the contours of a Grid.
+
 
 Bug fixes
 ~~~~~~~~~
@@ -44,8 +47,6 @@ Enhancements
 - accessor's ``roi`` method now accepts an ``other`` kwarg to fill masked
   values with something else than Nan (:pull:`96`).
   By `Schlump <https://github.com/Schlump>`_
-- new :py:func:`~Grid.extent_in_polygon` method, which creates a polygon
-  drawing the contours of a Grid.
 
 
 Bug fixes

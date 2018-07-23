@@ -529,11 +529,11 @@ class Grid(object):
 
         # this is not so trivial
         # for optimisation we will transform the boundaries only
-        poly = self.extent_in_polygon(crs=crs)
+        poly = self.extent_as_polygon(crs=crs)
         _i, _j = poly.exterior.xy
         return [np.min(_i), np.max(_i), np.min(_j), np.max(_j)]
 
-    def extent_in_polygon(self, crs=wgs84):
+    def extent_as_polygon(self, crs=wgs84):
         """Get the extent of the grid in a shapely.Polygon and desired crs.
 
         Parameters

@@ -282,7 +282,7 @@ def test_contourf():
     gs['nxny'] = (1, 2)
     gs['x0y0'] = (0, 2)
     gs = Grid.from_dict(gs)
-    c.set_geometry(gs.extent_in_polygon(), edgecolor='r', linewidth=2)
+    c.set_geometry(gs.extent_as_polygon(), edgecolor='r', linewidth=2)
 
     fig, ax = plt.subplots(1)
     c.visualize(ax=ax)
@@ -665,7 +665,7 @@ def test_lookup_transform():
     fig, ax = plt.subplots(1, 1)
     sm = out.salem.get_map()
     sm.set_data(out)
-    sm.set_geometry(dsw.salem.grid.extent_in_polygon(), edgecolor='r',
+    sm.set_geometry(dsw.salem.grid.extent_as_polygon(), edgecolor='r',
                     linewidth=2)
     sm.visualize(ax=ax)
     return fig
