@@ -723,6 +723,13 @@ class TestGrid(unittest.TestCase):
         assert_allclose([np.min(lon), np.min(lat)], [exgx[0], exgy[0]],
                         rtol=0.1)
 
+        p = g2.extent_in_polygon(crs=g2.proj)
+
+        assert p.is_valid
+        x, y = p.exterior.coords.xy
+        assert_allclose([np.min(x), np.max(x), np.min(y), np.max(y)],
+                        g2.extent)
+
     def test_simple_dataset(self):
         # see if with is working
         with SimpleNcDataSet(get_demo_file('dem_wgs84.nc')) as nc:
