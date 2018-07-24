@@ -512,7 +512,7 @@ class _XarrayAccessorBase(object):
         out.attrs = self._obj.attrs
         out.encoding = self._obj.encoding
         if isinstance(out, xr.Dataset):
-            for v in self._obj.variables.keys():
+            for v in self._obj.variables:
                 out[v].encoding = self._obj[v].encoding
         if isinstance(out, xr.DataArray):
             out.name = self._obj.name
@@ -520,7 +520,7 @@ class _XarrayAccessorBase(object):
         # add pyproj string everywhere
         out.attrs['pyproj_srs'] = self.grid.proj.srs
         if isinstance(out, xr.Dataset):
-            for v in out.variables:
+            for v in out.data_vars:
                 out.variables[v].attrs = self._obj.variables[v].attrs
                 out.variables[v].attrs['pyproj_srs'] = self.grid.proj.srs
         return out

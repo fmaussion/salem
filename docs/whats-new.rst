@@ -12,11 +12,15 @@ Enhancements
 ~~~~~~~~~~~~
 
 - new :py:func:`~Grid.extent_as_polygon` method, which creates a polygon
-  drawing the contours of a Grid.
+  outlining the contours of a Grid.
 
 
 Bug fixes
 ~~~~~~~~~
+
+- the xarray accessor method ``roi()`` now preserves encoding (:issue:`109`).
+  By `Johannes Landmann <https://github.com/jlandmann>`_
+
 
 
 v0.2.2 (21 June 2018)
