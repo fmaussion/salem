@@ -527,6 +527,18 @@ class TestXarray(unittest.TestCase):
         np.testing.assert_almost_equal(dss.longitude, [90.0, 90.75, 91.5])
 
     @requires_xarray
+    def test_roi(self):
+        import xarray as xr
+        # Check that all attrs are preserved
+        ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        ds.encoding = {'_FillValue': np.NaN}
+        ds['t2m'].encoding = {'_FillValue': np.NaN}
+        ds_ = ds.salem.roi(roi=np.ones_like(ds.t2m.values[0, ...]))
+        xr.testing.assert_identical(ds, ds_)
+        assert ds.encoding == ds_.encoding
+        assert ds.t2m.encoding == ds_.t2m.encoding
+
+    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_basic_wrf(self):
         import xarray as xr
