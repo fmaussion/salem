@@ -596,7 +596,7 @@ def _ncl_slp(z, t, p, q):
     return 0.01 * (p0 * np.exp((2.*g*z_half_lowest)/(r*(t_sea_level+t_surf))))
 
 
-def geogrid_simulator(fpath, do_maps=True):
+def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
     """Emulates geogrid.exe, which is useful when defining new WRF domains.
 
     Parameters
@@ -605,6 +605,8 @@ def geogrid_simulator(fpath, do_maps=True):
        path to a namelist.wps file
     do_maps: bool
        if you want the simulator to return you maps of the grids as well
+    map_kwargs: dict
+       kwargs to pass to salem.Map()
 
     Returns
     -------
@@ -718,9 +720,12 @@ def geogrid_simulator(fpath, do_maps=True):
         from salem import Map
         import shapely.geometry as shpg
 
+        if map_kwargs is None:
+            map_kwargs = {}
+
         maps = []
         for i, g in enumerate(out):
-            m = Map(g)
+            m = Map(g, **map_kwargs)
 
             for j in range(i+1, len(out)):
                 cg = out[j]

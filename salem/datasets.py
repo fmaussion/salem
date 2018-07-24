@@ -377,11 +377,16 @@ class GeoNetcdf(GeoDataset):
         self.variables = self._nc.variables
         if grid is None:
             grid = sio.grid_from_dataset(self._nc)
+            if grid is None:
+                raise RuntimeError('File grid not understood')
         if time is None:
             time = sio.netcdf_time(self._nc, monthbegin=monthbegin)
         dn = self._nc.dimensions.keys()
-        self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
-        self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
+        try:
+            self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
+            self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
+        except IndexError:
+            raise RuntimeError('File coordinates not understood')
         dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
         self.t_dim = dim[0] if dim else None
         dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
