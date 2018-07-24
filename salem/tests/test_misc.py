@@ -530,7 +530,7 @@ class TestXarray(unittest.TestCase):
     def test_roi(self):
         import xarray as xr
         # Check that all attrs are preserved
-        ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
+        ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc')).load()
         ds.encoding = {'_FillValue': np.NaN}
         ds['t2m'].encoding = {'_FillValue': np.NaN}
         ds_ = ds.salem.roi(roi=np.ones_like(ds.t2m.values[0, ...]))
