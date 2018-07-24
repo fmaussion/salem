@@ -63,10 +63,10 @@ def check_crs(crs):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
         try:
-            out = pyproj.Proj(crs)
+            out = pyproj.Proj(crs, preserve_units=True)
         except RuntimeError:
             try:
-                out = pyproj.Proj(init=crs)
+                out = pyproj.Proj(init=crs, preserve_units=True)
             except RuntimeError:
                 out = None
     else:

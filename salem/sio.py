@@ -6,7 +6,6 @@ from __future__ import division
 import os
 from glob import glob
 import pickle
-import warnings
 from datetime import datetime
 from functools import partial
 
@@ -1000,6 +999,64 @@ def open_wrf_dataset(file, **kwargs):
     ds.attrs['pyproj_srs'] = ds.salem.grid.proj.srs
     for v in ds.data_vars:
         ds[v].attrs['pyproj_srs'] = ds.salem.grid.proj.srs
+
+    return ds
+
+
+def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
+                       central_rotated_longitude=0., **kwargs):
+    """Wrapper to Met Office Unified Model files (experimental)
+
+    This is needed because these files are a little messy.
+
+    Parameters
+    ----------
+    file : str
+        the path to the MetUM file
+    pole_longitude: optional
+        Pole longitude position, in unrotated degrees. Defaults to the one
+        found in the file (if found) and errors otherwise.
+    pole_latitude: optional
+        Pole latitude position, in unrotated degrees. Defaults to the one
+        found in the file (if found) and errors otherwise.
+    central_rotated_longitude: optional
+        Longitude rotation about the new pole, in degrees. Defaults to the one
+        found in the file (if found) and 0 otherwise.
+    **kwargs : optional
+        Additional arguments passed on to ``xarray.open_dataset``.
+
+    Returns
+    -------
+    an xarray Dataset
+    """
+
+    # open with xarray
+    ds = xr.open_dataset(file, **kwargs)
+
+    # Correct for lons
+    v = ds['grid_longitude_t']
+    ds['grid_longitude_t'] = v.where(v <= 180, v - 360)
+
+    # get pyproj string
+    if pole_longitude is None or pole_latitude is None:
+        _v = ds['rotated_latitude_longitude']
+        pole_longitude = _v.grid_north_pole_longitude
+        pole_latitude = _v.grid_north_pole_latitude
+
+    srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+           '+to_meter=0.0174532925199433 '
+           '+o_lon_p={o_lon_p} +o_lat_p={o_lat_p} +lon_0={lon_0} +no_defs')
+    params = {
+        'o_lon_p': central_rotated_longitude,
+        'o_lat_p': pole_latitude,
+        'lon_0': 180 + pole_longitude,
+    }
+    srs = srs.format(**params)
+
+    # add pyproj string everywhere
+    ds.attrs['pyproj_srs'] = srs
+    for v in ds.data_vars:
+        ds[v].attrs['pyproj_srs'] = srs
 
     return ds
 

@@ -158,6 +158,7 @@ xarray
     :nosignatures:
 
     open_xr_dataset
+    open_metum_dataset
     open_wrf_dataset
     open_mf_wrf_dataset
 

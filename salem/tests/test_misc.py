@@ -930,7 +930,6 @@ class TestXarray(unittest.TestCase):
             dss.to_netcdf(os.path.join(testdir, 'wrf_slice_{}.nc'.format(i)))
             dss.close()
         ds = sio.open_wrf_dataset(f)
-
         dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'))
 
         assert_allclose(ds['RAINNC'], dsm['RAINNC'])
@@ -960,6 +959,21 @@ class TestXarray(unittest.TestCase):
         assert_allclose(ds['PRCP'], dsm['PRCP'])
         assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
                         rtol=1e-6)
+
+    @requires_xarray
+    def test_metum(self):
+        ds = sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
+
+        # One way
+        mylons, mylats = ds.salem.grid.ll_coordinates
+        assert_allclose(mylons, ds.longitude_t, atol=1e-7)
+        assert_allclose(mylats, ds.latitude_t, atol=1e-7)
+
+        # Round trip
+        i, j = ds.salem.grid.transform(mylons, mylats)
+        ii, jj = ds.salem.grid.ij_coordinates
+        assert_allclose(i, ii, atol=1e-7)
+        assert_allclose(j, jj, atol=1e-7)
 
 
 class TestGeogridSim(unittest.TestCase):

@@ -13,6 +13,8 @@ Enhancements
 
 - new :py:func:`~Grid.extent_as_polygon` method, which creates a polygon
   outlining the contours of a Grid.
+- minimal support for MetUm rotated grid files
+  (:py:func:`~salem.open_metum_dataset`), still experimental.
 
 
 Bug fixes
