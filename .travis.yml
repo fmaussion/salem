@@ -54,7 +54,7 @@ install:
   - pip install -e .
 
 script:
-  - pytest salem $MPL --cov=salem --cov-report term-missing;
+  - pytest salem $MPL --cov=salem --cov-report term-missing --verbose;
 
 after_success:
   - coveralls
