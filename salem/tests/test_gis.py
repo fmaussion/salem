@@ -704,6 +704,7 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(odata.shape == (ny-1, nx-1))
             assert_allclose(exp_data, odata, atol=1e-03)
 
+    @requires_shapely
     def test_extent(self):
 
         # It should work exact same for any projection
@@ -722,6 +723,13 @@ class TestGrid(unittest.TestCase):
         lon, lat = g2.corner_grid.ll_coordinates
         assert_allclose([np.min(lon), np.min(lat)], [exgx[0], exgy[0]],
                         rtol=0.1)
+
+        p = g2.extent_as_polygon(crs=g2.proj)
+
+        assert p.is_valid
+        x, y = p.exterior.coords.xy
+        assert_allclose([np.min(x), np.max(x), np.min(y), np.max(y)],
+                        g2.extent)
 
     def test_simple_dataset(self):
         # see if with is working

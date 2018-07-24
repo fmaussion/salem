@@ -11,6 +11,9 @@ v0.3.0 (unreleased)
 Enhancements
 ~~~~~~~~~~~~
 
+- new :py:func:`~Grid.extent_as_polygon` method, which creates a polygon
+  drawing the contours of a Grid.
+
 
 Bug fixes
 ~~~~~~~~~

@@ -529,16 +529,36 @@ class Grid(object):
 
         # this is not so trivial
         # for optimisation we will transform the boundaries only
-        _i = np.hstack([np.arange(self.nx),
-                        np.ones(self.ny)*self.nx,
-                        np.arange(self.nx),
-                        np.zeros(self.ny)]).flatten()
-        _j = np.hstack([np.zeros(self.nx),
-                        np.arange(self.ny),
-                        np.ones(self.nx)*self.ny,
-                        np.arange(self.ny)]).flatten()
-        _i, _j = self.corner_grid.ij_to_crs(_i, _j, crs=crs)
+        poly = self.extent_as_polygon(crs=crs)
+        _i, _j = poly.exterior.xy
         return [np.min(_i), np.max(_i), np.min(_j), np.max(_j)]
+
+    def extent_as_polygon(self, crs=wgs84):
+        """Get the extent of the grid in a shapely.Polygon and desired crs.
+
+        Parameters
+        ----------
+        crs : crs
+            the target coordinate reference system.
+
+        Returns
+        -------
+        [left, right, bottom, top] boundaries of the grid.
+        """
+        from shapely.geometry import Polygon
+
+        # this is not so trivial
+        # for optimisation we will transform the boundaries only
+        _i = np.hstack([np.arange(self.nx+1),
+                        np.ones(self.ny+1)*self.nx,
+                        np.arange(self.nx+1)[::-1],
+                        np.zeros(self.ny+1)]).flatten()
+        _j = np.hstack([np.zeros(self.nx+1),
+                        np.arange(self.ny+1),
+                        np.ones(self.nx+1)*self.ny,
+                        np.arange(self.ny+1)[::-1]]).flatten()
+        _i, _j = self.corner_grid.ij_to_crs(_i, _j, crs=crs)
+        return Polygon(zip(_i, _j))
 
     def regrid(self, nx=None, ny=None, factor=1):
         """Make a copy of the grid with an updated spatial resolution.

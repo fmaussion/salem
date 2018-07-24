@@ -277,6 +277,13 @@ def test_contourf():
 
     c.set_lonlat_contours(interval=0.5)
 
+    # Add a geometry for fun
+    gs = g.to_dict()
+    gs['nxny'] = (1, 2)
+    gs['x0y0'] = (0, 2)
+    gs = Grid.from_dict(gs)
+    c.set_geometry(gs.extent_as_polygon(), edgecolor='r', linewidth=2)
+
     fig, ax = plt.subplots(1)
     c.visualize(ax=ax)
     fig.tight_layout()
@@ -286,7 +293,6 @@ def test_contourf():
     c.set_contour()
 
     return fig
-
 
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
@@ -657,7 +663,11 @@ def test_lookup_transform():
     dse = open_xr_dataset(get_demo_file('era_interim_tibet.nc'))
     out = dse.salem.lookup_transform(dsw.T2C.isel(time=0), method=len)
     fig, ax = plt.subplots(1, 1)
-    out.salem.quick_map(ax=ax)
+    sm = out.salem.get_map()
+    sm.set_data(out)
+    sm.set_geometry(dsw.salem.grid.extent_as_polygon(), edgecolor='r',
+                    linewidth=2)
+    sm.visualize(ax=ax)
     return fig
 
 
