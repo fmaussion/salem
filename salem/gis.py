@@ -1341,13 +1341,16 @@ def proj_to_cartopy(proj):
         from osgeo import osr
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(proj.srs)
-        srs = s1.ExportToProj4()
+        if s1.ExportToProj4():
+            srs = s1.ExportToProj4()
 
     km_proj = {'lon_0': 'central_longitude',
                'lat_0': 'central_latitude',
                'x_0': 'false_easting',
                'y_0': 'false_northing',
                'lat_ts': 'latitude_true_scale',
+               'o_lon_p': 'central_rotated_longitude',
+               'o_lat_p': 'pole_latitude',
                'k': 'scale_factor',
                'zone': 'zone',
                }
@@ -1381,6 +1384,8 @@ def proj_to_cartopy(proj):
                 cl = ccrs.UTM
             if v == 'stere':
                 cl = ccrs.Stereographic
+            if v == 'ob_tran':
+                cl = ccrs.RotatedPole
         if k in km_proj:
             kw_proj[km_proj[k]] = v
         if k in km_globe:
@@ -1405,6 +1410,10 @@ def proj_to_cartopy(proj):
         if 'latitude_true_scale' in kw_proj:
             kw_proj['true_scale_latitude'] = kw_proj['latitude_true_scale']
             kw_proj.pop('latitude_true_scale', None)
+    elif cl.__name__ == 'RotatedPole':
+        if 'central_longitude' in kw_proj:
+            kw_proj['pole_longitude'] = kw_proj['central_longitude'] - 180
+            kw_proj.pop('central_longitude', None)
     else:
         kw_proj.pop('latitude_true_scale', None)
 
