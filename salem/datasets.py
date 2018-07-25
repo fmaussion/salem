@@ -579,9 +579,6 @@ class GoogleVisibleMap(GoogleCenterMap):
         if 'zoom' in kwargs or 'center_ll' in kwargs:
             raise ValueError('incompatible kwargs.')
 
-q
-q
-
         # Transform to lonlat
         crs = gis.check_crs(crs)
         if isinstance(crs, pyproj.Proj):
