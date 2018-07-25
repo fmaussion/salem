@@ -1039,9 +1039,21 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
 
     # get pyproj string
     if pole_longitude is None or pole_latitude is None:
-        _v = ds['rotated_latitude_longitude']
-        pole_longitude = _v.grid_north_pole_longitude
-        pole_latitude = _v.grid_north_pole_latitude
+        # search for specific attributes names
+        n_lon = 'grid_north_pole_longitude'
+        n_lat = 'grid_north_pole_latitude'
+        # first in dataset
+        pole_longitude = ds.attrs.get(n_lon, None)
+        pole_latitude = ds.attrs.get(n_lat, None)
+        # then as variable attribute
+        if pole_longitude is None or pole_latitude is None:
+            for k, v in ds.variables.items():
+                if n_lon in v.attrs:
+                    pole_longitude = v.attrs[n_lon]
+                if n_lat in v.attrs:
+                    pole_latitude = v.attrs[n_lat]
+                if pole_longitude is not None and pole_latitude is not None:
+                    break
 
     srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
            '+to_meter=0.0174532925199433 '
