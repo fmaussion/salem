@@ -494,10 +494,11 @@ class GoogleCenterMap(GeoDataset):
         size_y : int
           image size
         scale : int
-          image scaling factor
-        zoom int
+          image scaling factor. 1, 2. 2 is higher resolution but takes 
+          longer to download
+        zoom : int
           google zoom level (https://developers.google.com/maps/documentation/
-          static-maps/intro#Zoomlevels)
+          static-maps/intro#Zoomlevels). 1 (world) - 20 (buildings)
         maptype : str, default: 'satellite'
           'roadmap', 'satellite', 'hybrid', 'terrain'
         use_cache : bool, default: True
@@ -508,8 +509,8 @@ class GoogleCenterMap(GeoDataset):
 
         # Google grid
         grid = gis.googlestatic_mercator_grid(center_ll=center_ll,
-                                                nx=size_x, ny=size_y,
-                                                zoom=zoom, scale=scale)
+                                              nx=size_x, ny=size_y,
+                                              zoom=zoom, scale=scale)
 
         # Motionless
         googleurl = motionless.CenterMap(lon=center_ll[0], lat=center_ll[1],
@@ -560,13 +561,19 @@ class GoogleVisibleMap(GoogleCenterMap):
         size_y : int
           image size
         scale : int
-          image scaling factor
+          image scaling factor. 1, 2. 2 is higher resolution but takes
+          longer to download
         maptype : str, default: 'satellite'
           'roadmap', 'satellite', 'hybrid', 'terrain'
         use_cache : bool, default: True
           store the downloaded image in the cache to avoid future downloads
         kwargs : **
           any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
+
+        Note
+        ----
+        To obtain the exact domain specified in `x` and `y` you may have to
+        play with the `size_x` and `size_y` kwargs.
         """
 
         if 'zoom' in kwargs or 'center_ll' in kwargs:

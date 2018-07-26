@@ -411,7 +411,8 @@ class Map(DataLevels):
         ny : int
           y resolution (in pixels) of the map (ignored if nx is set)
         factor : float
-          shortcut to keep the same image resolution as the grid
+          shortcut to keep the same image resolution as the grid.
+          1 prevents image resizing
         countries : bool
           automatically add country borders to the map (you can do
           it later with a call to set_shapefile)
