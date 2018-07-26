@@ -46,7 +46,7 @@ download_dir = path.join(cache_dir, 'downloads')
 if not path.exists(download_dir):
     makedirs(download_dir)
 
-sample_data_gh_commit = '63067a04762ecc22f105adc57aea1caa1a465ae1'
+sample_data_gh_commit = '8f9d87afa68de6262124961926df16c28d65fb74'
 sample_data_dir = path.join(cache_dir, 'salem-sample-data-' +
                             sample_data_gh_commit)
 
@@ -59,7 +59,8 @@ if sys.version_info.major == 2:
 from salem.gis import *
 from salem.datasets import *
 from salem.sio import read_shapefile, read_shapefile_to_grid, grid_from_dataset
-from salem.sio import open_xr_dataset, open_wrf_dataset, open_mf_wrf_dataset
+from salem.sio import (open_xr_dataset, open_metum_dataset,
+                       open_wrf_dataset, open_mf_wrf_dataset)
 from salem.sio import DataArrayAccessor, DatasetAccessor
 from salem.utils import get_demo_file, reduce
 from salem.graphics import get_cmap, DataLevels, Map

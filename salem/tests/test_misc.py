@@ -12,8 +12,9 @@ import netCDF4
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
-from salem.tests import requires_travis, requires_geopandas, \
-    requires_matplotlib, requires_xarray, on_travis
+from salem.tests import (requires_travis, requires_geopandas,
+                         requires_matplotlib, requires_xarray,
+                         requires_cartopy)
 from salem import utils, transform_geopandas, GeoTiff, read_shapefile, sio
 from salem import read_shapefile_to_grid, graphics, Grid, mercator_grid, wgs84
 from salem import python_version
@@ -930,7 +931,6 @@ class TestXarray(unittest.TestCase):
             dss.to_netcdf(os.path.join(testdir, 'wrf_slice_{}.nc'.format(i)))
             dss.close()
         ds = sio.open_wrf_dataset(f)
-
         dsm = sio.open_mf_wrf_dataset(os.path.join(testdir, 'wrf_slice_*.nc'))
 
         assert_allclose(ds['RAINNC'], dsm['RAINNC'])
@@ -960,6 +960,39 @@ class TestXarray(unittest.TestCase):
         assert_allclose(ds['PRCP'], dsm['PRCP'])
         assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
                         rtol=1e-6)
+
+    @requires_xarray
+    @requires_cartopy
+    def test_metum(self):
+        ds = sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
+
+        # One way
+        mylons, mylats = ds.salem.grid.ll_coordinates
+        assert_allclose(mylons, ds.longitude_t, atol=1e-7)
+        assert_allclose(mylats, ds.latitude_t, atol=1e-7)
+
+        # Round trip
+        i, j = ds.salem.grid.transform(mylons, mylats)
+        ii, jj = ds.salem.grid.ij_coordinates
+        assert_allclose(i, ii, atol=1e-7)
+        assert_allclose(j, jj, atol=1e-7)
+
+        # Cartopy
+        from salem.gis import proj_to_cartopy
+        from cartopy.crs import PlateCarree
+        cp = proj_to_cartopy(ds.salem.grid.proj)
+
+        xx, yy = ds.salem.grid.xy_coordinates
+        out = PlateCarree().transform_points(cp, xx.flatten(), yy.flatten())
+        assert_allclose(out[:, 0].reshape(ii.shape), ds.longitude_t, atol=1e-7)
+        assert_allclose(out[:, 1].reshape(ii.shape), ds.latitude_t, atol=1e-7)
+
+        # Round trip
+        out = cp.transform_points(PlateCarree(),
+                                  ds.longitude_t.values.flatten(),
+                                  ds.latitude_t.values.flatten())
+        assert_allclose(out[:, 0].reshape(ii.shape), xx, atol=1e-7)
+        assert_allclose(out[:, 1].reshape(ii.shape), yy, atol=1e-7)
 
 
 class TestGeogridSim(unittest.TestCase):
