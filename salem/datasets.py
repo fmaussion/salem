@@ -570,8 +570,8 @@ class GoogleVisibleMap(GoogleCenterMap):
         kwargs : **
           any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
 
-        Note
-        ----
+        Notes
+        -----
         To obtain the exact domain specified in `x` and `y` you may have to
         play with the `size_x` and `size_y` kwargs.
         """

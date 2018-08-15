@@ -429,7 +429,7 @@ class SLP(FakeVariable):
         p = vars['P'][item] + vars['PB'][item]
         q = vars['QVAPOR'][item]
         z = (vars['PH'][item] + vars['PHB'][item]) / 9.81
-        return np.squeeze(_ncl_slp(z, tk, p, q), axis=squeezax)
+        return np.squeeze(_ncl_slp(z, tk, p, q), axis=tuple(squeezax))
 
 # Diagnostic variable classes in a list
 var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
