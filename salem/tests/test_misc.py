@@ -1015,6 +1015,22 @@ class TestGeogridSim(unittest.TestCase):
                 assert_allclose(lat, nc['XLAT_M'][0, ...], atol=1e-4)
 
     @requires_geopandas
+    def test_lambert_tuto(self):
+
+        from salem.wrftools import geogrid_simulator
+
+        g, m = geogrid_simulator(get_demo_file('namelist_tutorial.wps'))
+
+        assert len(g) == 1
+
+        fg = get_demo_file('geo_em.d01_tutorial.nc')
+        with netCDF4.Dataset(fg) as nc:
+            nc.set_auto_mask(False)
+            lon, lat = g[0].ll_coordinates
+            assert_allclose(lon, nc['XLONG_M'][0, ...], atol=1e-4)
+            assert_allclose(lat, nc['XLAT_M'][0, ...], atol=1e-4)
+
+    @requires_geopandas
     def test_mercator(self):
 
         from salem.wrftools import geogrid_simulator
