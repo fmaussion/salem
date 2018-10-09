@@ -516,8 +516,9 @@ class GoogleCenterMap(GeoDataset):
                                               zoom=zoom, scale=scale)
 
         if 'key' not in kwargs:
-            with open(utils.get_demo_file('.api_key'), 'r') as f:
-                API_KEY = f.read().replace('\n', '')
+            if API_KEY is None:
+                with open(utils.get_demo_file('.api_key'), 'r') as f:
+                    API_KEY = f.read().replace('\n', '')
             kwargs['key'] = API_KEY
 
         # Motionless
@@ -584,6 +585,8 @@ class GoogleVisibleMap(GoogleCenterMap):
         play with the `size_x` and `size_y` kwargs.
         """
 
+        global API_KEY
+
         if 'zoom' in kwargs or 'center_ll' in kwargs:
             raise ValueError('incompatible kwargs.')
 
@@ -608,6 +611,12 @@ class GoogleVisibleMap(GoogleCenterMap):
                 zoom -= 1
             else:
                 break
+
+        if 'key' not in kwargs:
+            if API_KEY is None:
+                with open(utils.get_demo_file('.api_key'), 'r') as f:
+                    API_KEY = f.read().replace('\n', '')
+            kwargs['key'] = API_KEY
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
                                  size_y=size_y, zoom=zoom, scale=scale,
