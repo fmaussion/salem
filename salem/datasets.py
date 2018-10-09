@@ -44,6 +44,7 @@ from salem import Grid
 from salem import wgs84
 from salem import utils, gis, wrftools, sio
 
+API_KEY = None
 
 def _to_scalar(x):
     """If a list then scalar"""
@@ -507,10 +508,17 @@ class GoogleCenterMap(GeoDataset):
           any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
         """
 
+        global API_KEY
+
         # Google grid
         grid = gis.googlestatic_mercator_grid(center_ll=center_ll,
                                               nx=size_x, ny=size_y,
                                               zoom=zoom, scale=scale)
+
+        if 'key' not in kwargs:
+            with open(utils.get_demo_file('.api_key'), 'r') as f:
+                API_KEY = f.read().replace('\n', '')
+            kwargs['key'] = API_KEY
 
         # Motionless
         googleurl = motionless.CenterMap(lon=center_ll[0], lat=center_ll[1],
