@@ -1,4 +1,4 @@
-language: python
+language: minimal
 sudo: false
 notifications:
   email: false
@@ -13,34 +13,21 @@ branches:
 matrix:
   fast_finish: true
   include:
-  - python: 2.7
-    env: CONDA_ENV=py27-all MPL=--mpl
-  - python: 3.6
-    env: CONDA_ENV=py36-all MPL=--mpl
-  - python: 3.6
-    env: CONDA_ENV=py36-min MPL=
-  - python: 3.6
-    env: CONDA_ENV=py36-xr MPL=
-  - python: 3.6
-    env: CONDA_ENV=py36-xarray-dev MPL=--mpl
-  - python: 3.6
-    env: CONDA_ENV=py36-all-rc MPL=--mpl
+  - env: CONDA_ENV=py27-all MPL=--mpl
+  - env: CONDA_ENV=py36-all MPL=--mpl
+  - env: CONDA_ENV=py36-min MPL=
+  - env: CONDA_ENV=py36-xr MPL=
+  - env: CONDA_ENV=py36-xarray-dev MPL=--mpl
+  - env: CONDA_ENV=py36-all-rc MPL=--mpl
   allow_failures:
-  - python: 3.6
-    env: CONDA_ENV=py36-xr MPL=
-  - python: 3.6
-    env: CONDA_ENV=py36-xarray-dev MPL=--mpl
-  - python: 3.6
-    env: CONDA_ENV=py36-all-rc MPL=--mpl
+  - env: CONDA_ENV=py36-xr MPL=
+  - env: CONDA_ENV=py36-xarray-dev MPL=--mpl
+  - env: CONDA_ENV=py36-all-rc MPL=--mpl
 
 before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
@@ -54,6 +41,8 @@ install:
   - pip install -e .
 
 script:
+  - which python
+  - python --version
   - pytest salem $MPL --verbose --cov=salem --cov-report term-missing;
 
 after_success:
