@@ -22,7 +22,8 @@ Bug fixes
 
 - the xarray accessor method ``roi()`` now preserves encoding (:issue:`109`).
   By `Johannes Landmann <https://github.com/jlandmann>`_
-
+- fixed a bug in ``geogrid_simulator`` that would occur if `stand_lon` and
+  `ref_lon` were not set to the same value (a strange idea tbh)
 
 
 v0.2.2 (21 June 2018)

@@ -648,11 +648,16 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
         if s0 == 'REF_LAT':
             pargs['lat_0'] = float(s1[0])
         if s0 == 'REF_LON':
-            pargs['lon_0'] = float(s1[0])
+            pargs['ref_lon'] = float(s1[0])
         if s0 == 'TRUELAT1':
             pargs['lat_1'] = float(s1[0])
         if s0 == 'TRUELAT2':
             pargs['lat_2'] = float(s1[0])
+        if s0 == 'STAND_LON':
+            pargs['lon_0'] = float(s1[0])
+
+    # Sometimes files are not complete
+    pargs.setdefault('lon_0', pargs['ref_lon'])
 
     # define projection
     if map_proj == 'LAMBERT':
@@ -674,7 +679,7 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
     pwrf = gis.check_crs(pwrf)
 
     # get easting and northings from dom center (probably unnecessary here)
-    e, n = pyproj.transform(wgs84, pwrf, pargs['lon_0'], pargs['lat_0'])
+    e, n = pyproj.transform(wgs84, pwrf, pargs['ref_lon'], pargs['lat_0'])
 
     # LL corner
     nx, ny = e_we[0]-1, e_sn[0]-1
