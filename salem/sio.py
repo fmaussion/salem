@@ -1034,8 +1034,11 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     ds = xr.open_dataset(file, **kwargs)
 
     # Correct for lons
-    v = ds['grid_longitude_t']
-    ds['grid_longitude_t'] = v.where(v <= 180, v - 360)
+    vn_list = ['grid_longitude_t', 'grid_longitude_uv', 'rlon']
+    for vn in vn_list:
+        if vn in ds.coords:
+            v = ds[vn]
+            ds[vn] = v.where(v <= 180, v - 360)
 
     # get pyproj string
     if pole_longitude is None or pole_latitude is None:
