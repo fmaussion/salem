@@ -378,6 +378,10 @@ def netcdf_time(ncobj, monthbegin=False):
         if monthbegin:
             # sometimes monthly data is centered in the month (stupid)
             time = [datetime(t.year, t.month, 1) for t in time]
+        else:
+            for t in time:
+                if not hasattr(t, 'nanosecond'):
+                    t.nanosecond = 0
 
     return time
 
