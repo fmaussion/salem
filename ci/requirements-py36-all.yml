@@ -16,7 +16,7 @@ dependencies:
   - xarray
   - dask
   - matplotlib<3.0.0
-  - skimage
+  - scikit-image
   - Pillow
   - descartes
   - cartopy
