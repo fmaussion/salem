@@ -17,6 +17,7 @@ dependencies:
   - dask
   - matplotlib
   - Pillow
+  - skimage
   - descartes
   - cartopy
   - pip:

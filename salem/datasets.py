@@ -96,6 +96,7 @@ class GeoDataset(object):
                 try:
                     time = pd.Series(np.arange(len(time)), index=time)
                 except AttributeError:
+                    # https://github.com/pandas-dev/pandas/issues/23419
                     for t in time:
                         setattr(t, 'nanosecond', 0)
                     time = pd.Series(np.arange(len(time)), index=time)
