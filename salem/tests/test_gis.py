@@ -1036,6 +1036,9 @@ class TestTransform(unittest.TestCase):
         o = gis.transform_geometry(p, to_crs=g)
         assert_allclose(p.exterior.coords, o.exterior.coords)
 
+        q = gis.transform_geometry(o, crs=g)
+        assert_allclose(p.exterior.coords, q.exterior.coords)
+
         o = gis.transform_geometry(p, to_crs=g.center_grid)
         totest = np.array(o.exterior.coords) + 0.5
         assert_allclose(p.exterior.coords, totest)
