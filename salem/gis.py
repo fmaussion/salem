@@ -764,7 +764,7 @@ class Grid(object):
         according to a user given rule (e.g. ``np.mean``, ``len``, ``np.std``),
         applied to all grid points found below a grid point in ``self``.
 
-        
+
         See also :py:meth:`Grid.grid_lookup` and examples in the docs
 
         Parameters
@@ -1144,12 +1144,12 @@ class Grid(object):
 
     def to_geometry(self, to_crs=None):
         """Makes a geometrical representation of the grid (e.g. for drawing).
-        
+
         This can come also handy when doing shape-to-raster operations.
-        
+
         TODO: currently returns one polygon for each grid point, but this
         could do more.
-        
+
         Returns
         -------
         a geopandas.GeoDataFrame
@@ -1260,6 +1260,8 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
         project = partial(transform_proj, from_crs, to_crs)
     elif isinstance(to_crs, Grid):
         project = partial(to_crs.transform, crs=from_crs)
+    elif isinstance(from_crs, Grid):
+        project = partial(from_crs.ij_to_crs, crs=to_crs)
     else:
         raise NotImplementedError()
 
@@ -1502,6 +1504,6 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
     corner = (-xx / 2. + e, yy / 2. + n)
     dxdy = (xx / nx, - yy / ny)
 
-    return Grid(proj=projloc, x0y0=corner, 
+    return Grid(proj=projloc, x0y0=corner,
                 nxny=(nx, ny), dxdy=dxdy,
                 pixel_ref='corner')
