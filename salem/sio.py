@@ -1130,7 +1130,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
         raise IOError('no files to open')
 
     # TODO: current workaround to dask thread problems
-    dask.set_options(get=dask.get)
+    dask.config.set(get=dask.get)
 
     if lock is None:
         lock = _default_lock(paths[0], 'netcdf4')

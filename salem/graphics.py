@@ -13,7 +13,7 @@ import copy
 import numpy as np
 
 try:
-    from scipy.misc import imresize
+    from skimage.transform import resize as imresize
 except ImportError:
     pass
 
@@ -466,14 +466,23 @@ class Map(DataLevels):
 
             # need to resize if not same
             if not ((shp[0] == self.grid.ny) and (shp[1] == self.grid.nx)):
-                if interp.lower() == 'linear':
-                    interp = 'bilinear'
-                if interp.lower() == 'spline':
-                    interp = 'cubic'
-                # TODO: this does not work well with masked arrays
-                data = imresize(data.filled(np.NaN),
-                                (self.grid.ny, self.grid.nx),
-                                interp=interp, mode='F')
+                if interp.lower() == 'nearest':
+                    interp = 0
+                elif interp.lower() == 'linear':
+                    interp = 1
+                elif interp.lower() == 'spline':
+                    interp = 3
+                try:
+                    data = imresize(data.filled(np.NaN),
+                                    (self.grid.ny, self.grid.nx),
+                                    order=interp, mode='edge',
+                                    anti_aliasing=True)
+                except RuntimeError:
+                    data = imresize(data.filled(np.NaN),
+                                    (self.grid.ny, self.grid.nx),
+                                    order=interp, mode='edge',
+                                    anti_aliasing=False)
+
         elif isinstance(crs, Grid):
             # Remap
             if overplot:
