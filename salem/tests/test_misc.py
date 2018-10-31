@@ -439,10 +439,13 @@ class TestGraphics(unittest.TestCase):
         # The interpolation is conservative with the grid...
         srgb = np.sum(rgb2[..., 0:3], axis=2)
         pok = np.nonzero(srgb != srgb[0, 0])
-        rgb1 = rgb1[np.min(pok[0]):np.max(pok[0]),
-                    np.min(pok[1]):np.max(pok[1]),...]
-        rgb2 = rgb2[np.min(pok[0]):np.max(pok[0]),
-                    np.min(pok[1]):np.max(pok[1]),...]
+        rgb1 = rgb1[np.min(pok[0])+1:np.max(pok[0]-1),
+                    np.min(pok[1])+1:np.max(pok[1]-1),
+                    ...]
+        rgb2 = rgb2[np.min(pok[0])+1:np.max(pok[0]-1),
+                    np.min(pok[1])+1:np.max(pok[1]-1),
+                    ...]
+
         assert_array_equal(rgb1, rgb2)
 
         cmap.set_bad('pink')

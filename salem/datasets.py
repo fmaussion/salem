@@ -46,6 +46,7 @@ from salem import utils, gis, wrftools, sio
 
 API_KEY = None
 
+
 def _to_scalar(x):
     """If a list then scalar"""
     try:
@@ -92,7 +93,13 @@ class GeoDataset(object):
             if isinstance(time, pd.Series):
                 time = pd.Series(np.arange(len(time)), index=time.index)
             else:
-                time = pd.Series(np.arange(len(time)), index=time)
+                try:
+                    time = pd.Series(np.arange(len(time)), index=time)
+                except AttributeError:
+                    # https://github.com/pandas-dev/pandas/issues/23419
+                    for t in time:
+                        setattr(t, 'nanosecond', 0)
+                    time = pd.Series(np.arange(len(time)), index=time)
         self._time = time
 
         # set_period() will set those
