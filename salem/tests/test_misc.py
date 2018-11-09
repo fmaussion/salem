@@ -173,16 +173,16 @@ class TestIO(unittest.TestCase):
                                                         grid=g.grid,
                                                         **d)
         try:
-            h1 = res.argument_hash
-        except AttributeError:
             h1 = res.timestamp
+        except AttributeError:
+            h1 = res.argument_hash
         res = _memory_shapefile_to_grid.call_and_shelve(shape_cpath,
                                                         grid=g.grid,
                                                         **d2)
         try:
-            h2 = res.argument_hash
-        except AttributeError:
             h2 = res.timestamp
+        except AttributeError:
+            h2 = res.argument_hash
         self.assertEqual(h1, h2)
 
 

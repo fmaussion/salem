@@ -472,17 +472,20 @@ class Map(DataLevels):
                     interp = 1
                 elif interp.lower() == 'spline':
                     interp = 3
-                try:
-                    data = imresize(data.filled(np.NaN),
-                                    (self.grid.ny, self.grid.nx),
-                                    order=interp, mode='edge',
-                                    anti_aliasing=True)
-                except RuntimeError:
-                    # For some order anti_aliasing doesnt work with 'edge'
-                    data = imresize(data.filled(np.NaN),
-                                    (self.grid.ny, self.grid.nx),
-                                    order=interp, mode='edge',
-                                    anti_aliasing=False)
+                with warnings.catch_warnings():
+                    mess = "invalid value encountered in reduce"
+                    warnings.filterwarnings("ignore", message=mess)
+                    try:
+                        data = imresize(data.filled(np.NaN),
+                                        (self.grid.ny, self.grid.nx),
+                                        order=interp, mode='edge',
+                                        anti_aliasing=True)
+                    except RuntimeError:
+                        # For some order anti_aliasing doesnt work with 'edge'
+                        data = imresize(data.filled(np.NaN),
+                                        (self.grid.ny, self.grid.nx),
+                                        order=interp, mode='edge',
+                                        anti_aliasing=False)
 
         elif isinstance(crs, Grid):
             # Remap

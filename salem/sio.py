@@ -17,10 +17,6 @@ from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
 try:
     import xarray as xr
-    from xarray.backends.netCDF4_ import NetCDF4DataStore
-    from xarray.core.pycompat import basestring
-    from xarray.backends.api import _MultiFileCloser, _default_lock
-    from xarray.core import dtypes
     has_xarray = True
 except ImportError:
     has_xarray = False
@@ -39,6 +35,19 @@ try:
     import dask
 except ImportError:
     pass
+
+if has_xarray:
+    from xarray.backends.netCDF4_ import NetCDF4DataStore
+    from xarray.core.pycompat import basestring
+    from xarray.backends.api import _MultiFileCloser
+    from xarray.core import dtypes
+    try:
+        from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK,
+                                           combine_locks)
+        NETCDF4_PYTHON_LOCK = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
+    except ImportError:
+        # xarray < v0.11
+        from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
 
 
 def read_shapefile(fpath, cached=False):
@@ -981,10 +990,10 @@ def open_wrf_dataset(file, **kwargs):
         time = netcdf_time(ds)
         if time is not None:
             ds['Time'] = time
-        ds.rename({'Time':'time'}, inplace=True)
+        ds = ds.rename({'Time':'time'})
     tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
     tr = {k: tr[k] for k in tr.keys() if k in ds.variables}
-    ds.rename(tr, inplace=True)
+    ds = ds.rename(tr)
 
     # drop ugly vars
     vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']
@@ -1133,7 +1142,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     dask.config.set(scheduler='single-threaded')
 
     if lock is None:
-        lock = _default_lock(paths[0], 'netcdf4')
+        lock = NETCDF4_PYTHON_LOCK
     datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
                 for p in paths]
     file_objs = [ds._file_obj for ds in datasets]
