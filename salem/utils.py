@@ -86,7 +86,11 @@ def _hash_cache_dir():
 
 
 hash_cache_dir = _hash_cache_dir()
-memory = Memory(location=hash_cache_dir + '_joblib', verbose=0)
+try:
+    memory = Memory(location=hash_cache_dir + '_joblib', verbose=0)
+except TypeError:
+    # https://github.com/fmaussion/salem/issues/130
+    memory = Memory(cachedir=hash_cache_dir + '_joblib', verbose=0)
 
 # A series of variables and dimension names that Salem will understand
 valid_names = dict()
