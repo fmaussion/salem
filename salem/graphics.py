@@ -11,11 +11,7 @@ from os import path
 import copy
 # External libs
 import numpy as np
-
-try:
-    from skimage.transform import resize as imresize
-except ImportError:
-    pass
+from skimage.transform import resize as imresize
 
 try:
     import pandas as pd
