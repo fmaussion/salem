@@ -14,33 +14,20 @@ import numpy as np
 
 try:
     from skimage.transform import resize as imresize
+    has_skimage = True
 except ImportError:
-    pass
+    has_skimage = False
 
-try:
-    import pandas as pd
-except ImportError:
-    pass
+import pandas as pd
 
-try:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    from matplotlib.collections import PatchCollection, LineCollection
-    from shapely.geometry import MultiPoint, LineString, Polygon
-    from descartes.patch import PolygonPatch
-    from matplotlib.transforms import Transform as MPLTranform
-    import matplotlib.path as mpath
-except ImportError:
-    class d1():
-        def __init__(self):
-            class d2():
-                pass
-            self.colors = d2
-            self.colors.BoundaryNorm = object
-    mpl = d1()
-    MPLTranform = object
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.collections import PatchCollection, LineCollection
+from shapely.geometry import MultiPoint, LineString, Polygon
+from descartes.patch import PolygonPatch
+from matplotlib.transforms import Transform as MPLTranform
 
 from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff
 
@@ -472,6 +459,8 @@ class Map(DataLevels):
                     interp = 1
                 elif interp.lower() == 'spline':
                     interp = 3
+                if not has_skimage:
+                    raise ImportError('Needs scikit-image to be installed.')
                 with warnings.catch_warnings():
                     mess = "invalid value encountered in reduce"
                     warnings.filterwarnings("ignore", message=mess)

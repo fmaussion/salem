@@ -10,11 +10,8 @@ import numpy as np
 import pyproj
 from scipy.interpolate import interp1d
 from netCDF4 import num2date
-try:
-    from pandas import to_datetime
-    from xarray.core import indexing
-except ImportError:
-    pass
+from pandas import to_datetime
+from xarray.core import indexing
 
 from salem import lazy_property, wgs84, gis
 

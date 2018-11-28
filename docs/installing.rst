@@ -13,6 +13,8 @@ Required dependencies
 - `scipy <http://scipy.org/>`__: for its interpolation tools, among other things
 - `pyproj <https://jswhit.github.io/pyproj/>`__: for map projections transformations
 - `netCDF4 <https://github.com/Unidata/netcdf4-python>`__: to read most geoscientific files
+- `pandas <http://pandas.pydata.org/>`__: working with labeled data
+- `xarray <https://jswhit.github.io/pyproj/>`__ (0.8 or later): pandas in N-dimensions
 - `joblib <https://pythonhosted.org/joblib/>`__: for it's `Memory`_ class
 - `six <https://pythonhosted.org/six//>`__: for Py2 compatibility
 
@@ -20,12 +22,6 @@ Required dependencies
 
 Optional dependencies
 ---------------------
-
-Because not using them is a bad idea
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- `pandas <http://pandas.pydata.org/>`__: working with labeled data
-- `xarray <https://jswhit.github.io/pyproj/>`__ (0.8 or later): pandas in N-dimensions
 
 For vector and raster operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +36,8 @@ For plotting
 ~~~~~~~~~~~~
 
 - `matplotlib <http://matplotlib.org/>`__: required for :ref:`plotting`
-- `pillow <http://pillow.readthedocs.io/en/latest/installation.html>`__: required for salem.Map
+- `pillow <http://pillow.readthedocs.io>`__: required for salem.Map
+- `scikit-image <https://scikit-image.org>`__: required for salem.Map
 - `descartes <https://pypi.python.org/pypi/descartes/>`__: for paths and patches on maps
 - `motionless <https://github.com/ryancox/motionless/>`__: for google static maps
 

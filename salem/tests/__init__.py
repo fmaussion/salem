@@ -21,12 +21,6 @@ def has_internet():
     return False
 
 try:
-    import xarray
-    has_xarray = True
-except ImportError:
-    has_xarray = False
-
-try:
     import shapely
     has_shapely = True
 except ImportError:
@@ -37,12 +31,6 @@ try:
     has_geopandas = True
 except ImportError:
     has_geopandas = False
-
-try:
-    import pandas
-    has_pandas = True
-except ImportError:
-    has_pandas = False
 
 try:
     import motionless
@@ -92,11 +80,6 @@ def requires_motionless(test):
     return test if has_motionless else unittest.skip(msg)(test)
 
 
-def requires_pandas(test):
-    msg = "requires pandas"
-    return test if has_pandas else unittest.skip(msg)(test)
-
-
 def requires_rasterio(test):
     msg = "requires rasterio"
     return test if has_rasterio else unittest.skip(msg)(test)
@@ -105,11 +88,6 @@ def requires_rasterio(test):
 def requires_cartopy(test):
     msg = "requires cartopy"
     return test if has_cartopy else unittest.skip(msg)(test)
-
-
-def requires_xarray(test):
-    msg = "requires xarray"
-    return test if has_xarray else unittest.skip(msg)(test)
 
 
 def requires_shapely(test):

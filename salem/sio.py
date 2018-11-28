@@ -15,39 +15,17 @@ import netCDF4
 from salem.utils import memory, cached_shapefile_path
 from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
+import xarray as xr
+from xarray.backends.netCDF4_ import NetCDF4DataStore
+from xarray.core.pycompat import basestring
+from xarray.backends.api import _MultiFileCloser
+from xarray.core import dtypes
 try:
-    import xarray as xr
-    has_xarray = True
+    from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK, combine_locks)
+    NETCDF4_PYTHON_LOCK = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
 except ImportError:
-    has_xarray = False
-    # dummy replacement so that it compiles
-    class xr(object):
-        pass
-    class NullDecl(object):
-        def __init__(self, dummy):
-            pass
-        def __call__(self, func):
-            return func
-    xr.register_dataset_accessor = NullDecl
-    xr.register_dataarray_accessor = NullDecl
-    NetCDF4DataStore = object
-try:
-    import dask
-except ImportError:
-    pass
-
-if has_xarray:
-    from xarray.backends.netCDF4_ import NetCDF4DataStore
-    from xarray.core.pycompat import basestring
-    from xarray.backends.api import _MultiFileCloser
-    from xarray.core import dtypes
-    try:
-        from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK,
-                                           combine_locks)
-        NETCDF4_PYTHON_LOCK = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
-    except ImportError:
-        # xarray < v0.11
-        from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
+    # xarray < v0.11
+    from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
 
 
 def read_shapefile(fpath, cached=False):
@@ -1139,6 +1117,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
         raise IOError('no files to open')
 
     # TODO: current workaround to dask thread problems
+    import dask
     dask.config.set(scheduler='single-threaded')
 
     if lock is None:
