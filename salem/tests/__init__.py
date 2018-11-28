@@ -58,6 +58,12 @@ try:
 except ImportError:
     has_cartopy = False
 
+try:
+    import dask
+    has_dask = True
+except ImportError:
+    has_dask = False
+
 
 def requires_internet(test):
     msg = "requires internet"
@@ -98,6 +104,11 @@ def requires_shapely(test):
 def requires_geopandas(test):
     msg = "requires geopandas"
     return test if has_geopandas else unittest.skip(msg)(test)
+
+
+def requires_dask(test):
+    msg = "requires dask"
+    return test if has_dask else unittest.skip(msg)(test)
 
 
 def requires_travis(test):

@@ -12,7 +12,7 @@ import netCDF4
 import numpy as np
 from numpy.testing import assert_allclose
 
-from salem.tests import (requires_travis, requires_geopandas,
+from salem.tests import (requires_travis, requires_geopandas, requires_dask,
                          requires_matplotlib, requires_cartopy)
 from salem import utils, transform_geopandas, GeoTiff, read_shapefile, sio
 from salem import read_shapefile_to_grid
@@ -221,6 +221,7 @@ class TestXarray(unittest.TestCase):
     def tearDown(self):
         delete_test_dir()
 
+    @requires_dask
     def test_era(self):
 
         ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc')).chunk()
@@ -278,6 +279,7 @@ class TestXarray(unittest.TestCase):
         with pytest.raises(RuntimeError):
             g = t2.salem.grid
 
+    @requires_dask
     def test_geo_em(self):
 
         for i in [1, 2, 3]:
@@ -316,6 +318,7 @@ class TestXarray(unittest.TestCase):
         with pytest.raises(RuntimeError):
             g = t2.salem.grid
 
+    @requires_dask
     def test_ncl_diagvars(self):
 
         import xarray as xr
@@ -360,6 +363,7 @@ class TestXarray(unittest.TestCase):
         tot = tot.values
         assert_allclose(ref, tot, rtol=1e-6)
 
+    @requires_dask
     def test_unstagger(self):
 
         wf = get_demo_file('wrf_cropped.nc')
@@ -404,6 +408,7 @@ class TestXarray(unittest.TestCase):
 
         w['PH'].chunk()
 
+    @requires_dask
     def test_diagvars(self):
 
         wf = get_demo_file('wrf_d01_allvars_cropped.nc')
@@ -415,6 +420,7 @@ class TestXarray(unittest.TestCase):
         wcrop = w.isel(west_east=slice(4, 8), bottom_top=4)
         assert_allclose(wcrop['ws_ref'], wcrop['WS'])
 
+    @requires_dask
     def test_prcp(self):
 
         wf = get_demo_file('wrfout_d01.nc')
@@ -545,6 +551,7 @@ class TestXarray(unittest.TestCase):
         # qualitative tests (quantitative testing done elsewhere)
         assert_allclose(out, out2)
 
+    @requires_dask
     def test_full_wrf_wfile(self):
 
         from salem.wrftools import var_classes
@@ -575,6 +582,7 @@ class TestXarray(unittest.TestCase):
         assert_allclose(v.mean(), ds.PRCP.mean())
         assert_allclose(v.max(), ds.PRCP.max())
 
+    @requires_dask
     def test_3d_interp(self):
 
         f = get_demo_file('wrf_d01_allvars_cropped.nc')
@@ -618,6 +626,7 @@ class TestXarray(unittest.TestCase):
         ws_h2 = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
         assert_allclose(ws_h, ws_h2)
 
+    @requires_dask
     def test_mf_datasets(self):
 
         import xarray as xr
