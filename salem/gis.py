@@ -15,14 +15,7 @@ from distutils.version import LooseVersion
 import pyproj
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
-try:
-    from shapely.ops import transform as shapely_transform
-except ImportError:
-    pass
-try:
-    import geopandas as gpd
-except ImportError:
-    pass
+
 try:
     from osgeo import osr
     has_gdal = True
@@ -1032,17 +1025,17 @@ class Grid(object):
             shape = transform_geopandas(shape, to_crs=self.corner_grid,
                                         inplace=inplace)
             import rasterio
+            from rasterio.features import rasterize
             with rasterio.Env():
-                mask = rasterio.features.rasterize(shape.geometry,
-                                                   **rasterize_kws)
+                mask = rasterize(shape.geometry, **rasterize_kws)
         if geometry is not None:
             import rasterio
+            from rasterio.features import rasterize
             # corner grid is needed for rasterio
             geom = transform_geometry(geometry, crs=crs,
                                       to_crs=self.corner_grid)
             with rasterio.Env():
-                mask = rasterio.features.rasterize(np.atleast_1d(geom),
-                                                   **rasterize_kws)
+                mask = rasterize(np.atleast_1d(geom), **rasterize_kws)
         if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = self.map_gridded_data(_tmp, grid, out=mask).filled(0)
@@ -1265,7 +1258,8 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
     else:
         raise NotImplementedError()
 
-    return shapely_transform(project, geom)
+    from shapely.ops import transform
+    return transform(project, geom)
 
 
 def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
@@ -1284,6 +1278,8 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     -------
     A projected dataframe
     """
+    from shapely.ops import transform
+    import geopandas as gpd
 
     from_crs = check_crs(gdf.crs)
     to_crs = check_crs(to_crs)
@@ -1303,7 +1299,7 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
         raise NotImplementedError()
 
     # Do the job and set the new attributes
-    result = out.geometry.apply(lambda geom: shapely_transform(project, geom))
+    result = out.geometry.apply(lambda geom: transform(project, geom))
     result.__class__ = gpd.GeoSeries
     result.crs = to_crs
     out.geometry = result

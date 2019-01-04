@@ -17,26 +17,13 @@ from six.moves.urllib.request import urlopen
 import pyproj
 import numpy as np
 import netCDF4
+import pandas as pd
+import xarray as xr
 
-try:
-    from matplotlib.image import imread
-except ImportError:
-    pass
-
-try:
-    import pandas as pd
-    import xarray as xr
-except ImportError:
-    pass
 try:
     import rasterio
-    from rasterio import features
 except ImportError:
-    pass
-try:
-    import motionless
-except ImportError:
-    pass
+    rasterio = None
 
 # Locals
 from salem import lazy_property
@@ -232,13 +219,19 @@ class GeoDataset(object):
             gdf = sio.read_shapefile(shape)
             gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid,
                                     inplace=True)
+            if rasterio is None:
+                raise ImportError('This feature needs rasterio')
+            from rasterio.features import rasterize
             with rasterio.Env():
-                mask = features.rasterize(gdf.geometry, out=mask)
+                mask = rasterize(gdf.geometry, out=mask)
         if geometry is not None:
             geom = gis.transform_geometry(geometry, crs=crs,
                                           to_crs=ogrid.corner_grid)
+            if rasterio is None:
+                raise ImportError('This feature needs rasterio')
+            from rasterio.features import rasterize
             with rasterio.Env():
-                mask = features.rasterize(np.atleast_1d(geom), out=mask)
+                mask = rasterize(np.atleast_1d(geom), out=mask)
         if grid is not None:
             _tmp = np.ones((grid.ny, grid.nx), dtype=np.int16)
             mask = ogrid.map_gridded_data(_tmp, grid, out=mask).filled(0)
@@ -279,6 +272,8 @@ class GeoTiff(GeoDataset):
         ----------
         file: path to the file
         """
+        if rasterio is None:
+            raise ImportError('This feature needs rasterio to be insalled')
 
         # brutally efficient
         with rasterio.Env():
@@ -529,6 +524,7 @@ class GoogleCenterMap(GeoDataset):
             kwargs['key'] = API_KEY
 
         # Motionless
+        import motionless
         googleurl = motionless.CenterMap(lon=center_ll[0], lat=center_ll[1],
                                          size_x=size_x, size_y=size_y,
                                          maptype=maptype, zoom=zoom, scale=scale, 
@@ -545,6 +541,7 @@ class GoogleCenterMap(GeoDataset):
         if self.use_cache:
             return utils.joblib_read_img_url(self.googleurl.generate_url())
         else:
+            from matplotlib.image import imread
             fd = urlopen(self.googleurl.generate_url())
             return imread(io.BytesIO(fd.read()))
 

@@ -123,12 +123,15 @@ def check_dependencies(package_names):
         errmsg = "Warning: the following packages could not be found: "
         print(errmsg + ', '.join(not_met))
 
+
 req_packages = ['numpy',
                 'scipy',
                 'six',
                 'pyproj',
                 'joblib',
                 'netCDF4',
+                'pandas',
+                'xarray',
                 ]
 
 check_dependencies(req_packages)

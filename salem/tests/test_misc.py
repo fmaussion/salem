@@ -10,21 +10,14 @@ import copy
 import pytest
 import netCDF4
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose
 
-from salem.tests import (requires_travis, requires_geopandas,
-                         requires_matplotlib, requires_xarray,
-                         requires_cartopy)
+from salem.tests import (requires_travis, requires_geopandas, requires_dask,
+                         requires_matplotlib, requires_cartopy)
 from salem import utils, transform_geopandas, GeoTiff, read_shapefile, sio
-from salem import read_shapefile_to_grid, graphics, Grid, mercator_grid, wgs84
-from salem import python_version
+from salem import read_shapefile_to_grid
 from salem.utils import get_demo_file
 
-try:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-except ImportError:
-    pass
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
@@ -185,8 +178,6 @@ class TestIO(unittest.TestCase):
             h2 = res.argument_hash
         self.assertEqual(h1, h2)
 
-
-    @requires_xarray
     def test_notimevar(self):
 
         import xarray as xr
@@ -195,287 +186,6 @@ class TestIO(unittest.TestCase):
 
         t = sio.netcdf_time(ds)
         assert t is None
-
-
-class TestColors(unittest.TestCase):
-
-    @requires_matplotlib
-    def test_extendednorm(self):
-
-        bounds = [1, 2, 3]
-        cm = mpl.cm.get_cmap('jet')
-
-        mynorm = graphics.ExtendedNorm(bounds, cm.N)
-        refnorm = mpl.colors.BoundaryNorm(bounds, cm.N)
-        x = np.random.randn(100) * 10 - 5
-        np.testing.assert_array_equal(refnorm(x), mynorm(x))
-
-        refnorm = mpl.colors.BoundaryNorm([0] + bounds + [4], cm.N)
-        mynorm = graphics.ExtendedNorm(bounds, cm.N, extend='both')
-        x = np.random.random(100) + 1.5
-        np.testing.assert_array_equal(refnorm(x), mynorm(x))
-
-        # Min and max
-        cmref = mpl.colors.ListedColormap(['blue', 'red'])
-        cmref.set_over('black')
-        cmref.set_under('white')
-
-        cmshould = mpl.colors.ListedColormap(['white', 'blue', 'red', 'black'])
-        cmshould.set_over(cmshould(cmshould.N))
-        cmshould.set_under(cmshould(0))
-
-        refnorm = mpl.colors.BoundaryNorm(bounds, cmref.N)
-        mynorm = graphics.ExtendedNorm(bounds, cmshould.N, extend='both')
-        np.testing.assert_array_equal(refnorm.vmin, mynorm.vmin)
-        np.testing.assert_array_equal(refnorm.vmax, mynorm.vmax)
-        x = [-1, 1.2, 2.3, 9.6]
-        np.testing.assert_array_equal(cmshould([0,1,2,3]), cmshould(mynorm(x)))
-        x = np.random.randn(100) * 10 + 2
-        np.testing.assert_array_equal(cmref(refnorm(x)), cmshould(mynorm(x)))
-
-        np.testing.assert_array_equal(-1, mynorm(-1))
-        np.testing.assert_array_equal(1, mynorm(1.1))
-        np.testing.assert_array_equal(4, mynorm(12))
-
-        # Just min
-        cmref = mpl.colors.ListedColormap(['blue', 'red'])
-        cmref.set_under('white')
-        cmshould = mpl.colors.ListedColormap(['white', 'blue', 'red'])
-        cmshould.set_under(cmshould(0))
-
-        np.testing.assert_array_equal(2, cmref.N)
-        np.testing.assert_array_equal(3, cmshould.N)
-        refnorm = mpl.colors.BoundaryNorm(bounds, cmref.N)
-        mynorm = graphics.ExtendedNorm(bounds, cmshould.N, extend='min')
-        np.testing.assert_array_equal(refnorm.vmin, mynorm.vmin)
-        np.testing.assert_array_equal(refnorm.vmax, mynorm.vmax)
-        x = [-1, 1.2, 2.3]
-        np.testing.assert_array_equal(cmshould([0,1,2]), cmshould(mynorm(x)))
-        x = np.random.randn(100) * 10 + 2
-        np.testing.assert_array_equal(cmref(refnorm(x)), cmshould(mynorm(x)))
-
-        # Just max
-        cmref = mpl.colors.ListedColormap(['blue', 'red'])
-        cmref.set_over('black')
-        cmshould = mpl.colors.ListedColormap(['blue', 'red', 'black'])
-        cmshould.set_over(cmshould(2))
-
-        np.testing.assert_array_equal(2, cmref.N)
-        np.testing.assert_array_equal(3, cmshould.N)
-        refnorm = mpl.colors.BoundaryNorm(bounds, cmref.N)
-        mynorm = graphics.ExtendedNorm(bounds, cmshould.N, extend='max')
-        np.testing.assert_array_equal(refnorm.vmin, mynorm.vmin)
-        np.testing.assert_array_equal(refnorm.vmax, mynorm.vmax)
-        x = [1.2, 2.3, 4]
-        np.testing.assert_array_equal(cmshould([0,1,2]), cmshould(mynorm(x)))
-        x = np.random.randn(100) * 10 + 2
-        np.testing.assert_array_equal(cmref(refnorm(x)), cmshould(mynorm(x)))
-
-        # General case
-        bounds = [1, 2, 3, 4]
-        cm = mpl.cm.get_cmap('jet')
-        mynorm = graphics.ExtendedNorm(bounds, cm.N, extend='both')
-        refnorm = mpl.colors.BoundaryNorm([-100] + bounds + [100], cm.N)
-        x = np.random.randn(100) * 10 - 5
-        ref = refnorm(x)
-        ref = np.where(ref == 0, -1, ref)
-        ref = np.where(ref == cm.N-1, cm.N, ref)
-        np.testing.assert_array_equal(ref, mynorm(x))
-
-
-class TestGraphics(unittest.TestCase):
-
-    @requires_matplotlib
-    def test_datalevels_output(self):
-
-        # Test basic stuffs
-        c = graphics.DataLevels(nlevels=2)
-        assert_array_equal(c.levels, [0, 1])
-        c.set_data([1, 2, 3, 4])
-        assert_array_equal(c.levels, [1, 4])
-
-        c = graphics.DataLevels(levels=[1, 2, 3])
-        assert_array_equal(c.levels, [1, 2, 3])
-
-        c = graphics.DataLevels(nlevels=10, data=[0, 9])
-        assert_array_equal(c.levels, np.linspace(0, 9, num=10))
-        self.assertTrue(c.extend == 'neither')
-
-        c = graphics.DataLevels(nlevels=10, data=[0, 9], vmin=2, vmax=3)
-        assert_array_equal(c.levels, np.linspace(2, 3, num=10))
-        self.assertTrue(c.extend == 'both')
-        c.set_extend('neither')
-        self.assertTrue(c.extend == 'neither')
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            # Trigger a warning.
-            out = c.to_rgb()
-            # Verify some things
-            assert len(w) == 2
-            assert issubclass(w[0].category, RuntimeWarning)
-            assert issubclass(w[1].category, RuntimeWarning)
-
-        c = graphics.DataLevels(nlevels=10, data=[2.5], vmin=2, vmax=3)
-        assert_array_equal(c.levels, np.linspace(2, 3, num=10))
-        self.assertTrue(c.extend == 'neither')
-        c.update(dict(extend='both'))
-        self.assertTrue(c.extend == 'both')
-        self.assertRaises(AttributeError, c.update, dict(dummy='t'))
-
-        c = graphics.DataLevels(nlevels=10, data=[0, 9], vmax=3)
-        assert_array_equal(c.levels, np.linspace(0, 3, num=10))
-        self.assertTrue(c.extend == 'max')
-
-        c = graphics.DataLevels(nlevels=10, data=[0, 9], vmin=1)
-        assert_array_equal(c.levels, np.linspace(1, 9, num=10))
-        self.assertTrue(c.extend == 'min')
-
-        c = graphics.DataLevels(nlevels=10, data=[0, 9], vmin=-1)
-        assert_array_equal(c.levels, np.linspace(-1, 9, num=10))
-        self.assertTrue(c.extend == 'neither')
-        c.set_plot_params()
-        self.assertTrue(c.extend == 'neither')
-        assert_array_equal(c.vmin, 0)
-        assert_array_equal(c.vmax, 9)
-        c.set_plot_params(vmin=1)
-        assert_array_equal(c.vmin, 1)
-        c.set_data([-12, 8])
-        assert_array_equal(c.vmin, 1)
-        self.assertTrue(c.extend == 'min')
-        c.set_data([2, 8])
-        self.assertTrue(c.extend == 'neither')
-        c.set_extend('both')
-        self.assertTrue(c.extend == 'both')
-        c.set_data([3, 3])
-        self.assertTrue(c.extend == 'both')
-        c.set_extend()
-        self.assertTrue(c.extend == 'neither')
-
-        # Test the conversion
-        cm = mpl.colors.ListedColormap(['white', 'blue', 'red', 'black'])
-        x = [-1, 0.9, 1.2, 2, 999, 0.8]
-        c = graphics.DataLevels(levels=[0, 1, 2], data=x, cmap=cm)
-        r = c.to_rgb()
-        self.assertTrue(len(x) == len(r))
-        self.assertTrue(c.extend == 'both')
-        assert_array_equal(r, cm([0, 1, 2, 3, 3, 1]))
-
-        x = [0.9, 1.2]
-        c = graphics.DataLevels(levels=[0, 1, 2], data=x, cmap=cm, extend='both')
-        r = c.to_rgb()
-        self.assertTrue(len(x) == len(r))
-        self.assertTrue(c.extend == 'both')
-        assert_array_equal(r, cm([1, 2]))
-
-        cm = mpl.colors.ListedColormap(['white', 'blue', 'red'])
-        c = graphics.DataLevels(levels=[0, 1, 2], data=x, cmap=cm, extend='min')
-        r = c.to_rgb()
-        self.assertTrue(len(x) == len(r))
-        assert_array_equal(r, cm([1, 2]))
-
-        cm = mpl.colors.ListedColormap(['blue', 'red', 'black'])
-        c = graphics.DataLevels(levels=[0, 1, 2], data=x, cmap=cm, extend='max')
-        r = c.to_rgb()
-        self.assertTrue(len(x) == len(r))
-        assert_array_equal(r, cm([0, 1]))
-
-    @requires_matplotlib
-    def test_map(self):
-
-        a = np.zeros((4, 5))
-        a[0, 0] = -1
-        a[1, 1] = 1.1
-        a[2, 2] = 2.2
-        a[2, 4] = 1.9
-        a[3, 3] = 9
-        cmap = copy.deepcopy(mpl.cm.get_cmap('jet'))
-
-        # ll_corner (type geotiff)
-        g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
-                 pixel_ref='corner')
-        c = graphics.Map(g, ny=4, countries=False)
-        c.set_cmap(cmap)
-        c.set_plot_params(levels=[0, 1, 2, 3])
-        c.set_data(a)
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g)
-        assert_array_equal(rgb1, c.to_rgb())
-        c.set_data(a, interp='linear')
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g, interp='linear')
-        assert_array_equal(rgb1, c.to_rgb())
-
-        # centergrid (type WRF)
-        g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=wgs84,
-                 pixel_ref='center')
-        c = graphics.Map(g, ny=4, countries=False)
-        c.set_cmap(cmap)
-        c.set_plot_params(levels=[0, 1, 2, 3])
-        c.set_data(a)
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g)
-        assert_array_equal(rgb1, c.to_rgb())
-        c.set_data(a, interp='linear')
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g.corner_grid, interp='linear')
-        assert_array_equal(rgb1, c.to_rgb())
-        c.set_data(a, crs=g.center_grid, interp='linear')
-        assert_array_equal(rgb1, c.to_rgb())
-
-        # More pixels
-        c = graphics.Map(g, ny=500, countries=False)
-        c.set_cmap(cmap)
-        c.set_plot_params(levels=[0, 1, 2, 3])
-        c.set_data(a)
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g)
-        assert_array_equal(rgb1, c.to_rgb())
-        c.set_data(a, interp='linear')
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g, interp='linear')
-        rgb2 = c.to_rgb()
-
-        # The interpolation is conservative with the grid...
-        srgb = np.sum(rgb2[..., 0:3], axis=2)
-        pok = np.nonzero(srgb != srgb[0, 0])
-        rgb1 = rgb1[np.min(pok[0])+1:np.max(pok[0]-1),
-                    np.min(pok[1])+1:np.max(pok[1]-1),
-                    ...]
-        rgb2 = rgb2[np.min(pok[0])+1:np.max(pok[0]-1),
-                    np.min(pok[1])+1:np.max(pok[1]-1),
-                    ...]
-
-        assert_array_equal(rgb1, rgb2)
-
-        cmap.set_bad('pink')
-
-        # Add masked arrays
-        a[1, 1] = np.NaN
-        c.set_data(a)
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g)
-        assert_array_equal(rgb1, c.to_rgb())
-
-        # Interp?
-        c.set_data(a, interp='linear')
-        rgb1 = c.to_rgb()
-        c.set_data(a, crs=g, interp='linear')
-        rgb2 = c.to_rgb()
-        # Todo: there's something sensibly wrong about imresize here
-        # but I think it is out of my scope
-        # assert_array_equal(rgb1, rgb2)
-
-    @requires_matplotlib
-    def test_increase_coverage(self):
-
-        # Just for coverage -> empty shapes should not trigger an error
-        grid = mercator_grid(center_ll=(-20, 40),
-                                        extent=(2000, 2000), nx=10)
-        c = graphics.Map(grid)
-
-        # Assigning wrongly shaped data should, however
-        self.assertRaises(ValueError, c.set_data, np.zeros((3, 8)))
 
 
 class TestSkyIsFalling(unittest.TestCase):
@@ -511,7 +221,7 @@ class TestXarray(unittest.TestCase):
     def tearDown(self):
         delete_test_dir()
 
-    @requires_xarray
+    @requires_dask
     def test_era(self):
 
         ds = sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc')).chunk()
@@ -530,7 +240,6 @@ class TestXarray(unittest.TestCase):
 
         np.testing.assert_almost_equal(dss.longitude, [90.0, 90.75, 91.5])
 
-    @requires_xarray
     def test_roi(self):
         import xarray as xr
         # Check that all attrs are preserved
@@ -542,7 +251,6 @@ class TestXarray(unittest.TestCase):
             assert ds.encoding == ds_.encoding
             assert ds.t2m.encoding == ds_.t2m.encoding
 
-    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_basic_wrf(self):
         import xarray as xr
@@ -571,7 +279,7 @@ class TestXarray(unittest.TestCase):
         with pytest.raises(RuntimeError):
             g = t2.salem.grid
 
-    @requires_xarray
+    @requires_dask
     def test_geo_em(self):
 
         for i in [1, 2, 3]:
@@ -582,7 +290,6 @@ class TestXarray(unittest.TestCase):
             self.assertTrue('south_north' in ds.dims)
             self.assertTrue('south_north' in ds.coords)
 
-    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_wrf(self):
         import xarray as xr
@@ -611,7 +318,7 @@ class TestXarray(unittest.TestCase):
         with pytest.raises(RuntimeError):
             g = t2.salem.grid
 
-    @requires_xarray
+    @requires_dask
     def test_ncl_diagvars(self):
 
         import xarray as xr
@@ -656,7 +363,7 @@ class TestXarray(unittest.TestCase):
         tot = tot.values
         assert_allclose(ref, tot, rtol=1e-6)
 
-    @requires_xarray
+    @requires_dask
     def test_unstagger(self):
 
         wf = get_demo_file('wrf_cropped.nc')
@@ -701,7 +408,7 @@ class TestXarray(unittest.TestCase):
 
         w['PH'].chunk()
 
-    @requires_xarray
+    @requires_dask
     def test_diagvars(self):
 
         wf = get_demo_file('wrf_d01_allvars_cropped.nc')
@@ -713,7 +420,7 @@ class TestXarray(unittest.TestCase):
         wcrop = w.isel(west_east=slice(4, 8), bottom_top=4)
         assert_allclose(wcrop['ws_ref'], wcrop['WS'])
 
-    @requires_xarray
+    @requires_dask
     def test_prcp(self):
 
         wf = get_demo_file('wrfout_d01.nc')
@@ -769,7 +476,6 @@ class TestXarray(unittest.TestCase):
             wn = w.isel(time=0, south_north=slice(50, -1))
             self.assertTrue(~np.any(np.isfinite(wn['PRCP' + suf].values)))
 
-    @requires_xarray
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_transform_logic(self):
 
@@ -826,7 +532,6 @@ class TestXarray(unittest.TestCase):
         assert_allclose(out.coords['west_east'],
                         t2.coords['west_east'])
 
-    @requires_xarray
     @requires_geopandas
     def test_lookup_transform(self):
 
@@ -846,7 +551,7 @@ class TestXarray(unittest.TestCase):
         # qualitative tests (quantitative testing done elsewhere)
         assert_allclose(out, out2)
 
-    @requires_xarray
+    @requires_dask
     def test_full_wrf_wfile(self):
 
         from salem.wrftools import var_classes
@@ -877,7 +582,7 @@ class TestXarray(unittest.TestCase):
         assert_allclose(v.mean(), ds.PRCP.mean())
         assert_allclose(v.max(), ds.PRCP.max())
 
-    @requires_xarray
+    @requires_dask
     def test_3d_interp(self):
 
         f = get_demo_file('wrf_d01_allvars_cropped.nc')
@@ -921,7 +626,7 @@ class TestXarray(unittest.TestCase):
         ws_h2 = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
         assert_allclose(ws_h, ws_h2)
 
-    @requires_xarray
+    @requires_dask
     def test_mf_datasets(self):
 
         import xarray as xr
@@ -964,7 +669,6 @@ class TestXarray(unittest.TestCase):
         assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
                         rtol=1e-6)
 
-    @requires_xarray
     @requires_cartopy
     def test_metum(self):
         ds = sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
