@@ -3,13 +3,26 @@
 Frequently Asked Questions
 ==========================
 
-Is your library mature for production code?
--------------------------------------------
+What is the development status of the salem library?
+----------------------------------------------------
 
-Not really. The API is not always as clever as I wish it would, and it will
-probably change in the future. Salem is well tested though, at least for the
-cases I encounter in my daily work.
+As of today (January 2019), salem is used by several people (number unknown)
+and is used by at least one downstream larger project
+(`OGGM <https://oggm.org>`_). I plan to continue to maintain salem in the
+future, but cannot spend much time and enery in new, larger features that
+the community might need. These larger features (mostly: improved support
+for more datasets and improved plotting) should be carried out by larger
+projects (mostly: `geoxarray`_ and
+`cartopy`_).
 
+Salem is small but well tested for the cases I encounter in my daily work.
+I don't think that salem will become a major library (there are so many
+great projects out there!), but I think it will be a useful complement for a
+few. For more information on my motivations to develop salem,
+see :ref:`whysalem` and
+`this github discussion <https://github.com/geoxarray/geoxarray/issues/3>`_.
+
+.. _geoxarray: https://github.com/geoxarray/geoxarray
 
 How should I cite salem?
 ------------------------
@@ -50,6 +63,9 @@ Here are some tools that share functionalities with Salem:
 - `cartopy`_ is the reference tool for plotting on maps. Salem provides a way
   to plot with cartopy in addition to Salem's homegrowm graphics.
   (see :ref:`plotting`)
+- `wrf-python`_ provides much more WRF functionalities than salem. It is the
+  recommended package to do computations with WRF output. Salem's syntax is
+  nicer than that of wrf-python, though.
 - Salem provides useful reprojection tools (see :ref:`gis`). The transformation
   routines are quite fast (we use pyproj for the map transformations and
   scipy for the interpolation) but they are all done on memory (i.e. not
@@ -68,6 +84,7 @@ don't think they share much functionality with Salem: for example `MetPy`_,
 `windspharm`_, `xgcm`_, `aospy`_, and all the ones I forgot to mention.
 
 .. _cartopy: http://scitools.org.uk/cartopy/docs/latest/index.html
+.. _wrf-python: https://wrf-python.readthedocs.io
 .. _pyresample: https://github.com/pytroll/pyresample
 .. _rasterio: https://github.com/mapbox/rasterio
 .. _iris: http://scitools.org.uk/iris/
@@ -80,6 +97,7 @@ don't think they share much functionality with Salem: for example `MetPy`_,
 .. _regionmask: https://github.com/mathause/regionmask
 .. _pangeo-data: https://pangeo-data.github.io/
 
+.. _whysalem:
 
 Why developing Salem?
 ---------------------
@@ -97,6 +115,37 @@ To my knowledge, there is no tool to plot and manipulate WRF data with Python,
 and Salem will be further developed with this model in mind.
 
 .. _conda-forge: http://conda-forge.github.io/
+
+
+Why is my dataset not supported? (`dataset Grid not understood` error)
+----------------------------------------------------------------------
+
+As salem gained in visibility, we started to get requests to support new
+dataset formats (see the corresponding
+`github issue <https://github.com/fmaussion/salem/issues/100>`_). While I am
+generally in favor of supporting new datasets, it will be impossible to support
+all of them in an automated manner. Here Ill try to explain why.
+
+Salem works in the cartesian, map projection space. This means, it needs to
+understand the data's map projection and the name of the eastings, northings
+coordinates in that projection. Most datasets (especially from older models)
+use their own (bad) naming convention for things, and these names and
+conventions have to hard-coded in salem. To my knowledge there is no
+automated parser of geospatial information in python: `geoxarray`_ is a
+currently staled attempt to do so.
+
+Salem doesn't make use of the 2D lon/lat coordinates on the globe (when it does
+it's just for testing). Working in the projected space has several advantages,
+mostly for performance and precision reasons.
+
+Note that `some people don't agree with this view`_, and don't care about the
+projection of their data as long as they have access to the 2D lon/lat
+coordinates. xarray (with `cartopy`_) can plot data based on their 2D
+coordinates, and `xesmf <https://xesmf.readthedocs.io/>`_ performs
+regridding on the globe without worrying about map projections. These
+tools are maybe the right tools for you!
+
+.. _some people don't agree with this view: https://github.com/pangeo-data/pangeo/issues/356#issuecomment-415168433
 
 
 What's this ".salem_cache" directory in my home folder?

@@ -464,6 +464,9 @@ class Map(DataLevels):
                 with warnings.catch_warnings():
                     mess = "invalid value encountered in reduce"
                     warnings.filterwarnings("ignore", message=mess)
+                    mess = ("Possible precision loss when converting from "
+                            "int64 to float64")
+                    warnings.filterwarnings("ignore", message=mess)
                     try:
                         data = imresize(data.filled(np.NaN),
                                         (self.grid.ny, self.grid.nx),
