@@ -35,6 +35,10 @@ before_install:
   - conda update -q conda
   - pip install pyyaml
 
+before_script:
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+
 install:
   - conda env create --file ci/requirements-$CONDA_ENV.yml --quiet
   - source activate test_env
