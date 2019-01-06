@@ -4,9 +4,11 @@ What's New
 ==========
 
 
-v0.3.0 (unreleased)
--------------------
+v0.2.3 (06 January 2019)
+------------------------
 
+A minor release of the salem package with small bugfixes and a couple of
+enhancements. **This will be the last release to support python 2**.
 
 Enhancements
 ~~~~~~~~~~~~

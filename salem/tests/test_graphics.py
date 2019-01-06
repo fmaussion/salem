@@ -1044,5 +1044,4 @@ def test_cartopy_polar():
     ax.gridlines()
     ax.scatter(ds.XLONG_M, ds.XLAT_M, transform=cartopy.crs.PlateCarree(), s=5)
 
-    plt.tight_layout()
     return fig
