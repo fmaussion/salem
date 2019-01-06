@@ -20,12 +20,12 @@ How to issue a salem release.
     You will need to be listed as a package owner at
     https://pypi.python.org/pypi/salem for this to work.
  8. Push your changes to master:
-      git push upstream master
-      git push upstream --tags
+      git push origin master
+      git push origin --tags
  9. Update the stable branch (used by ReadTheDocs) and switch back to master:
       git checkout stable
       git rebase master
-      git push upstream stable
+      git push origin stable
       git checkout master
     It's OK to force push to 'stable' if necessary.
     We also update the stable branch with `git cherrypick` for documentation
@@ -33,7 +33,7 @@ How to issue a salem release.
 10. Add a section for the next release (v.X.(Y+1)) to doc/whats-new.rst.
 11. Commit your changes and push to master again:
       git commit -a -m 'Revert to dev version'
-      git push upstream master
+      git push origin master
     You're done pushing to master!
 12. Issue the release on GitHub. Click on "Draft a new release" at
     https://github.com/fmaussion/salem/releases. Type in the version number, but
