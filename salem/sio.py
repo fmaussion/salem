@@ -147,7 +147,7 @@ def _wrf_grid_from_dataset(ds):
         pargs['center_lon'] = ds.CEN_LON
         proj_id = ds.MAP_PROJ
 
-    atol = 1e-4
+    atol = 5e-3
     if proj_id == 1:
         # Lambert
         p4 = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
@@ -159,8 +159,6 @@ def _wrf_grid_from_dataset(ds):
         p4 = '+proj=stere +lat_ts={lat_1} +lon_0={lon_0} +lat_0=90.0' \
              '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         p4 = p4.format(**pargs)
-        # pyproj and WRF do not agree well close to the pole
-        atol = 5e-3
     elif proj_id == 3:
         # Mercator
         p4 = '+proj=merc +lat_ts={lat_1} ' \
