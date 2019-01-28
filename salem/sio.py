@@ -8,6 +8,7 @@ from glob import glob
 import pickle
 from datetime import datetime
 from functools import partial
+import warnings
 
 import numpy as np
 import netCDF4
@@ -147,7 +148,6 @@ def _wrf_grid_from_dataset(ds):
         pargs['center_lon'] = ds.CEN_LON
         proj_id = ds.MAP_PROJ
 
-    atol = 5e-3
     if proj_id == 1:
         # Lambert
         p4 = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
@@ -213,8 +213,22 @@ def _wrf_grid_from_dataset(ds):
             reflon = reflon[0, :, :]
             reflat = reflat[0, :, :]
         mylon, mylat = grid.ll_coordinates
-        np.testing.assert_allclose(reflon, mylon, atol=atol)
-        np.testing.assert_allclose(reflat, mylat, atol=atol)
+        atol = 1e-3
+        check = np.isclose(reflon, mylon, atol=atol)
+        if not np.alltrue(check):
+            n_pix = np.sum(~check)
+            maxe = np.max(np.abs(reflon - mylon))
+            if maxe < (360 - atol):
+                warnings.warn('For {} grid points, the expected accuracy ({}) '
+                              'of our lons did not match those of the WRF '
+                              'file. Max error: {}'.format(n_pix, atol, maxe))
+        check = np.isclose(reflat, mylat, atol=atol)
+        if not np.alltrue(check):
+            n_pix = np.sum(~check)
+            maxe = np.max(np.abs(reflat - mylat))
+            warnings.warn('For {} grid points, the expected accuracy ({}) '
+                          'of our lats did not match those of the WRF file. '
+                          'Max error: {}'.format(n_pix, atol, maxe))
 
     return grid
 
