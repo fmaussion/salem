@@ -18,7 +18,6 @@ from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
 import xarray as xr
 from xarray.backends.netCDF4_ import NetCDF4DataStore
-from xarray.core.pycompat import basestring
 from xarray.backends.api import _MultiFileCloser
 from xarray.core import dtypes
 try:
@@ -27,6 +26,11 @@ try:
 except ImportError:
     # xarray < v0.11
     from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
+try:
+    from xarray.core.pycompat import basestring
+except ImportError:
+    # latest xarray dropped python2 support, so we can safely assume py3 here
+    basestring = str
 
 
 def read_shapefile(fpath, cached=False):
