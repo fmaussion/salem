@@ -8,6 +8,7 @@ from glob import glob
 import pickle
 from datetime import datetime
 from functools import partial
+import warnings
 
 import numpy as np
 import netCDF4
@@ -15,39 +16,21 @@ import netCDF4
 from salem.utils import memory, cached_shapefile_path
 from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
+import xarray as xr
+from xarray.backends.netCDF4_ import NetCDF4DataStore
+from xarray.backends.api import _MultiFileCloser
+from xarray.core import dtypes
 try:
-    import xarray as xr
-    has_xarray = True
+    from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK, combine_locks)
+    NETCDF4_PYTHON_LOCK = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
 except ImportError:
-    has_xarray = False
-    # dummy replacement so that it compiles
-    class xr(object):
-        pass
-    class NullDecl(object):
-        def __init__(self, dummy):
-            pass
-        def __call__(self, func):
-            return func
-    xr.register_dataset_accessor = NullDecl
-    xr.register_dataarray_accessor = NullDecl
-    NetCDF4DataStore = object
+    # xarray < v0.11
+    from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
 try:
-    import dask
-except ImportError:
-    pass
-
-if has_xarray:
-    from xarray.backends.netCDF4_ import NetCDF4DataStore
     from xarray.core.pycompat import basestring
-    from xarray.backends.api import _MultiFileCloser
-    from xarray.core import dtypes
-    try:
-        from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK,
-                                           combine_locks)
-        NETCDF4_PYTHON_LOCK = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
-    except ImportError:
-        # xarray < v0.11
-        from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
+except ImportError:
+    # latest xarray dropped python2 support, so we can safely assume py3 here
+    basestring = str
 
 
 def read_shapefile(fpath, cached=False):
@@ -169,7 +152,6 @@ def _wrf_grid_from_dataset(ds):
         pargs['center_lon'] = ds.CEN_LON
         proj_id = ds.MAP_PROJ
 
-    atol = 1e-4
     if proj_id == 1:
         # Lambert
         p4 = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
@@ -181,8 +163,6 @@ def _wrf_grid_from_dataset(ds):
         p4 = '+proj=stere +lat_ts={lat_1} +lon_0={lon_0} +lat_0=90.0' \
              '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         p4 = p4.format(**pargs)
-        # pyproj and WRF do not agree well close to the pole
-        atol = 5e-3
     elif proj_id == 3:
         # Mercator
         p4 = '+proj=merc +lat_ts={lat_1} ' \
@@ -237,8 +217,22 @@ def _wrf_grid_from_dataset(ds):
             reflon = reflon[0, :, :]
             reflat = reflat[0, :, :]
         mylon, mylat = grid.ll_coordinates
-        np.testing.assert_allclose(reflon, mylon, atol=atol)
-        np.testing.assert_allclose(reflat, mylat, atol=atol)
+        atol = 1e-3
+        check = np.isclose(reflon, mylon, atol=atol)
+        if not np.alltrue(check):
+            n_pix = np.sum(~check)
+            maxe = np.max(np.abs(reflon - mylon))
+            if maxe < (360 - atol):
+                warnings.warn('For {} grid points, the expected accuracy ({}) '
+                              'of our lons did not match those of the WRF '
+                              'file. Max error: {}'.format(n_pix, atol, maxe))
+        check = np.isclose(reflat, mylat, atol=atol)
+        if not np.alltrue(check):
+            n_pix = np.sum(~check)
+            maxe = np.max(np.abs(reflat - mylat))
+            warnings.warn('For {} grid points, the expected accuracy ({}) '
+                          'of our lats did not match those of the WRF file. '
+                          'Max error: {}'.format(n_pix, atol, maxe))
 
     return grid
 
@@ -1139,6 +1133,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
         raise IOError('no files to open')
 
     # TODO: current workaround to dask thread problems
+    import dask
     dask.config.set(scheduler='single-threaded')
 
     if lock is None:

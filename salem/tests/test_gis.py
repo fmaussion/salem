@@ -14,7 +14,7 @@ from salem import Grid
 from salem import wgs84
 import salem.gis as gis
 from salem.utils import get_demo_file
-from salem.tests import (requires_xarray, requires_shapely, requires_geopandas,
+from salem.tests import (requires_shapely, requires_geopandas,
                          requires_cartopy, requires_rasterio, python_version)
 
 
@@ -886,7 +886,6 @@ class TestGrid(unittest.TestCase):
         roi = g.region_of_interest(grid=g2)
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
 
-    @requires_xarray
     def test_to_dataset(self):
         projs = [wgs84, pyproj.Proj(init='epsg:26915')]
 
@@ -915,7 +914,6 @@ class TestGrid(unittest.TestCase):
         # This is now quite off
         self.assertFalse(gdf.contains(Point(1.5, 1.5))[4])
 
-    @requires_xarray
     def test_xarray_support(self):
         # what happens if we use salem's funcs with xarray?
         import xarray as xr

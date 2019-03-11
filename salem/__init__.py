@@ -63,5 +63,20 @@ from salem.sio import (open_xr_dataset, open_metum_dataset,
                        open_wrf_dataset, open_mf_wrf_dataset)
 from salem.sio import DataArrayAccessor, DatasetAccessor
 from salem.utils import get_demo_file, reduce
-from salem.graphics import get_cmap, DataLevels, Map
+
+try:
+    from salem.graphics import get_cmap, DataLevels, Map
+except ImportError as err:
+        if 'matplotlib' not in str(err):
+            raise
+
+        def get_cmap():
+            raise ImportError('requires matplotlib')
+
+        def DataLevels():
+            raise ImportError('requires matplotlib')
+
+        def Map():
+            raise ImportError('requires matplotlib')
+
 from salem.wrftools import geogrid_simulator

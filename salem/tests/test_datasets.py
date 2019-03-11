@@ -8,38 +8,24 @@ from datetime import datetime
 import numpy as np
 import netCDF4
 
-try:
-    import matplotlib as mpl
-    from matplotlib.image import imread
-except ImportError:
-    pass
 
-try:
-    import pandas as pd
-    import xarray as xr
-except ImportError:
-    pass
-
-try:
-    import shapely.geometry as shpg
-except ImportError:
-    pass
-
+import pandas as pd
+import xarray as xr
 
 from numpy.testing import assert_array_equal, assert_allclose
 from salem import Grid
 from salem.utils import get_demo_file
 from salem import wgs84
 from salem import wrftools, mercator_grid
-from salem.datasets import GeoDataset, GeoNetcdf, GeoTiff, WRF, \
-    GoogleCenterMap, GoogleVisibleMap, EsriITMIX
-from salem.tests import requires_xarray, requires_rasterio, \
-    requires_pandas, requires_motionless, requires_geopandas, requires_internet
+from salem.datasets import (GeoDataset, GeoNetcdf, GeoTiff, WRF,
+                            GoogleCenterMap, GoogleVisibleMap, EsriITMIX)
+from salem.tests import (requires_rasterio, requires_motionless,
+                         requires_geopandas, requires_internet,
+                         requires_matplotlib, requires_shapely)
 
 
 class TestDataset(unittest.TestCase):
 
-    @requires_pandas
     def test_period(self):
         """See if simple operations work well"""
 
@@ -83,8 +69,11 @@ class TestDataset(unittest.TestCase):
         self.assertRaises(NotImplementedError, d.get_vardata)
 
     @requires_rasterio
+    @requires_shapely
     def test_subset(self):
         """See if simple operations work well"""
+
+        import shapely.geometry as shpg
 
         g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         d = GeoDataset(g)
@@ -207,7 +196,6 @@ class TestGeotiff(unittest.TestCase):
         ds = EsriITMIX(gf)
         topo = ds.get_vardata()
 
-    @requires_xarray
     @requires_rasterio
     def test_xarray(self):
 
@@ -235,7 +223,6 @@ class TestGeotiff(unittest.TestCase):
 
 class TestGeoNetcdf(unittest.TestCase):
 
-    @requires_pandas
     def test_eraint(self):
 
         f = get_demo_file('era_interim_tibet.nc')
@@ -266,7 +253,6 @@ class TestGeoNetcdf(unittest.TestCase):
             assert_allclose(nc.variables['t2m'][1:3, alat, alon],
                             np.squeeze(d.get_vardata('t2m')))
 
-    @requires_xarray
     def test_as_xarray(self):
 
         f = get_demo_file('era_interim_tibet.nc')
@@ -288,7 +274,6 @@ class TestGeoNetcdf(unittest.TestCase):
         tk = d.get_vardata('TK', as_xarray=True)
         # TODO: the z dim is not ok
 
-    @requires_pandas
     @requires_geopandas
     def test_wrf(self):
         """Open WRF, do subsets and stuff"""
@@ -370,7 +355,6 @@ class TestGeoNetcdf(unittest.TestCase):
         np.testing.assert_allclose(reflon, mylon, atol=1e-4)
         np.testing.assert_allclose(reflat, mylat, atol=1e-4)
 
-    @requires_pandas
     @requires_geopandas
     def test_wrf_polar(self):
 
@@ -390,7 +374,6 @@ class TestGeoNetcdf(unittest.TestCase):
         np.testing.assert_allclose(reflon, mylon, atol=1e-4)
         np.testing.assert_allclose(reflat, mylat, atol=1e-4)
 
-    @requires_pandas
     def test_longtime(self):
         """There was a bug with time"""
 
@@ -401,7 +384,6 @@ class TestGeoNetcdf(unittest.TestCase):
                                                         datetime(1801, 11,
                                                                  1)]))
 
-    @requires_pandas
     def test_diagnostic_vars(self):
 
         d = WRF(get_demo_file('wrf_tip_d1.nc'))
@@ -434,8 +416,9 @@ class TestGoogleStaticMap(unittest.TestCase):
 
     @requires_internet
     @requires_motionless
+    @requires_matplotlib
     def test_center(self):
-
+        import matplotlib as mpl
         gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                              size_x=500, size_y=500, use_cache=False)
         gm.set_roi(shape=get_demo_file('Hintereisferner.shp'))
@@ -468,7 +451,9 @@ class TestGoogleStaticMap(unittest.TestCase):
 
     @requires_internet
     @requires_motionless
+    @requires_matplotlib
     def test_visible(self):
+        import matplotlib as mpl
 
         x = [91.176036, 92.05, 88.880927]
         y = [29.649702, 31.483333, 29.264956]
@@ -521,7 +506,6 @@ class TestGoogleStaticMap(unittest.TestCase):
 
 class TestWRF(unittest.TestCase):
 
-    @requires_xarray
     def test_unstagger(self):
 
         wf = get_demo_file('wrf_cropped.nc')
@@ -558,7 +542,6 @@ class TestWRF(unittest.TestCase):
             nc.set_period(1, 2)
             assert_allclose(nc.get_vardata('PH'), ref[1:3, ...])
 
-    @requires_xarray
     def test_ncl_diagvars(self):
 
         wf = get_demo_file('wrf_cropped.nc')
@@ -577,7 +560,6 @@ class TestWRF(unittest.TestCase):
             tot = w.get_vardata('SLP')
             assert_allclose(ref, tot, rtol=1e-6)
 
-    @requires_pandas
     def test_staggeredcoords(self):
 
         wf = get_demo_file('wrf_cropped.nc')
@@ -593,7 +575,6 @@ class TestWRF(unittest.TestCase):
         assert_allclose(np.squeeze(nc.variables['XLAT_V'][0, ...]), lat,
                         atol=1e-4)
 
-    @requires_pandas
     def test_har(self):
 
         # HAR

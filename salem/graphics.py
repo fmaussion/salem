@@ -14,33 +14,20 @@ import numpy as np
 
 try:
     from skimage.transform import resize as imresize
+    has_skimage = True
 except ImportError:
-    pass
+    has_skimage = False
 
-try:
-    import pandas as pd
-except ImportError:
-    pass
+import pandas as pd
 
-try:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    from matplotlib.collections import PatchCollection, LineCollection
-    from shapely.geometry import MultiPoint, LineString, Polygon
-    from descartes.patch import PolygonPatch
-    from matplotlib.transforms import Transform as MPLTranform
-    import matplotlib.path as mpath
-except ImportError:
-    class d1():
-        def __init__(self):
-            class d2():
-                pass
-            self.colors = d2
-            self.colors.BoundaryNorm = object
-    mpl = d1()
-    MPLTranform = object
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.collections import PatchCollection, LineCollection
+from shapely.geometry import MultiPoint, LineString, Polygon
+from descartes.patch import PolygonPatch
+from matplotlib.transforms import Transform as MPLTranform
 
 from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff
 
@@ -347,6 +334,8 @@ class DataLevels(object):
         title: the plot title
         orientation: the colorbar's orientation
         add_values: add the data values as text in the pixels (for testing)
+
+        Returns a dict containing the primitives of the various plot calls
         """
 
         # Do we make our own fig?
@@ -354,7 +343,7 @@ class DataLevels(object):
             ax = plt.gca()
 
         # Plot
-        self.plot(ax)
+        out = self.plot(ax)
 
         # Colorbar
         addcbar = (self.vmin != self.vmax) and addcbar
@@ -378,6 +367,8 @@ class DataLevels(object):
         # Details
         if title is not None:
             ax.set_title(title)
+
+        return out
 
 
 class Map(DataLevels):
@@ -472,8 +463,13 @@ class Map(DataLevels):
                     interp = 1
                 elif interp.lower() == 'spline':
                     interp = 3
+                if not has_skimage:
+                    raise ImportError('Needs scikit-image to be installed.')
                 with warnings.catch_warnings():
                     mess = "invalid value encountered in reduce"
+                    warnings.filterwarnings("ignore", message=mess)
+                    mess = ("Possible precision loss when converting from "
+                            "int64 to float64")
                     warnings.filterwarnings("ignore", message=mess)
                     try:
                         data = imresize(data.filled(np.NaN),
@@ -1089,21 +1085,28 @@ class Map(DataLevels):
         It first plots the image and then adds all the cartographic
         information on top of it.
 
-        Returns an imshow primitive
+        Returns a dict containing the primitives of the various plot calls
         """
 
+        out = {'imshow': None,
+               'contour': [],
+               'contourf': [],
+               }
+
         # Image is the easiest
-        primitive = ax.imshow(self.to_rgb(), interpolation='none',
-                              origin=self.origin)
+        out['imshow'] = ax.imshow(self.to_rgb(), interpolation='none',
+                                  origin=self.origin)
         ax.autoscale(False)
 
         # Contour
         if self._contour_data is not None:
-            ax.contour(self._contour_data, **self._contour_kw)
+            cs = ax.contour(self._contour_data, **self._contour_kw)
+            out['contour'].append(cs)
 
         # Contourfill
         if self._contourf_data is not None:
-            ax.contourf(self._contourf_data, **self._contourf_kw)
+            cs = ax.contourf(self._contourf_data, **self._contourf_kw)
+            out['contourf'].append(cs)
 
         # Shapefiles
         for col in self._collections:
@@ -1167,7 +1170,7 @@ class Map(DataLevels):
             ax.xaxis.set_ticks([])
             ax.yaxis.set_ticks([])
 
-        return primitive
+        return out
 
 
 def plot_polygon(ax, poly, edgecolor='black', **kwargs):
