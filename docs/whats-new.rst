@@ -3,14 +3,11 @@
 What's New
 ==========
 
-v0.3.0 (unreleased)
--------------------
+v0.2.4 (25 March 2019)
+------------------------
 
-Enhancements
-~~~~~~~~~~~~
-
-Bug fixes
-~~~~~~~~~
+A minor release of the salem package with a fix to support xarray v0.12.
+**This will (probably) be the last release to support python 2**.
 
 
 v0.2.3 (06 January 2019)
