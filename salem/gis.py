@@ -56,7 +56,7 @@ def check_crs(crs):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
         if isinstance(crs, string_types):
-            # quick fix for GH
+            # quick fix for https://github.com/pyproj4/pyproj/issues/345
             crs = crs.replace(' ', '').replace('+', ' +')
         try:
             out = pyproj.Proj(crs, preserve_units=True)
