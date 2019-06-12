@@ -894,7 +894,7 @@ class Map(DataLevels):
         # Gradient in m m-1
         ddx = self.grid.dx
         ddy = self.grid.dy
-        if self.grid.proj.is_latlong():
+        if gis.proj_is_latlong(self.grid.proj):
             # we make a coarse approx of the avg dx on a sphere
             _, lat = self.grid.ll_coordinates
             ddx = np.mean(ddx * 111200 * np.cos(lat * np.pi / 180))
@@ -996,7 +996,7 @@ class Map(DataLevels):
                 ]
 
         # Units
-        if self.grid.proj.is_latlong():
+        if gis.proj_is_latlong(self.grid.proj):
             units = 'deg'
         elif length >= 1000.:
             length /= 1000

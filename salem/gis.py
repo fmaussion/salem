@@ -1311,6 +1311,15 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     return out
 
 
+def proj_is_latlong(proj):
+    """Shortcut function because of deprecation."""
+
+    try:
+        return proj.is_latlong()
+    except AttributeError:
+        return proj.is_geographic()
+
+
 def proj_to_cartopy(proj):
     """Converts a pyproj.Proj to a cartopy.crs.Projection
 
@@ -1330,7 +1339,7 @@ def proj_to_cartopy(proj):
 
     proj = check_crs(proj)
 
-    if proj.is_latlong():
+    if proj_is_latlong(proj):
         return ccrs.PlateCarree()
 
     srs = proj.srs
