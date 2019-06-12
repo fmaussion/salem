@@ -822,7 +822,7 @@ def test_gmap():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=20)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
 def test_gmap_transformed():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     dem.set_subset(margin=-100)
@@ -928,8 +928,8 @@ def test_colormaps():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
-def test_geogrid_simulator(tolerance=5):
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+def test_geogrid_simulator():
 
     from salem.wrftools import geogrid_simulator
     g, maps = geogrid_simulator(get_demo_file('namelist_mercator.wps'),
