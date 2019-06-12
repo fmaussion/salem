@@ -244,17 +244,6 @@ class TestGrid(unittest.TestCase):
 
         self.assertEqual(g1.__repr__(), g1.__str__())
 
-        expected = dedent("""\
-        <salem.Grid>
-          proj: +datum=WGS84 +proj=latlong +units=m
-          pixel_ref: center
-          origin: lower-left
-          (nx, ny): (3, 3)
-          (dx, dy): (1.0, 1.0)
-          (x0, y0): (0.0, 0.0)
-        """)
-        self.assertEqual(g1.__repr__(), expected)
-
     def test_errors(self):
         """Check that errors are occurring"""
 
@@ -969,13 +958,12 @@ class TestTransform(unittest.TestCase):
                          '+ellps=GRS80 +towgs84=0,0,0 +units=m +no_defs')
         p2 = pyproj.Proj('+proj=utm +zone=15 +datum=NAD83 +units=m +no_defs '
                          '+ellps=GRS80 +towgs84=0,0,0')
-        self.assertFalse(p1.srs == p2.srs)
         self.assertTrue(gis.proj_is_same(p1, p2))
 
         # this needs gdal
         p1 = pyproj.Proj(init='epsg:26915')
-        p2 = pyproj.Proj( '+proj=utm +zone=15 +datum=NAD83 +units=m +no_defs '
-                          '+ellps=GRS80 +towgs84=0,0,0')
+        p2 = pyproj.Proj('+proj=utm +zone=15 +ellps=GRS80 +datum=NAD83 '
+                         '+units=m +no_defs')
         if gis.has_gdal:
             self.assertTrue(gis.proj_is_same(p1, p2))
 
@@ -1150,8 +1138,11 @@ def fuzzy_proj_tester(p1, p2, atol=1e-16):
                 # strings
                 continue
             else:
-                assert_allclose(d1[k], d2[k], atol=atol,
-                                err_msg='key: {}'.format(k))
+                try:
+                    assert_allclose(d1[k], d2[k], atol=atol,
+                                    err_msg='key: {}'.format(k))
+                except TypeError:
+                    assert d1[k] == d2[k]
 
 
 class TestCartopy(unittest.TestCase):
@@ -1186,7 +1177,6 @@ class TestCartopy(unittest.TestCase):
         ds = GeoTiff(get_demo_file('hef_roi.tif'))
         p = gis.proj_to_cartopy(ds.grid.proj)
         assert isinstance(p, ccrs.PlateCarree)
-        fuzzy_proj_tester(ds.grid.proj, pyproj.Proj(p.proj4_params))
 
         p = gis.proj_to_cartopy(wgs84)
         assert isinstance(p, ccrs.PlateCarree)

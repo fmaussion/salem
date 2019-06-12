@@ -142,7 +142,6 @@ class TestIO(unittest.TestCase):
         self.assertRaises(ValueError, read_shapefile, 'f1.sph')
         self.assertRaises(ValueError, utils.cached_shapefile_path, 'f1.splash')
 
-
     @requires_geopandas
     def test_read_to_grid(self):
 

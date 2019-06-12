@@ -354,7 +354,7 @@ class TestGraphics(unittest.TestCase):
 
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir,
-                               tolerance=5)
+                               tolerance=10)
 def test_extendednorm():
     a = np.zeros((4, 5))
     a[0, 0] = -9999
@@ -388,7 +388,7 @@ def test_extendednorm():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_datalevels():
     plt.close()
 
@@ -441,7 +441,7 @@ def test_datalevels():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_datalevels_visu_h():
     a = np.array([-1., 0., 1.1, 1.9, 9.])
     cm = mpl.cm.get_cmap('RdYlBu_r')
@@ -469,7 +469,7 @@ def test_datalevels_visu_v():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_simple_map():
     a = np.zeros((4, 5))
     a[0, 0] = -1
@@ -536,7 +536,7 @@ def test_simple_map():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=12)
 def test_contourf():
     a = np.zeros((4, 5))
     a[0, 0] = -1
@@ -623,7 +623,7 @@ def test_merca_nolabels():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_oceans():
     f = os.path.join(get_demo_file('wrf_tip_d1.nc'))
     grid = GeoNetcdf(f).grid
@@ -682,7 +682,7 @@ def test_geometries():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_text():
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
@@ -779,7 +779,7 @@ def test_hef_from_array():
 
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir,
-                               tolerance=tolpy2)
+                               tolerance=15)
 def test_hef_topo_withnan():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
@@ -804,7 +804,7 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=20)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
@@ -822,7 +822,7 @@ def test_gmap():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
 def test_gmap_transformed():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     dem.set_subset(margin=-100)
@@ -866,7 +866,7 @@ def test_gmap_llconts():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=13)
 def test_plot_on_map():
     import salem
     from salem.utils import get_demo_file
@@ -928,7 +928,7 @@ def test_colormaps():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_geogrid_simulator():
 
     from salem.wrftools import geogrid_simulator
@@ -945,7 +945,7 @@ def test_geogrid_simulator():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_lookup_transform():
 
     dsw = open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
@@ -962,7 +962,7 @@ def test_lookup_transform():
 
 @requires_matplotlib
 @requires_cartopy
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_cartopy():
 
     import cartopy
