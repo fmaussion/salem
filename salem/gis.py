@@ -55,6 +55,9 @@ def check_crs(crs):
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
+        if isinstance(crs, string_types):
+            # quick fix for GH
+            crs = crs.replace(' ', '').replace('+', ' +')
         try:
             out = pyproj.Proj(crs, preserve_units=True)
         except RuntimeError:
@@ -1317,7 +1320,7 @@ def proj_is_latlong(proj):
     try:
         return proj.is_latlong()
     except AttributeError:
-        return proj.is_geographic()
+        return proj.crs.is_geographic
 
 
 def proj_to_cartopy(proj):
