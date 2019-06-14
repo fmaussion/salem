@@ -971,45 +971,31 @@ class TestTransform(unittest.TestCase):
 
         x = np.random.randn(int(1e6)) * 60
         y = np.random.randn(int(1e6)) * 60
-        t1 = time.time()
+
         for i in np.arange(3):
             xx, yy = pyproj.transform(wgs84, wgs84, x, y)
-        t1 = time.time() - t1
         assert_allclose(xx, x)
         assert_allclose(yy, y)
 
-        t2 = time.time()
         for i in np.arange(3):
             xx, yy = gis.transform_proj(wgs84, wgs84, x, y)
-        t2 = time.time() - t2
         assert_allclose(xx, x)
         assert_allclose(yy, y)
 
-        t3 = time.time()
         for i in np.arange(3):
             xx, yy = gis.transform_proj(wgs84, wgs84, x, y, nocopy=True)
-        t3 = time.time() - t3
         assert_allclose(xx, x)
         assert_allclose(yy, y)
 
-        self.assertTrue(t1 > t2)
-        self.assertTrue(t2 > t3)
-
-        t1 = time.time()
         xx, yy = pyproj.transform(pyproj.Proj(init='epsg:26915'),
                                   pyproj.Proj(init='epsg:26915'), x, y)
-        t1 = time.time() - t1
         assert_allclose(xx, x, atol=1e-3)
         assert_allclose(yy, y, atol=1e-3)
 
-        t2 = time.time()
         xx, yy = gis.transform_proj(pyproj.Proj(init='epsg:26915'),
                                     pyproj.Proj(init='epsg:26915'), x, y)
-        t2 = time.time() - t2
         assert_allclose(xx, x)
         assert_allclose(yy, y)
-
-        self.assertTrue(t1 > t2)
 
     @requires_shapely
     def test_geometry(self):

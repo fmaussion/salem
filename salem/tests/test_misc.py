@@ -197,6 +197,7 @@ class TestSkyIsFalling(unittest.TestCase):
 
         import pyproj
         import matplotlib.pyplot as plt
+        from salem.gis import transform_proj
 
         wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
         fig = plt.figure()
@@ -207,7 +208,7 @@ class TestSkyIsFalling(unittest.TestCase):
         proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
         proj_in = pyproj.Proj(srs, preserve_units=True)
 
-        lon, lat = pyproj.transform(proj_in, proj_out, -2235000, -2235000)
+        lon, lat = transform_proj(proj_in, proj_out, -2235000, -2235000)
         np.testing.assert_allclose(lon, 70.75731, atol=1e-5)
 
 
