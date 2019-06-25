@@ -676,7 +676,7 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
     pwrf = gis.check_crs(pwrf)
 
     # get easting and northings from dom center (probably unnecessary here)
-    e, n = pyproj.transform(wgs84, pwrf, pargs['ref_lon'], pargs['lat_0'])
+    e, n = gis.transform_proj(wgs84, pwrf, pargs['ref_lon'], pargs['lat_0'])
 
     # LL corner
     nx, ny = e_we[0]-1, e_sn[0]-1

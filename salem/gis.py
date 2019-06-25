@@ -1223,13 +1223,18 @@ def transform_proj(p1, p2, x, y, nocopy=False):
         in case the two projections are equal, you can use nocopy if you wish
     """
 
-    if proj_is_same(p1, p2):
-        if nocopy:
-            return x, y
-        else:
-            return copy.deepcopy(x), copy.deepcopy(y)
+    try:
+        # This always makes a copy, even if projections are equivalent
+        return pyproj.transform(p1, p2, x, y,
+                                skip_equivalent=True, always_xy=True)
+    except TypeError:
+        if proj_is_same(p1, p2):
+            if nocopy:
+                return x, y
+            else:
+                return copy.deepcopy(x), copy.deepcopy(y)
 
-    return pyproj.transform(p1, p2, x, y)
+        return pyproj.transform(p1, p2, x, y)
 
 
 def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
@@ -1470,7 +1475,7 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
     nx = np.rint(nx)
     ny = np.rint(ny)
 
-    e, n = pyproj.transform(wgs84, projloc, lon, lat)
+    e, n = transform_proj(wgs84, projloc, lon, lat)
 
     if origin== 'upper-left':
         corner = (-xx / 2. + e, yy / 2. + n)
@@ -1508,7 +1513,7 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
     xx = nx * mpix
     yy = ny * mpix
 
-    e, n = pyproj.transform(wgs84, projloc, lon, lat)
+    e, n = transform_proj(wgs84, projloc, lon, lat)
     corner = (-xx / 2. + e, yy / 2. + n)
     dxdy = (xx / nx, - yy / ny)
 
