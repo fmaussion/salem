@@ -1096,7 +1096,7 @@ class Map(DataLevels):
         # Image is the easiest
         out['imshow'] = ax.imshow(self.to_rgb(), interpolation='none',
                                   origin=self.origin)
-        ax.autoscale(False)
+        ax.autoscale(enable=False)
 
         # Contour
         if self._contour_data is not None:
