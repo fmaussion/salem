@@ -12,6 +12,7 @@ dependencies:
   - pandas
   - xarray
   - dask
+  - pip
   - pip:
     - coveralls
     - pytest-cov

@@ -20,6 +20,7 @@ dependencies:
   - Pillow
   - descartes
   - cartopy
+  - pip
   - pip:
     - coveralls
     - pytest-cov
