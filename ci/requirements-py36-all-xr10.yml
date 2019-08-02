@@ -15,7 +15,7 @@ dependencies:
   - pandas
   - xarray=0.10.9
   - dask
-  - matplotlib<3.0.0
+  - matplotlib=3.0.3
   - scikit-image
   - Pillow
   - descartes

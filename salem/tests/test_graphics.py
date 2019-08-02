@@ -1018,7 +1018,8 @@ def test_cartopy_polar():
 
     fig = plt.figure(figsize=(8, 8))
 
-    ods = open_wrf_dataset(get_demo_file('geo_em_d02_polarstereo.nc')).isel(time=0)
+    ods = open_wrf_dataset(get_demo_file('geo_em_d02_polarstereo.nc'))
+    ods = ods.isel(time=0)
 
     ax = plt.subplot(2, 2, 1)
     smap = ods.salem.get_map()
@@ -1044,5 +1045,4 @@ def test_cartopy_polar():
     ax.gridlines()
     ax.scatter(ds.XLONG_M, ds.XLAT_M, transform=cartopy.crs.PlateCarree(), s=5)
 
-    plt.tight_layout()
     return fig
