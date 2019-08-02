@@ -85,10 +85,10 @@ def _memory_shapefile_to_grid(shape_cpath, grid=None,
 
     shape = read_shapefile(shape_cpath, cached=True)
     e = grid.extent_in_crs(crs=shape.crs)
-    p = np.nonzero(~((shape['min_x'] > e[1]) |
-                     (shape['max_x'] < e[0]) |
-                     (shape['min_y'] > e[3]) |
-                     (shape['max_y'] < e[2])))
+    p = np.nonzero(~((shape['min_x'].to_numpy() > e[1]) |
+                     (shape['max_x'].to_numpy() < e[0]) |
+                     (shape['min_y'].to_numpy() > e[3]) |
+                     (shape['max_y'].to_numpy() < e[2])))
     shape = shape.iloc[p]
     shape = gis.transform_geopandas(shape, to_crs=grid, inplace=True)
     return shape
@@ -217,7 +217,8 @@ def _wrf_grid_from_dataset(ds):
             reflon = reflon[0, :, :]
             reflat = reflat[0, :, :]
         mylon, mylat = grid.ll_coordinates
-        atol = 1e-3
+
+        atol = 5e-3 if proj_id == 2 else 1e-3
         check = np.isclose(reflon, mylon, atol=atol)
         if not np.alltrue(check):
             n_pix = np.sum(~check)
@@ -1144,8 +1145,11 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
 
     if preprocess is not None:
         datasets = [preprocess(ds) for ds in datasets]
-
-    combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
+    try:
+        combined = xr.combine_nested(datasets, concat_dim='time',
+                                     compat=compat)
+    except AttributeError:
+        combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
     combined._file_obj = _MultiFileCloser(file_objs)
     combined.attrs = datasets[0].attrs
 
