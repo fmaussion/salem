@@ -21,6 +21,7 @@ dependencies:
   - scikit-image
   - descartes
   - cartopy
+  - pip
   - pip:
     - coveralls
     - pytest-cov

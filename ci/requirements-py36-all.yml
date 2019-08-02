@@ -15,11 +15,12 @@ dependencies:
   - pandas
   - xarray
   - dask
-  - matplotlib<3.0.0
+  - matplotlib=3.0.3
   - scikit-image
   - Pillow
   - descartes
   - cartopy
+  - pip
   - pip:
     - coveralls
     - pytest-cov
