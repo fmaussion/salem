@@ -211,6 +211,16 @@ class TestSkyIsFalling(unittest.TestCase):
         lon, lat = transform_proj(proj_in, proj_out, -2235000, -2235000)
         np.testing.assert_allclose(lon, 70.75731, atol=1e-5)
 
+    def test_gh_152(self):
+
+        # https://github.com/fmaussion/salem/issues/152
+
+        import xarray as xr
+        da = xr.DataArray(np.arange(20).reshape(4, 5), dims=['lat', 'lon'],
+                          coords={'lat': np.linspace(0, 30, 4),
+                                  'lon': np.linspace(-20, 20, 5)})
+        da.salem.roi()
+
 
 class TestXarray(unittest.TestCase):
 
