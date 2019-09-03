@@ -1034,6 +1034,12 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     an xarray Dataset
     """
 
+    import pyproj
+    from distutils.version import LooseVersion
+    if LooseVersion(pyproj.__version__) > LooseVersion('2.3'):
+        raise RuntimeError('open_metum_dataset currently does not '
+                           'work with pyproj version above 2.3')
+
     # open with xarray
     ds = xr.open_dataset(file, **kwargs)
 

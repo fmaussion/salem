@@ -4,7 +4,6 @@ import unittest
 import warnings
 import os
 
-import time
 import pyproj
 import numpy as np
 import netCDF4
@@ -51,7 +50,7 @@ class TestGrid(unittest.TestCase):
     def test_constructor(self):
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
             args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
@@ -215,13 +214,13 @@ class TestGrid(unittest.TestCase):
         self.assertNotEqual(g1, rg)
         self.assertTrue(g1.almost_equal(rg))
 
-        args['proj'] = pyproj.Proj(init='epsg:26915')
+        args['proj'] = gis.check_crs('+init=epsg:26915')
         g2 = Grid(**args)
         self.assertNotEqual(g1, g2)
         self.assertFalse(g1.almost_equal(g2))
 
         # New instance, same proj
-        args['proj'] = pyproj.Proj(init='epsg:26915')
+        args['proj'] = gis.check_crs('+init=epsg:26915')
         g1 = Grid(**args)
         self.assertEqual(g1, g2)
         self.assertTrue(g1.almost_equal(g2))
@@ -248,7 +247,7 @@ class TestGrid(unittest.TestCase):
         """Check that errors are occurring"""
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
             with warnings.catch_warnings():
@@ -298,7 +297,7 @@ class TestGrid(unittest.TestCase):
         """Converting to projection"""
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
 
@@ -359,7 +358,7 @@ class TestGrid(unittest.TestCase):
         """New grids"""
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
 
@@ -405,7 +404,7 @@ class TestGrid(unittest.TestCase):
         """Converting to the grid"""
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
 
@@ -602,7 +601,7 @@ class TestGrid(unittest.TestCase):
         """Staggered grids."""
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
             args = dict(nxny=(3, 2), dxdy=(1, 1), x0y0=(0, 0),
@@ -648,7 +647,7 @@ class TestGrid(unittest.TestCase):
         """Ok now the serious stuff starts with some fake data"""
 
         # It should work exact same for any projection
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
 
@@ -702,7 +701,7 @@ class TestGrid(unittest.TestCase):
         assert_allclose(g1.extent, g1.extent_in_crs(crs=g1.proj), atol=1e-3)
 
         args = dict(nxny=(9, 9), dxdy=(30000, 30000), x0y0=(0., 1577463),
-                    proj=pyproj.Proj(init='epsg:26915'))
+                    proj=gis.check_crs('+init=epsg:26915'))
         g2 = Grid(**args)
         assert_allclose(g2.extent, g2.extent_in_crs(crs=g2.proj), atol=1e-3)
 
@@ -876,7 +875,7 @@ class TestGrid(unittest.TestCase):
         np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
 
     def test_to_dataset(self):
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
             g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
@@ -890,7 +889,7 @@ class TestGrid(unittest.TestCase):
 
     @requires_geopandas
     def test_geometry(self):
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
         from shapely.geometry import Point
         for proj in projs:
             g = Grid(nxny=(3, 3), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=proj)
@@ -907,7 +906,7 @@ class TestGrid(unittest.TestCase):
         # what happens if we use salem's funcs with xarray?
         import xarray as xr
 
-        projs = [wgs84, pyproj.Proj(init='epsg:26915')]
+        projs = [wgs84, gis.check_crs('+init=epsg:26915')]
 
         for proj in projs:
             args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
@@ -961,7 +960,7 @@ class TestTransform(unittest.TestCase):
         self.assertTrue(gis.proj_is_same(p1, p2))
 
         # this needs gdal
-        p1 = pyproj.Proj(init='epsg:26915')
+        p1 = gis.check_crs('+init=epsg:26915')
         p2 = pyproj.Proj('+proj=utm +zone=15 +ellps=GRS80 +datum=NAD83 '
                          '+units=m +no_defs')
         if gis.has_gdal:
@@ -987,13 +986,13 @@ class TestTransform(unittest.TestCase):
         assert_allclose(xx, x)
         assert_allclose(yy, y)
 
-        xx, yy = pyproj.transform(pyproj.Proj(init='epsg:26915'),
-                                  pyproj.Proj(init='epsg:26915'), x, y)
+        xx, yy = pyproj.transform(gis.check_crs('+init=epsg:26915'),
+                                  gis.check_crs('+init=epsg:26915'), x, y)
         assert_allclose(xx, x, atol=1e-3)
         assert_allclose(yy, y, atol=1e-3)
 
-        xx, yy = gis.transform_proj(pyproj.Proj(init='epsg:26915'),
-                                    pyproj.Proj(init='epsg:26915'), x, y)
+        xx, yy = gis.transform_proj(gis.check_crs('+init=epsg:26915'),
+                                    gis.check_crs('+init=epsg:26915'), x, y)
         assert_allclose(xx, x)
         assert_allclose(yy, y)
 
@@ -1172,5 +1171,5 @@ class TestCartopy(unittest.TestCase):
 
         # this needs gdal
         if gis.has_gdal:
-            p = gis.proj_to_cartopy(pyproj.Proj(init='epsg:26915'))
+            p = gis.proj_to_cartopy(gis.check_crs('+init=epsg:26915'))
             assert isinstance(p, ccrs.UTM)

@@ -1,0 +1,28 @@
+name: test_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - six
+  - numpy
+  - scipy
+  - pyproj<2.0
+  - joblib
+  - netCDF4
+  - shapely
+  - geopandas
+  - rasterio
+  - pandas
+  - xarray
+  - dask
+  - matplotlib=3.0.3
+  - scikit-image
+  - Pillow
+  - descartes
+  - cartopy
+  - pip
+  - pip:
+    - coveralls
+    - pytest-cov
+    - pytest-mpl
+    - motionless
