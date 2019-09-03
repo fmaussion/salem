@@ -31,9 +31,9 @@ def check_crs(crs):
 
     Examples
     --------
-    >>> p = check_crs('+units=m +init=epsg:26915')
+    >>> p = check_crs('+init=epsg:26915 +units=m')
     >>> p.srs
-    '+units=m +init=epsg:26915 '
+    '+init=epsg:26915 +units=m'
     >>> p = check_crs('wrong')
     >>> p is None
     True
@@ -58,13 +58,17 @@ def check_crs(crs):
         if isinstance(crs, string_types):
             # quick fix for https://github.com/pyproj4/pyproj/issues/345
             crs = crs.replace(' ', '').replace('+', ' +')
-        try:
-            out = pyproj.Proj(crs, preserve_units=True)
-        except RuntimeError:
+
+        # A series of try-catch to handle the (too) many changes in pyproj
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning)
             try:
-                out = pyproj.Proj(init=crs, preserve_units=True)
+                    out = pyproj.Proj(crs, preserve_units=True)
             except RuntimeError:
-                out = None
+                try:
+                    out = pyproj.Proj(init=crs, preserve_units=True)
+                except RuntimeError:
+                    out = None
     else:
         out = None
     return out
@@ -403,7 +407,8 @@ class Grid(object):
         """
 
         x, y = self.xy_coordinates
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('+init=EPSG:4326')
+
         return transform_proj(self.proj, proj_out, x, y)
 
     @property
@@ -436,7 +441,7 @@ class Grid(object):
         """
 
         x, y = self.xstagg_xy_coordinates
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('+init=EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
@@ -447,7 +452,7 @@ class Grid(object):
         """
 
         x, y = self.ystagg_xy_coordinates
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('+init=EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
@@ -463,7 +468,7 @@ class Grid(object):
         x = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
         y = self.corner_grid.y0 + np.arange(self.ny+1) * self.dy
         x, y = np.meshgrid(x, y)
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('+init=EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property

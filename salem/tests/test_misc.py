@@ -197,7 +197,7 @@ class TestSkyIsFalling(unittest.TestCase):
 
         import pyproj
         import matplotlib.pyplot as plt
-        from salem.gis import transform_proj
+        from salem.gis import transform_proj, check_crs
 
         wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
         fig = plt.figure()
@@ -205,7 +205,7 @@ class TestSkyIsFalling(unittest.TestCase):
 
         srs = '+units=m +proj=lcc +lat_1=29.0 +lat_2=29.0 +lat_0=29.0 +lon_0=89.8'
 
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('+init=EPSG:4326')
         proj_in = pyproj.Proj(srs, preserve_units=True)
 
         lon, lat = transform_proj(proj_in, proj_out, -2235000, -2235000)
@@ -681,6 +681,14 @@ class TestXarray(unittest.TestCase):
 
     @requires_cartopy
     def test_metum(self):
+
+        import pyproj
+        from distutils.version import LooseVersion
+        if LooseVersion(pyproj.__version__) > LooseVersion('2.3'):
+            with pytest.raises(RuntimeError):
+                sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
+            return
+
         ds = sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
 
         # One way

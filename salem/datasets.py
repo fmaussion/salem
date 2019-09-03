@@ -29,7 +29,7 @@ except ImportError:
 from salem import lazy_property
 from salem import Grid
 from salem import wgs84
-from salem import utils, gis, wrftools, sio
+from salem import utils, gis, wrftools, sio, check_crs
 
 API_KEY = None
 
