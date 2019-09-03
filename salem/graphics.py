@@ -482,6 +482,8 @@ class Map(DataLevels):
                                         order=interp, mode='edge',
                                         anti_aliasing=False)
 
+            return data
+
         crs = gis.check_crs(crs, raise_on_error=True)
         if isinstance(crs, Grid):
             # Remap

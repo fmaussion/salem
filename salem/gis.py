@@ -89,7 +89,7 @@ def check_crs(crs, raise_on_error=False):
         if err2 is not None:
             msg += 'Output of `pyproj.Proj(init=crs, preserve_units=True)`: {}'
             msg = msg.format(err2)
-        raise RuntimeError(msg)
+        raise ValueError(msg)
 
     return out
 
