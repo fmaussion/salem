@@ -5,6 +5,7 @@ import warnings
 import os
 
 import pyproj
+import pytest
 import numpy as np
 import netCDF4
 from numpy.testing import assert_array_equal, assert_allclose
@@ -949,6 +950,12 @@ class TestGrid(unittest.TestCase):
 
 
 class TestTransform(unittest.TestCase):
+
+    def test_check_crs_log(self):
+
+        assert gis.check_crs('wrong') is None
+        with pytest.raises(RuntimeError):
+            gis.check_crs('wrong', raise_on_error=True)
 
     def test_same_proj(self):
 

@@ -448,7 +448,6 @@ class Map(DataLevels):
         if len(shp) != 2:
             raise ValueError('Data should be 2D.')
 
-        crs = gis.check_crs(crs)
         if crs is None:
             # Reform case, but with a sanity check
             if not np.isclose(shp[0] / shp[1], self.grid.ny / self.grid.nx,
@@ -483,7 +482,8 @@ class Map(DataLevels):
                                         order=interp, mode='edge',
                                         anti_aliasing=False)
 
-        elif isinstance(crs, Grid):
+        crs = gis.check_crs(crs, raise_on_error=True)
+        if isinstance(crs, Grid):
             # Remap
             if overplot:
                 data = self.grid.map_gridded_data(data, crs, interp=interp,
@@ -491,7 +491,8 @@ class Map(DataLevels):
             else:
                 data = self.grid.map_gridded_data(data, crs, interp=interp)
         else:
-            raise ValueError('crs not understood')
+            raise ValueError('crs should be a grid, not a proj')
+
         return data
 
     def set_data(self, data=None, crs=None, interp='nearest',

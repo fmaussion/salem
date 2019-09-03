@@ -26,7 +26,7 @@ except ImportError:
 from salem import lazy_property, wgs84
 
 
-def check_crs(crs):
+def check_crs(crs, raise_on_error=False):
     """Checks if the crs represents a valid grid, projection or ESPG string.
 
     Examples
@@ -52,6 +52,8 @@ def check_crs(crs):
         # necessary for python 2
         crs = str(crs)
 
+    err1, err2 = None, None
+
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
     elif isinstance(crs, dict) or isinstance(crs, string_types):
@@ -63,14 +65,32 @@ def check_crs(crs):
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=DeprecationWarning)
             try:
-                    out = pyproj.Proj(crs, preserve_units=True)
-            except RuntimeError:
+                out = pyproj.Proj(crs, preserve_units=True)
+            except RuntimeError as e:
+                err1 = str(e)
                 try:
                     out = pyproj.Proj(init=crs, preserve_units=True)
-                except RuntimeError:
+                except RuntimeError as e:
+                    err2 = str(e)
                     out = None
     else:
         out = None
+
+    if raise_on_error and out is None:
+        msg = ('salem could not properly parse the provided coordinate '
+               'reference system (crs). This could be due to errors in your '
+               'data, in PyProj, or with salem itself. If this occurs '
+               'unexpectedly, report an issue to https://github.com/fmaussion/'
+               'salem/issues. Full log: \n'
+               'crs: {} ; \n'.format(crs))
+        if err1 is not None:
+            msg += 'Output of `pyproj.Proj(crs, preserve_units=True)`: {} ; \n'
+            msg = msg.format(err1)
+        if err2 is not None:
+            msg += 'Output of `pyproj.Proj(init=crs, preserve_units=True)`: {}'
+            msg = msg.format(err2)
+        raise RuntimeError(msg)
+
     return out
 
 
@@ -633,13 +653,11 @@ class Grid(object):
             y = np.asarray(j) * self.dy + self.y0
 
         # Convert x, y to crs
-        _crs = check_crs(crs)
+        _crs = check_crs(crs, raise_on_error=True)
         if isinstance(_crs, pyproj.Proj):
             ret = transform_proj(self.proj, _crs, x, y)
         elif isinstance(_crs, Grid):
             ret = _crs.transform(x, y, crs=self.proj, nearest=nearest)
-        else:
-            raise ValueError('crs not understood')
         return ret
 
     def transform(self, x, y, z=None, crs=wgs84, nearest=False, maskout=False):
@@ -672,13 +690,11 @@ class Grid(object):
         x, y = np.ma.array(x), np.ma.array(y)
 
         # First to local proj
-        _crs = check_crs(crs)
+        _crs = check_crs(crs, raise_on_error=True)
         if isinstance(_crs, pyproj.Proj):
             x, y = transform_proj(_crs, self.proj, x, y)
         elif isinstance(_crs, Grid):
             x, y = _crs.ij_to_crs(x, y, crs=self.proj)
-        else:
-            raise ValueError('crs not understood')
 
         # Then to local grid
         x = (x - self.x0) / self.dx
