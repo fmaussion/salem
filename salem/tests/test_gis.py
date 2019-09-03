@@ -954,7 +954,7 @@ class TestTransform(unittest.TestCase):
     def test_check_crs_log(self):
 
         assert gis.check_crs('wrong') is None
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             gis.check_crs('wrong', raise_on_error=True)
 
     def test_same_proj(self):
