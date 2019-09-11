@@ -1007,6 +1007,21 @@ def open_wrf_dataset(file, **kwargs):
     return ds
 
 
+def is_rotated_proj_working():
+
+    import pyproj
+    srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+           '+to_meter=0.0174532925199433 +o_lon_p=0.0 +o_lat_p=80.5 '
+           '+lon_0=357.5 +no_defs')
+
+    p1 = pyproj.Proj(srs)
+    p2 = pyproj.Proj('+init=EPSG:4326')
+
+    return np.isclose(pyproj.transform(p1, p2, -20, -9),
+                      [-22.243473889042903, -0.06328365194179102],
+                      atol=1e-5).all()
+
+
 def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
                        central_rotated_longitude=0., **kwargs):
     """Wrapper to Met Office Unified Model files (experimental)
@@ -1034,11 +1049,10 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     an xarray Dataset
     """
 
-    import pyproj
-    from distutils.version import LooseVersion
-    if LooseVersion(pyproj.__version__) > LooseVersion('2.3'):
+    if not is_rotated_proj_working():
         raise RuntimeError('open_metum_dataset currently does not '
-                           'work with pyproj version above 2.3')
+                           'work with certain PROJ versions: '
+                           'https://github.com/pyproj4/pyproj/issues/424')
 
     # open with xarray
     ds = xr.open_dataset(file, **kwargs)
