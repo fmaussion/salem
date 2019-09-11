@@ -682,9 +682,7 @@ class TestXarray(unittest.TestCase):
     @requires_cartopy
     def test_metum(self):
 
-        import pyproj
-        from distutils.version import LooseVersion
-        if LooseVersion(pyproj.__version__) > LooseVersion('2.3'):
+        if not sio.is_rotated_proj_working():
             with pytest.raises(RuntimeError):
                 sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
             return
