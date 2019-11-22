@@ -1,0 +1,20 @@
+name: salem-docs
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - bottleneck
+  - cartopy
+  - ipykernel
+  - ipython
+  - netcdf4
+  - numpy
+  - numpydoc
+  - pandas
+  - rasterio
+  - sphinx
+  - matplotlib
+  - joblib
+  - geopandas
+  - xarray
+  - descartes
