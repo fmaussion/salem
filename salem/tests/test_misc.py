@@ -335,9 +335,7 @@ class TestXarray(unittest.TestCase):
         wf = get_demo_file('wrf_cropped.nc')
         ncl_out = get_demo_file('wrf_cropped_ncl.nc')
 
-        with warnings.catch_warnings(record=True) as war:
-            w = sio.open_wrf_dataset(wf).chunk()
-            self.assertEqual(len(war), 0)
+        w = sio.open_wrf_dataset(wf).chunk()
         nc = xr.open_dataset(ncl_out)
 
         ref = nc['TK']
