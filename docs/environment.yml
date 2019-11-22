@@ -18,4 +18,4 @@ dependencies:
   - geopandas
   - xarray
   - descartes
-  - sphinx_gallery
+  - sphinx-gallery
