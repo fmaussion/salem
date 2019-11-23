@@ -19,3 +19,4 @@ dependencies:
   - xarray
   - descartes
   - sphinx-gallery
+  - scikit-image
