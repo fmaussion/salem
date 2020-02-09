@@ -16,7 +16,6 @@ matrix:
   - env: CONDA_ENV=py27-all MPL=--mpl
   - env: CONDA_ENV=py36-all MPL=--mpl
   - env: CONDA_ENV=py36-pyproj MPL=--mpl
-  - env: CONDA_ENV=py36-all-xr10 MPL=--mpl
   - env: CONDA_ENV=py36-min MPL=
   - env: CONDA_ENV=py36-xr MPL=
   - env: CONDA_ENV=py36-xarray-dev MPL=--mpl
