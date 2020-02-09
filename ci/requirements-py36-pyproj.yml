@@ -1,6 +1,4 @@
 name: test_env
-channels:
-  - conda-forge
 dependencies:
   - python=3.6
   - six
@@ -15,7 +13,7 @@ dependencies:
   - pandas
   - xarray
   - dask
-  - matplotlib=3.0.3
+  - matplotlib
   - scikit-image
   - Pillow
   - descartes
