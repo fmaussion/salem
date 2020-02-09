@@ -216,7 +216,10 @@ class GeoDataset(object):
 
         # Several cases
         if shape is not None:
-            gdf = sio.read_shapefile(shape)
+            if isinstance(shape, pd.DataFrame):
+                gdf = shape
+            else:
+                gdf = sio.read_shapefile(shape)
             gis.transform_geopandas(gdf, to_crs=ogrid.corner_grid,
                                     inplace=True)
             if rasterio is None:
