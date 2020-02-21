@@ -21,6 +21,7 @@ matrix:
   - env: CONDA_ENV=py37-xarray-dev MPL=--mpl
   - env: CONDA_ENV=py37-all-rc MPL=--mpl
   allow_failures:
+  - env: CONDA_ENV=py36-all MPL=--mpl
   - env: CONDA_ENV=py37-xr MPL=
   - env: CONDA_ENV=py37-xarray-dev MPL=--mpl
   - env: CONDA_ENV=py37-all-rc MPL=--mpl

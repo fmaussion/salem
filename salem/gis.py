@@ -25,6 +25,12 @@ except ImportError:
 # Locals
 from salem import lazy_property, wgs84
 
+try:
+    crs_type = pyproj.crs.CRS
+except AttributeError:
+    class Dummy():
+        pass
+    crs_type = Dummy
 
 def check_crs(crs, raise_on_error=False):
     """Checks if the crs represents a valid grid, projection or ESPG string.
@@ -56,7 +62,7 @@ def check_crs(crs, raise_on_error=False):
 
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
-    elif isinstance(crs, pyproj.crs.CRS):
+    elif isinstance(crs, crs_type):
         out = pyproj.Proj(crs.to_proj4(), preserve_units=True)
     elif isinstance(crs, dict) or isinstance(crs, string_types):
         if isinstance(crs, string_types):
