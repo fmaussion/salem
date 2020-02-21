@@ -13,7 +13,6 @@ branches:
 matrix:
   fast_finish: true
   include:
-  - env: CONDA_ENV=py27-all MPL=--mpl
   - env: CONDA_ENV=py36-all MPL=--mpl
   - env: CONDA_ENV=py36-gpd MPL=--mpl
   - env: CONDA_ENV=py36-pyproj MPL=--mpl
@@ -23,7 +22,6 @@ matrix:
   - env: CONDA_ENV=py36-all-rc MPL=--mpl
   - env: CONDA_ENV=py37-all MPL=--mpl
   allow_failures:
-  - env: CONDA_ENV=py27-all MPL=--mpl
   - env: CONDA_ENV=py36-xr MPL=
   - env: CONDA_ENV=py36-xarray-dev MPL=--mpl
   - env: CONDA_ENV=py36-all-rc MPL=--mpl
@@ -35,6 +33,7 @@ before_install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
+  - conda config --set channel_priority strict
   - pip install pyyaml
 
 install:
