@@ -13,19 +13,18 @@ branches:
 matrix:
   fast_finish: true
   include:
-  - env: CONDA_ENV=py27-all MPL=--mpl
-  - env: CONDA_ENV=py36-all MPL=--mpl
-  - env: CONDA_ENV=py36-pyproj MPL=--mpl
-  - env: CONDA_ENV=py36-min MPL=
-  - env: CONDA_ENV=py36-xr MPL=
-  - env: CONDA_ENV=py36-xarray-dev MPL=--mpl
-  - env: CONDA_ENV=py36-all-rc MPL=--mpl
   - env: CONDA_ENV=py37-all MPL=--mpl
+  - env: CONDA_ENV=py36-all MPL=--mpl
+  - env: CONDA_ENV=py37-pyproj MPL=--mpl
+  - env: CONDA_ENV=py37-min MPL=
+  - env: CONDA_ENV=py37-xr MPL=
+  - env: CONDA_ENV=py37-xarray-dev MPL=--mpl
+  - env: CONDA_ENV=py37-all-rc MPL=--mpl
   allow_failures:
-  - env: CONDA_ENV=py27-all MPL=--mpl
-  - env: CONDA_ENV=py36-xr MPL=
-  - env: CONDA_ENV=py36-xarray-dev MPL=--mpl
-  - env: CONDA_ENV=py36-all-rc MPL=--mpl
+  - env: CONDA_ENV=py36-all MPL=--mpl
+  - env: CONDA_ENV=py37-xr MPL=
+  - env: CONDA_ENV=py37-xarray-dev MPL=--mpl
+  - env: CONDA_ENV=py37-all-rc MPL=--mpl
 
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -34,6 +33,7 @@ before_install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
+  - conda config --set channel_priority strict
   - pip install pyyaml
 
 install:

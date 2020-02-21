@@ -23,6 +23,28 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
 
 
+def is_cartopy_rotated_working():
+
+    from salem.gis import proj_to_cartopy
+    from cartopy.crs import PlateCarree
+    import pyproj
+
+    cp = pyproj.Proj('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+                     '+to_meter=0.0174532925199433 +o_lon_p=0.0 +o_lat_p=80.5 '
+                     '+lon_0=357.5 +no_defs')
+    cp = proj_to_cartopy(cp)
+
+    out = PlateCarree().transform_points(cp, np.array([-20]), np.array([-9]))
+
+    if not (np.allclose(out[0, 0], -22.243473889042903, atol=1e-5) and
+            np.allclose(out[0, 1], -0.06328365194179102, atol=1e-5)):
+
+        # Cartopy also had issues
+        return False
+
+    return True
+
+
 @requires_geopandas
 def create_dummy_shp(fname):
 
@@ -699,6 +721,9 @@ class TestXarray(unittest.TestCase):
         assert_allclose(j, jj, atol=1e-7)
 
         # Cartopy
+        if not is_cartopy_rotated_working():
+            return
+
         from salem.gis import proj_to_cartopy
         from cartopy.crs import PlateCarree
         cp = proj_to_cartopy(ds.salem.grid.proj)

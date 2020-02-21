@@ -25,6 +25,12 @@ except ImportError:
 # Locals
 from salem import lazy_property, wgs84
 
+try:
+    crs_type = pyproj.crs.CRS
+except AttributeError:
+    class Dummy():
+        pass
+    crs_type = Dummy
 
 def check_crs(crs, raise_on_error=False):
     """Checks if the crs represents a valid grid, projection or ESPG string.
@@ -56,6 +62,8 @@ def check_crs(crs, raise_on_error=False):
 
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
+    elif isinstance(crs, crs_type):
+        out = pyproj.Proj(crs.to_proj4(), preserve_units=True)
     elif isinstance(crs, dict) or isinstance(crs, string_types):
         if isinstance(crs, string_types):
             # quick fix for https://github.com/pyproj4/pyproj/issues/345
@@ -1291,13 +1299,15 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
     return transform(project, geom)
 
 
-def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
+def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
     """Reprojects a geopandas dataframe.
 
     Parameters
     ----------
     gdf : geopandas.DataFrame
         the dataframe to transform (must have a crs attribute)
+    from_crs : crs
+        if gdf has no crs attribute (happens when the crs is a salem grid)
     to_crs : crs
         the crs into which the dataframe must be transformed
     inplace : bool
@@ -1310,7 +1320,10 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     from shapely.ops import transform
     import geopandas as gpd
 
-    from_crs = check_crs(gdf.crs)
+    if from_crs is None:
+        from_crs = check_crs(gdf.crs)
+    else:
+        from_crs = check_crs(from_crs)
     to_crs = check_crs(to_crs)
 
     if inplace:
@@ -1330,6 +1343,10 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     # Do the job and set the new attributes
     result = out.geometry.apply(lambda geom: transform(project, geom))
     result.__class__ = gpd.GeoSeries
+    if isinstance(to_crs, pyproj.Proj):
+        to_crs = to_crs.srs
+    elif isinstance(to_crs, Grid):
+        to_crs = None
     result.crs = to_crs
     out.geometry = result
     out.crs = to_crs

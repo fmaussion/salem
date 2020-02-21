@@ -1,6 +1,8 @@
 name: test_env
+channels:
+  - conda-forge
 dependencies:
-  - python=3.6
+  - python=3.7
   - six
   - numpy
   - scipy
@@ -9,7 +11,6 @@ dependencies:
   - netCDF4
   - pandas
   - xarray
-  - dask
   - pip
   - pip:
     - coveralls
