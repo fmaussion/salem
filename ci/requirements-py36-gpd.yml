@@ -1,0 +1,26 @@
+name: test_env
+dependencies:
+  - python=3.6
+  - six
+  - numpy
+  - scipy
+  - pyproj
+  - joblib
+  - netCDF4
+  - shapely
+  - geopandas<0.7.0
+  - rasterio
+  - pandas
+  - xarray
+  - dask
+  - matplotlib
+  - scikit-image
+  - Pillow
+  - descartes
+  - cartopy
+  - pip
+  - pip:
+    - coveralls
+    - pytest-cov
+    - pytest-mpl
+    - motionless

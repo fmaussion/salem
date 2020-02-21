@@ -66,7 +66,7 @@ def _create_dummy_shp(fname):
     df['name'] = ['Polygon', 'Line']
     df['geometry'] = gpd.GeoSeries([p1, p2])
     of = os.path.join(testdir, fname)
-    df.crs = {'init': 'epsg:4326'}
+    df.crs = 'epsg:4326'
     df.to_file(of)
     return of
 

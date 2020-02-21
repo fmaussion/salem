@@ -1056,7 +1056,7 @@ class TestTransform(unittest.TestCase):
         assert_allclose(ref, st.geometry[0].exterior.coords)
 
         # round trip
-        so_back = gis.transform_geopandas(st, to_crs=so.crs)
+        so_back = gis.transform_geopandas(st, from_crs=g, to_crs=so.crs)
         assert_allclose(so_back.geometry[0].exterior.coords,
                         so.geometry[0].exterior.coords)
 
