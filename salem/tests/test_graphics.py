@@ -344,8 +344,7 @@ class TestGraphics(unittest.TestCase):
     def test_increase_coverage(self):
 
         # Just for coverage -> empty shapes should not trigger an error
-        grid = mercator_grid(center_ll=(-20, 40),
-                                        extent=(2000, 2000), nx=10)
+        grid = mercator_grid(center_ll=(-20, 40), extent=(2000, 2000), nx=10)
         c = graphics.Map(grid)
 
         # Assigning wrongly shaped data should, however
