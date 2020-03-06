@@ -682,7 +682,7 @@ def test_geometries():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=8)
 def test_text():
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
@@ -759,7 +759,7 @@ def test_hef_default_spline():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=6)
 def test_hef_from_array():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
