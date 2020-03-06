@@ -1015,7 +1015,7 @@ def is_rotated_proj_working():
            '+lon_0=357.5 +no_defs')
 
     p1 = pyproj.Proj(srs)
-    p2 = pyproj.Proj('+init=EPSG:4326')
+    p2 = pyproj.Proj('EPSG:4326')
 
     return np.isclose(pyproj.transform(p1, p2, -20, -9),
                       [-22.243473889042903, -0.06328365194179102],
