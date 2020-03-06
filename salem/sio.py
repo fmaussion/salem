@@ -993,7 +993,7 @@ def open_wrf_dataset(file, **kwargs):
     # drop ugly vars
     vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']
     vns = [vn for vn in vns if vn in ds.variables]
-    ds = ds.drop(vns)
+    ds = ds.drop_vars(vns)
 
     # add cartesian coords
     ds['west_east'] = ds.salem.grid.x_coord
@@ -1015,7 +1015,7 @@ def is_rotated_proj_working():
            '+lon_0=357.5 +no_defs')
 
     p1 = pyproj.Proj(srs)
-    p2 = pyproj.Proj('+init=EPSG:4326')
+    p2 = wgs84
 
     return np.isclose(pyproj.transform(p1, p2, -20, -9),
                       [-22.243473889042903, -0.06328365194179102],
@@ -1114,7 +1114,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     Parameters
     ----------
     paths : str or sequence
-        Either a string glob in the form "path/to/my/files/\*.nc" or an
+        Either a string glob in the form `path/to/my/files/*.nc` or an
         explicit list of files to open.
     chunks : int or dict, optional
         Dictionary with keys given by dimension names and values given by chunk
@@ -1146,8 +1146,8 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     Returns
     -------
     xarray.Dataset
-
     """
+
     if isinstance(paths, basestring):
         paths = sorted(glob(paths))
     if not paths:
@@ -1176,6 +1176,6 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     # drop accumulated vars if needed (TODO: make this not hard coded)
     vns = ['PRCP', 'PRCP_C', 'PRCP_NC']
     vns = [vn for vn in vns if vn in combined.variables]
-    combined = combined.drop(vns)
+    combined = combined.drop_vars(vns)
 
     return combined

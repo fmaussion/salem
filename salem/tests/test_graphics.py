@@ -344,8 +344,7 @@ class TestGraphics(unittest.TestCase):
     def test_increase_coverage(self):
 
         # Just for coverage -> empty shapes should not trigger an error
-        grid = mercator_grid(center_ll=(-20, 40),
-                                        extent=(2000, 2000), nx=10)
+        grid = mercator_grid(center_ll=(-20, 40), extent=(2000, 2000), nx=10)
         c = graphics.Map(grid)
 
         # Assigning wrongly shaped data should, however
@@ -682,7 +681,7 @@ def test_geometries():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=8)
 def test_text():
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
@@ -759,7 +758,7 @@ def test_hef_default_spline():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=6)
 def test_hef_from_array():
     grid = mercator_grid(center_ll=(10.76, 46.798444),
                          extent=(10000, 7000))
@@ -963,6 +962,7 @@ def test_lookup_transform():
 @requires_matplotlib
 @requires_cartopy
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
+@pytest.mark.skip(reason='There is an unknown issue with cartopy')
 def test_cartopy():
 
     import cartopy
@@ -1012,6 +1012,7 @@ def test_cartopy():
 
 @requires_cartopy
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=7)
+@pytest.mark.skip(reason='There is an unknown issue with cartopy')
 def test_cartopy_polar():
 
     import cartopy

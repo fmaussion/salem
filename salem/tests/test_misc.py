@@ -227,7 +227,7 @@ class TestSkyIsFalling(unittest.TestCase):
 
         srs = '+units=m +proj=lcc +lat_1=29.0 +lat_2=29.0 +lat_0=29.0 +lon_0=89.8'
 
-        proj_out = check_crs('+init=EPSG:4326')
+        proj_out = check_crs('EPSG:4326')
         proj_in = pyproj.Proj(srs, preserve_units=True)
 
         lon, lat = transform_proj(proj_in, proj_out, -2235000, -2235000)
