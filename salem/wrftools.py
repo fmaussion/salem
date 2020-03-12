@@ -25,6 +25,27 @@ def _init_pool():
         POOL = mp.Pool()
 
 
+def dummy_func(*args):
+    pass
+
+
+class ScaledVar():
+
+    def __init__(self, ncvar):
+        self.ncvar = ncvar
+        try:
+            self.scale = ncvar.scale
+        except AttributeError:
+            self.scale = False
+            
+    def __enter__(self):
+        self.ncvar.set_auto_scale(True)
+        return self.ncvar
+
+    def __exit__(self, type, value, traceback):
+        self.ncvar.set_auto_scale(self.scale)
+
+
 class Unstaggerer(object):
     """Duck NetCDF4.Variable class which "unstaggers" WRF variables.
 
@@ -54,8 +75,14 @@ class Unstaggerer(object):
         self.shape = tuple(shape)
 
         # this is quickndirty, and probably wrong
-        self.set_auto_maskandscale = ncvar.set_auto_maskandscale
-        self.ncattrs = ncvar.ncattrs
+        self.set_auto_maskandscale = dummy_func
+        self.set_auto_scale = dummy_func
+        attrs = list(ncvar.ncattrs())
+        if 'add_offset' in attrs: attrs.remove('add_offset')
+        if 'scale_factor' in attrs: attrs.remove('scale_factor')
+        def filter_attrs():
+            return attrs
+        self.ncattrs = filter_attrs
         self.filters = ncvar.filters
 
         def _chunking():
@@ -109,7 +136,8 @@ class Unstaggerer(object):
         else:
             item[self.ds] = slice(start, stop-1)
             itemr[self.ds] = slice(start+1, stop)
-        return 0.5*(self.ncvar[tuple(item)] + self.ncvar[tuple(itemr)])
+        with ScaledVar(self.ncvar) as var:
+            return 0.5*(var[tuple(item)] + var[tuple(itemr)])
 
 
 class FakeVariable(object):
@@ -125,14 +153,20 @@ class FakeVariable(object):
 
     def _copy_attrs_from(self, ncvar):
         # copies the necessary nc attributes from a template variable
-        self.ncattrs = ncvar.ncattrs
+        attrs = list(ncvar.ncattrs())
+        if 'add_offset' in attrs: attrs.remove('add_offset')
+        if 'scale_factor' in attrs: attrs.remove('scale_factor')
+        def filter_attrs():
+            return attrs
+        self.ncattrs = filter_attrs
         self.filters = ncvar.filters
         self.chunking = ncvar.chunking
         for attr in self.ncattrs():
             setattr(self, attr, getattr(ncvar, attr))
         self.dimensions = ncvar.dimensions
         self.dtype = ncvar.dtype
-        self.set_auto_maskandscale = ncvar.set_auto_maskandscale
+        self.set_auto_maskandscale = dummy_func
+        self.set_auto_scale = dummy_func
         self.shape = ncvar.shape
 
     def getncattr(self, name):
@@ -155,7 +189,8 @@ class T2C(FakeVariable):
         return 'T2' in nc.variables
 
     def __getitem__(self, item):
-        return self.nc.variables['T2'][item] - 273.15
+        with ScaledVar(self.nc.variables['T2']) as var:
+            return var[item] - 273.15
 
 
 class AccumulatedVariable(FakeVariable):
@@ -228,20 +263,20 @@ class AccumulatedVariable(FakeVariable):
         itemr[0] = slice(start+1, stop)
 
         # done
-        var = self.nc.variables[self.accvn]
-        if do_nan:
-            item[0] = slice(0, stop-1)
-            out = var[itemr]
-            try:
-                # in case we have a masked array
-                out.unshare_mask()
-            except:
-                pass
-            out[1:, ...] -= var[item]
-            out[0, ...] = np.NaN
-        else:
-            out = var[itemr]
-            out -= var[item]
+        with ScaledVar(self.nc.variables[self.accvn]) as var:
+            if do_nan:
+                item[0] = slice(0, stop-1)
+                out = var[itemr]
+                try:
+                    # in case we have a masked array
+                    out.unshare_mask()
+                except:
+                    pass
+                out[1:, ...] -= var[item]
+                out[0, ...] = np.NaN
+            else:
+                out = var[itemr]
+                out -= var[item]
         if was_scalar:
             out = out[0, ...]
         return out * self._factor
@@ -284,8 +319,9 @@ class PRCP(FakeVariable):
                'RAINC' in nc.variables and 'RAINNC' in nc.variables
 
     def __getitem__(self, item):
-        return self.nc.variables['PRCP_NC'][item] + \
-               self.nc.variables['PRCP_C'][item]
+        with ScaledVar(self.nc.variables['PRCP_NC']) as p1, \
+                ScaledVar(self.nc.variables['PRCP_C']) as p2:
+            return p1[item] + p2[item]
 
 
 class THETA(FakeVariable):
@@ -300,7 +336,8 @@ class THETA(FakeVariable):
         return 'T' in nc.variables
 
     def __getitem__(self, item):
-        return self.nc.variables['T'][item] + 300.
+        with ScaledVar(self.nc.variables['T']) as var:
+            return var[item] + 300.
 
 
 class TK(FakeVariable):
@@ -318,8 +355,11 @@ class TK(FakeVariable):
         p1000mb = 100000.
         r_d = 287.04
         cp = 7 * r_d / 2.
-        t = self.nc.variables['T'][item] + 300.
-        p = self.nc.variables['P'][item] + self.nc.variables['PB'][item]
+        with ScaledVar(self.nc.variables['T']) as var:
+            t = var[item] + 300.
+        with ScaledVar(self.nc.variables['P']) as p, \
+                ScaledVar(self.nc.variables['PB']) as pb:
+            p = p[item] + pb[item]
         return (p/p1000mb)**(r_d/cp) * t
 
 
@@ -335,8 +375,10 @@ class WS(FakeVariable):
         return np.all([n in nc.variables for n in ['U', 'V']])
 
     def __getitem__(self, item):
-        ws = self.nc.variables['U'][item]**2
-        ws += self.nc.variables['V'][item]**2
+        with ScaledVar(self.nc.variables['U']) as var:
+            ws = var[item]**2
+        with ScaledVar(self.nc.variables['V']) as var:
+            ws += var[item]**2
         return np.sqrt(ws)
 
 
@@ -352,11 +394,14 @@ class PRESSURE(FakeVariable):
         return np.all([n in nc.variables for n in ['P', 'PB']])
 
     def __getitem__(self, item):
-        res = self.nc.variables['P'][item] + self.nc.variables['PB'][item]
-        if self.nc.variables['P'].units == 'Pa':
-            res /= 100
-        elif self.nc.variables['P'].units == 'hPa':
-            pass
+
+        with ScaledVar(self.nc.variables['P']) as p, \
+                ScaledVar(self.nc.variables['PB']) as pb:
+            res = p[item] + pb[item]
+            if p.units == 'Pa':
+                res /= 100
+            elif p.units == 'hPa':
+                pass
         return res
 
 
@@ -372,7 +417,9 @@ class GEOPOTENTIAL(FakeVariable):
         return np.all([n in nc.variables for n in ['PH', 'PHB']])
 
     def __getitem__(self, item):
-        return self.nc.variables['PH'][item] + self.nc.variables['PHB'][item]
+        with ScaledVar(self.nc.variables['PH']) as p, \
+                ScaledVar(self.nc.variables['PHB']) as pb:
+            return p[item] + pb[item]
 
 
 class Z(FakeVariable):
@@ -387,7 +434,8 @@ class Z(FakeVariable):
         return np.all([n in nc.variables for n in ['PH', 'PHB']])
 
     def __getitem__(self, item):
-        return self.nc.variables['GEOPOTENTIAL'][item] / 9.81
+        with ScaledVar(self.nc.variables['GEOPOTENTIAL']) as var:
+            return var[item] / 9.81
 
 
 class SLP(FakeVariable):
@@ -422,10 +470,14 @@ class SLP(FakeVariable):
 
         # get data
         vars = self.nc.variables
-        tk = vars['TK'][item]
-        p = vars['P'][item] + vars['PB'][item]
-        q = vars['QVAPOR'][item]
-        z = (vars['PH'][item] + vars['PHB'][item]) / 9.81
+        with ScaledVar(vars['TK']) as var:
+            tk = var[item]
+        with ScaledVar(vars['P']) as p, ScaledVar(vars['PB']) as pb:
+            p = p[item] + pb[item]
+        with ScaledVar(vars['QVAPOR']) as var:
+            q = var[item]
+        with ScaledVar(vars['PH']) as ph, ScaledVar(vars['PHB']) as phb:
+            z = (ph[item] + phb[item]) / 9.81
         return np.squeeze(_ncl_slp(z, tk, p, q), axis=tuple(squeezax))
 
 # Diagnostic variable classes in a list

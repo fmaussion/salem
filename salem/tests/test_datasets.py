@@ -542,6 +542,19 @@ class TestWRF(unittest.TestCase):
             nc.set_period(1, 2)
             assert_allclose(nc.get_vardata('PH'), ref[1:3, ...])
 
+    def test_unstagger_compressed(self):
+
+        wf = get_demo_file('wrf_cropped.nc')
+        wfc = get_demo_file('wrf_cropped_compressed.nc')
+
+        # Under WRF
+        nc = WRF(wf)
+        ncc = WRF(wfc)
+        assert_allclose(nc.get_vardata('PH'), ncc.get_vardata('PH'), rtol=.003)
+        nc.set_period(1, 2)
+        ncc.set_period(1, 2)
+        assert_allclose(nc.get_vardata('PH'), ncc.get_vardata('PH'), rtol=.003)
+
     def test_ncl_diagvars(self):
 
         wf = get_demo_file('wrf_cropped.nc')
@@ -560,9 +573,42 @@ class TestWRF(unittest.TestCase):
             tot = w.get_vardata('SLP')
             assert_allclose(ref, tot, rtol=1e-6)
 
+    def test_ncl_diagvars_compressed(self):
+
+        wf = get_demo_file('wrf_cropped_compressed.nc')
+        ncl_out = get_demo_file('wrf_cropped_ncl.nc')
+
+        w = WRF(wf)
+
+        with netCDF4.Dataset(ncl_out) as nc:
+            nc.set_auto_mask(False)
+
+            ref = nc.variables['TK'][:]
+            tot = w.get_vardata('TK')
+            assert_allclose(ref, tot, rtol=1e-5)
+
+            ref = nc.variables['SLP'][:]
+            tot = w.get_vardata('SLP')
+            assert_allclose(ref, tot, rtol=1e-4)
+
     def test_staggeredcoords(self):
 
         wf = get_demo_file('wrf_cropped.nc')
+        nc = GeoNetcdf(wf)
+        lon, lat = nc.grid.xstagg_ll_coordinates
+        assert_allclose(np.squeeze(nc.variables['XLONG_U'][0, ...]), lon,
+                        atol=1e-4)
+        assert_allclose(np.squeeze(nc.variables['XLAT_U'][0, ...]), lat,
+                        atol=1e-4)
+        lon, lat = nc.grid.ystagg_ll_coordinates
+        assert_allclose(np.squeeze(nc.variables['XLONG_V'][0, ...]), lon,
+                        atol=1e-4)
+        assert_allclose(np.squeeze(nc.variables['XLAT_V'][0, ...]), lat,
+                        atol=1e-4)
+
+    def test_staggeredcoords_compressed(self):
+
+        wf = get_demo_file('wrf_cropped_compressed.nc')
         nc = GeoNetcdf(wf)
         lon, lat = nc.grid.xstagg_ll_coordinates
         assert_allclose(np.squeeze(nc.variables['XLONG_U'][0, ...]), lon,
