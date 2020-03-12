@@ -9,6 +9,8 @@ v0.3.0 (unreleased)
 Enhancements
 ~~~~~~~~~~~~
 
+- Added support for lossy compression on WRF files (:pull:`167`).
+
 Bug fixes
 ~~~~~~~~~
 

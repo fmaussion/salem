@@ -993,7 +993,10 @@ def open_wrf_dataset(file, **kwargs):
     # drop ugly vars
     vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']
     vns = [vn for vn in vns if vn in ds.variables]
-    ds = ds.drop_vars(vns)
+    try:
+        ds = ds.drop_vars(vns)
+    except AttributeError:
+        ds = ds.drop(vns)
 
     # add cartesian coords
     ds['west_east'] = ds.salem.grid.x_coord
@@ -1176,6 +1179,9 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     # drop accumulated vars if needed (TODO: make this not hard coded)
     vns = ['PRCP', 'PRCP_C', 'PRCP_NC']
     vns = [vn for vn in vns if vn in combined.variables]
-    combined = combined.drop_vars(vns)
+    try:
+        combined = combined.drop_vars(vns)
+    except AttributeError:
+        combined = combined.drop(vns)
 
     return combined
