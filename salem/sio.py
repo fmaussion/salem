@@ -12,6 +12,7 @@ import warnings
 
 import numpy as np
 import netCDF4
+import cftime
 
 from salem.utils import memory, cached_shapefile_path
 from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
@@ -377,7 +378,9 @@ def netcdf_time(ncobj, monthbegin=False):
     elif vt is not None:
         # CF time
         var = ncobj.variables[vt]
-        time = netCDF4.num2date(var[:], var.units)
+        time = cftime.num2date(var[:], var.units,
+                               only_use_cftime_datetimes=False,
+                               only_use_python_datetimes=True)
 
         if monthbegin:
             # sometimes monthly data is centered in the month (stupid)

@@ -9,10 +9,15 @@ v0.3.0 (unreleased)
 Enhancements
 ~~~~~~~~~~~~
 
+- Region Of Interest (ROI) now also accepts GeoDataFrame objects
+  (:pull:`161`).
 - Added support for lossy compression on WRF files (:pull:`167`).
 
 Bug fixes
 ~~~~~~~~~
+
+- Various fixes for upstream changes, mostly in pyrproj and geopandas
+  (:pull:`148`, :pull:`150`, :pull:`154`, :pull:`156`, :pull:`1164`).
 
 
 v0.2.4 (25 March 2019)
