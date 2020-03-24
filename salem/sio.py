@@ -378,9 +378,15 @@ def netcdf_time(ncobj, monthbegin=False):
     elif vt is not None:
         # CF time
         var = ncobj.variables[vt]
-        time = cftime.num2date(var[:], var.units,
-                               only_use_cftime_datetimes=False,
-                               only_use_python_datetimes=True)
+        try:
+            # We want python times because pandas doesn't understand
+            # CFtime
+            time = cftime.num2date(var[:], var.units,
+                                   only_use_cftime_datetimes=False,
+                                   only_use_python_datetimes=True)
+        except TypeError:
+            # Old versions of cftime did return python times when possible
+            time = cftime.num2date(var[:], var.units)
 
         if monthbegin:
             # sometimes monthly data is centered in the month (stupid)
