@@ -921,6 +921,11 @@ class Grid(object):
         except AttributeError:
             pass
 
+        try:  # in case someone gave a masked array (won't work with scipy)
+            data = data.filled(np.nan)
+        except AttributeError:
+            pass
+
         in_shape = data.shape
         ndims = len(in_shape)
         if (ndims < 2) or (ndims > 4):
@@ -968,10 +973,7 @@ class Grid(object):
             if out is not None:
                 if ndims > 2:
                     raise ValueError('Need 2D for now.')
-                try:
-                    vok = ~ data[oj, oi].mask
-                except AttributeError:
-                    vok = np.isfinite(data[oj, oi])
+                vok = np.isfinite(data[oj, oi])
                 out_data[j[vok], i[vok]] = data[oj[vok], oi[vok]]
             else:
                 out_data[..., j, i] = data[..., oj, oi]
