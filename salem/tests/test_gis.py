@@ -651,9 +651,8 @@ class TestGrid(unittest.TestCase):
         projs = [wgs84, gis.check_crs('epsg:26915')]
 
         for proj in projs:
-
             nx, ny = (3, 4)
-            data = np.arange(nx*ny).reshape((ny, nx))
+            data = np.arange(nx * ny).reshape((ny, nx))
 
             # Nearest Neighbor
             args = dict(nxny=(nx, ny), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
@@ -669,29 +668,72 @@ class TestGrid(unittest.TestCase):
             self.assertTrue(odata.shape == data.shape)
             self.assertTrue(np.all(odata.mask))
 
-            args = dict(nxny=(nx-1, ny-1), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
+            args = dict(nxny=(nx - 1, ny - 1), dxdy=(1, 1), x0y0=(0, 0),
+                        proj=proj)
             ig = Grid(**args)
-            odata = g.map_gridded_data(data[0:ny-1, 0:nx-1], ig)
+            odata = g.map_gridded_data(data[0:ny - 1, 0:nx - 1], ig)
             self.assertTrue(odata.shape == (ny, nx))
-            assert_allclose(data[0:ny-1, 0:nx-1], odata[0:ny-1, 0:nx-1], atol=1e-03)
-            assert_array_equal([True]*3, odata.mask[ny-1, :])
+            assert_allclose(data[0:ny - 1, 0:nx - 1],
+                            odata[0:ny - 1, 0:nx - 1], atol=1e-03)
+            assert_array_equal([True] * 3, odata.mask[ny - 1, :])
 
-            data = np.arange(nx*ny).reshape((ny, nx)) * 1.2
-            odata = g.map_gridded_data(data[0:ny-1, 0:nx-1], ig)
+            data = np.arange(nx * ny).reshape((ny, nx)) * 1.2
+            odata = g.map_gridded_data(data[0:ny - 1, 0:nx - 1], ig)
             self.assertTrue(odata.shape == (ny, nx))
-            assert_allclose(data[0:ny-1, 0:nx-1], odata[0:ny-1, 0:nx-1], atol=1e-03)
-            self.assertTrue(np.sum(np.isfinite(odata)) == ((ny-1)*(nx-1)))
+            assert_allclose(data[0:ny - 1, 0:nx - 1],
+                            odata[0:ny - 1, 0:nx - 1], atol=1e-03)
+            self.assertTrue(
+                np.sum(np.isfinite(odata)) == ((ny - 1) * (nx - 1)))
 
             # Bilinear
-            data = np.arange(nx*ny).reshape((ny, nx))
-            exp_data = np.array([ 2.,  3.,  5.,  6.,  8.,  9.]).reshape((ny-1, nx-1))
+            data = np.arange(nx * ny).reshape((ny, nx))
+            exp_data = np.array([2., 3., 5., 6., 8., 9.]).reshape(
+                (ny - 1, nx - 1))
             args = dict(nxny=(nx, ny), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
             gfrom = Grid(**args)
-            args = dict(nxny=(nx-1, ny-1), dxdy=(1, 1), x0y0=(0.5, 0.5), proj=proj)
+            args = dict(nxny=(nx - 1, ny - 1), dxdy=(1, 1), x0y0=(0.5, 0.5),
+                        proj=proj)
             gto = Grid(**args)
             odata = gto.map_gridded_data(data, gfrom, interp='linear')
-            self.assertTrue(odata.shape == (ny-1, nx-1))
+            self.assertTrue(odata.shape == (ny - 1, nx - 1))
             assert_allclose(exp_data, odata, atol=1e-03)
+
+    def test_map_gridded_data_over(self):
+
+        # It should work exact same for any projection
+        projs = [wgs84, gis.check_crs('epsg:26915')]
+
+        for proj in projs:
+            nx, ny = (4, 5)
+            data = np.arange(nx * ny).reshape((ny, nx)).astype(np.float)
+
+            in_data = data * np.NaN
+            in_data[0, :] = 78
+
+            # Nearest Neighbor
+            args = dict(nxny=(nx, ny), dxdy=(1, 1), x0y0=(0, 0), proj=proj)
+            g = Grid(**args)
+            odata = g.map_gridded_data(data, g, out=data.copy())
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data, odata, atol=1e-03)
+
+            odata = g.map_gridded_data(in_data, g, out=data.copy())
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data[1:, :], odata[1:, :], atol=1e-03)
+            assert_allclose(odata[0, :], 78, atol=1e-03)
+
+            # Bilinear
+            odata = g.map_gridded_data(data, g, interp='linear',
+                                       out=data.copy())
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data, odata, atol=1e-03)
+
+            # Spline
+            odata = g.map_gridded_data(data, g, interp='spline',
+                                       out=data.copy())
+            self.assertTrue(odata.shape == data.shape)
+            assert_allclose(data, odata, atol=1e-03)
+
 
     @requires_shapely
     def test_extent(self):

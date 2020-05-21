@@ -965,37 +965,76 @@ class Grid(object):
 
         # Interpolate
         if interp == 'nearest':
-            out_data[..., j, i] = data[..., oj, oi]
+            if out is not None:
+                if ndims > 2:
+                    raise ValueError('Need 2D for now.')
+                try:
+                    vok = ~ data[oj, oi].mask
+                except AttributeError:
+                    vok = np.isfinite(data[oj, oi])
+                out_data[j[vok], i[vok]] = data[oj[vok], oi[vok]]
+            else:
+                out_data[..., j, i] = data[..., oj, oi]
         elif interp == 'linear':
             points = (np.arange(grid.ny), np.arange(grid.nx))
             if ndims == 2:
                 f = RegularGridInterpolator(points, data, bounds_error=False)
-                out_data[j, i] = f((oj, oi))
+                if out is not None:
+                    tmp = f((oj, oi))
+                    vok = np.isfinite(tmp)
+                    out_data[j[vok], i[vok]] = tmp[vok]
+                else:
+                    out_data[j, i] = f((oj, oi))
             if ndims == 3:
                 for dimi, cdata in enumerate(data):
                     f = RegularGridInterpolator(points, cdata,
                                                 bounds_error=False)
-                    out_data[dimi, j, i] = f((oj, oi))
+                    if out is not None:
+                        tmp = f((oj, oi))
+                        vok = np.isfinite(tmp)
+                        out_data[dimi, j[vok], i[vok]] = tmp[vok]
+                    else:
+                        out_data[dimi, j, i] = f((oj, oi))
             if ndims == 4:
                 for dimj, cdata in enumerate(data):
                     for dimi, ccdata in enumerate(cdata):
                         f = RegularGridInterpolator(points, ccdata,
                                                     bounds_error=False)
-                        out_data[dimj, dimi, j, i] = f((oj, oi))
+                        if out is not None:
+                            tmp = f((oj, oi))
+                            vok = np.isfinite(tmp)
+                            out_data[dimj, dimi, j[vok], i[vok]] = tmp[vok]
+                        else:
+                            out_data[dimj, dimi, j, i] = f((oj, oi))
         elif interp == 'spline':
             px, py = np.arange(grid.ny), np.arange(grid.nx)
             if ndims == 2:
                 f = RectBivariateSpline(px, py, data, kx=ks, ky=ks)
-                out_data[j, i] = f(oj, oi, grid=False)
+                if out is not None:
+                    tmp = f(oj, oi, grid=False)
+                    vok = np.isfinite(tmp)
+                    out_data[j[vok], i[vok]] = tmp[vok]
+                else:
+                    out_data[j, i] = f(oj, oi, grid=False)
             if ndims == 3:
                 for dimi, cdata in enumerate(data):
                     f = RectBivariateSpline(px, py, cdata, kx=ks, ky=ks)
-                    out_data[dimi, j, i] = f(oj, oi, grid=False)
+                    if out is not None:
+                        tmp = f(oj, oi, grid=False)
+                        vok = np.isfinite(tmp)
+                        out_data[dimi, j[vok], i[vok]] = tmp[vok]
+                    else:
+                        out_data[dimi, j, i] = f(oj, oi, grid=False)
             if ndims == 4:
                 for dimj, cdata in enumerate(data):
                     for dimi, ccdata in enumerate(cdata):
                         f = RectBivariateSpline(px, py, ccdata, kx=ks, ky=ks)
-                        out_data[dimj, dimi, j, i] = f(oj, oi, grid=False)
+                        if out is not None:
+                            tmp = f(oj, oi, grid=False)
+                            vok = np.isfinite(tmp)
+                            out_data[dimj, dimi, j[vok], i[vok]] = tmp[vok]
+                        else:
+                            out_data[dimj, dimi, j, i] = f(oj, oi, grid=False)
         else:
             msg = 'interpolation not understood: {}'.format(interp)
             raise ValueError(msg)
