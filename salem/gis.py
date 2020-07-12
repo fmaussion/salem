@@ -1480,6 +1480,7 @@ def proj_to_cartopy(proj):
         if k == 'proj':
             if v == 'tmerc':
                 cl = ccrs.TransverseMercator
+                kw_proj['approx'] = True
             if v == 'lcc':
                 cl = ccrs.LambertConformal
             if v == 'merc':
@@ -1520,6 +1521,11 @@ def proj_to_cartopy(proj):
             kw_proj.pop('central_longitude', None)
     else:
         kw_proj.pop('latitude_true_scale', None)
+
+    try:
+        return cl(globe=globe, **kw_proj)
+    except TypeError:
+        del kw_proj['approx']
 
     return cl(globe=globe, **kw_proj)
 
