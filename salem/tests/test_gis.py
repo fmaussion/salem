@@ -1021,11 +1021,6 @@ class TestTransform(unittest.TestCase):
         y = np.random.randn(int(1e6)) * 60
 
         for i in np.arange(3):
-            xx, yy = pyproj.transform(wgs84, wgs84, x, y)
-        assert_allclose(xx, x)
-        assert_allclose(yy, y)
-
-        for i in np.arange(3):
             xx, yy = gis.transform_proj(wgs84, wgs84, x, y)
         assert_allclose(xx, x)
         assert_allclose(yy, y)
@@ -1034,11 +1029,6 @@ class TestTransform(unittest.TestCase):
             xx, yy = gis.transform_proj(wgs84, wgs84, x, y, nocopy=True)
         assert_allclose(xx, x)
         assert_allclose(yy, y)
-
-        xx, yy = pyproj.transform(gis.check_crs('epsg:26915'),
-                                  gis.check_crs('epsg:26915'), x, y)
-        assert_allclose(xx, x, atol=1e-3)
-        assert_allclose(yy, y, atol=1e-3)
 
         xx, yy = gis.transform_proj(gis.check_crs('epsg:26915'),
                                     gis.check_crs('epsg:26915'), x, y)

@@ -33,6 +33,9 @@ except ImportError:
     # latest xarray dropped python2 support, so we can safely assume py3 here
     basestring = str
 
+# Locals
+from salem import transform_proj
+
 
 def read_shapefile(fpath, cached=False):
     """Reads a shapefile using geopandas.
@@ -1029,7 +1032,7 @@ def is_rotated_proj_working():
     p1 = pyproj.Proj(srs)
     p2 = wgs84
 
-    return np.isclose(pyproj.transform(p1, p2, -20, -9),
+    return np.isclose(transform_proj(p1, p2, -20, -9),
                       [-22.243473889042903, -0.06328365194179102],
                       atol=1e-5).all()
 

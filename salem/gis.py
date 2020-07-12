@@ -1272,6 +1272,14 @@ def proj_is_same(p1, p2):
         return p1 == p2
 
 
+def _transform_internal(p1, p2, x, y, **kwargs):
+    if hasattr(pyproj, 'Transformer'):
+        trf = pyproj.Transformer.from_proj(p1, p2, **kwargs)
+        return trf.transform(x, y)
+    else:
+        return pyproj.transform(p1, p2, x, y, **kwargs)
+
+
 def transform_proj(p1, p2, x, y, nocopy=False):
     """Wrapper around the pyproj.transform function.
 
@@ -1297,8 +1305,8 @@ def transform_proj(p1, p2, x, y, nocopy=False):
 
     try:
         # This always makes a copy, even if projections are equivalent
-        return pyproj.transform(p1, p2, x, y,
-                                skip_equivalent=True, always_xy=True)
+        return _transform_internal(p1, p2, x, y,
+                                   skip_equivalent=True, always_xy=True)
     except TypeError:
         if proj_is_same(p1, p2):
             if nocopy:
@@ -1306,7 +1314,7 @@ def transform_proj(p1, p2, x, y, nocopy=False):
             else:
                 return copy.deepcopy(x), copy.deepcopy(y)
 
-        return pyproj.transform(p1, p2, x, y)
+        return _transform_internal(p1, p2, x, y)
 
 
 def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
