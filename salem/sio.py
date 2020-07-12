@@ -372,7 +372,7 @@ def netcdf_time(ncobj, monthbegin=False):
         except AttributeError:
             stimes = ncobj.variables['Times'][:]
         for t in stimes:
-            time.append(pd.to_datetime(t.tostring().decode(),
+            time.append(pd.to_datetime(t.tobytes().decode(),
                                        errors='raise',
                                        format='%Y-%m-%d_%H:%M:%S'))
     elif vt is not None:
