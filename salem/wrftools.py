@@ -221,7 +221,7 @@ class AccumulatedVariable(FakeVariable):
             time = []
             stimes = vars['Times'][0:2]
             for t in stimes:
-                time.append(to_datetime(t.tostring().decode(),
+                time.append(to_datetime(t.tobytes().decode(),
                                         errors='raise',
                                         format='%Y-%m-%d_%H:%M:%S'))
             dt_minutes = time[1] - time[0]
