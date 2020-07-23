@@ -201,7 +201,7 @@ class DataLevels(object):
             return levels
         else:
             if nlevels is None:
-                nlevels = 256
+                nlevels = self.cmap.N
             if self.vmax == self.vmin:
                 return np.linspace(self.vmin, self.vmax+1, nlevels)
             return np.linspace(self.vmin, self.vmax, nlevels)
