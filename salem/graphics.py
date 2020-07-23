@@ -255,7 +255,11 @@ class DataLevels(object):
             warnings.warn('Minimum data out of bounds.', RuntimeWarning)
         if e not in ['both', 'max'] and (np.max(l) < np.max(self.data)):
             warnings.warn('Maximum data out of bounds.', RuntimeWarning)
-        return ExtendedNorm(l, self.cmap.N, extend=e)
+        try:
+            # Added in mpl 3.3.0
+            return mpl.colors.BoundaryNorm(l, self.cmap.N, extend=e)
+        except TypeError:
+            return ExtendedNorm(l, self.cmap.N, extend=e)
 
     def to_rgb(self):
         """Transform the data to RGB triples."""
