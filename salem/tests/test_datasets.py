@@ -419,7 +419,7 @@ class TestGoogleStaticMap(unittest.TestCase):
                              size_x=500, size_y=500, use_cache=False)
         gm.set_roi(shape=get_demo_file('Hintereisferner.shp'))
         gm.set_subset(toroi=True, margin=10)
-        img = gm.get_vardata()
+        img = gm.get_vardata()[..., :3]
         img[np.nonzero(gm.roi == 0)] /= 2.
 
         # from scipy.misc import toimage
@@ -433,7 +433,7 @@ class TestGoogleStaticMap(unittest.TestCase):
                              size_x=500, size_y=500)
         gm.set_roi(shape=get_demo_file('Hintereisferner.shp'))
         gm.set_subset(toroi=True, margin=10)
-        img = gm.get_vardata()
+        img = gm.get_vardata()[..., :3]
         img[np.nonzero(gm.roi == 0)] /= 2.
         rmsd = np.sqrt(np.mean((ref - img)**2))
         self.assertTrue(rmsd < 0.2)
@@ -456,7 +456,7 @@ class TestGoogleStaticMap(unittest.TestCase):
 
         g = GoogleVisibleMap(x=x, y=y, size_x=400, size_y=400,
                              maptype='terrain')
-        img = g.get_vardata()
+        img = g.get_vardata()[..., :3]
 
         i, j = g.grid.transform(x, y, nearest=True)
 
@@ -476,7 +476,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         d = GeoNetcdf(fw)
         i, j = d.grid.ij_coordinates
         g = GoogleVisibleMap(x=i, y=j, crs=d.grid, size_x=500, size_y=500)
-        img = g.get_vardata()
+        img = g.get_vardata()[..., :3]
         mask = g.grid.map_gridded_data(i*0+1, d.grid)
 
         img[np.nonzero(mask)] = np.clip(img[np.nonzero(mask)] + 0.3, 0, 1)

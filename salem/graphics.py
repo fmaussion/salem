@@ -201,7 +201,12 @@ class DataLevels(object):
             return levels
         else:
             if nlevels is None:
-                nlevels = 256
+                if self.extend in ['max', 'min']:
+                    nlevels = self.cmap.N - 1
+                elif self.extend in ['both']:
+                    nlevels = self.cmap.N - 2
+                else:
+                    nlevels = self.cmap.N
             if self.vmax == self.vmin:
                 return np.linspace(self.vmin, self.vmax+1, nlevels)
             return np.linspace(self.vmin, self.vmax, nlevels)
@@ -255,7 +260,11 @@ class DataLevels(object):
             warnings.warn('Minimum data out of bounds.', RuntimeWarning)
         if e not in ['both', 'max'] and (np.max(l) < np.max(self.data)):
             warnings.warn('Maximum data out of bounds.', RuntimeWarning)
-        return ExtendedNorm(l, self.cmap.N, extend=e)
+        try:
+            # Added in mpl 3.3.0
+            return mpl.colors.BoundaryNorm(l, self.cmap.N, extend=e)
+        except TypeError:
+            return ExtendedNorm(l, self.cmap.N, extend=e)
 
     def to_rgb(self):
         """Transform the data to RGB triples."""
