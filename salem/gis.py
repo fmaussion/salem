@@ -1596,7 +1596,7 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
 
     # Make a local proj
     lon, lat = center_ll
-    projloc = pyproj.Proj('+init=EPSG:3857')
+    projloc = check_crs('epsg:3857')
 
     # The size of the image is multiplied by the scaling factor
     nx *= scale
