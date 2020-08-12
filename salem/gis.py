@@ -1591,13 +1591,12 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
 
     # Number of pixels in an image with a zoom level of 0.
     google_pix = 256 * scale
-    # The equitorial radius of the Earth assuming WGS-84 ellipsoid.
+    # The equatorial radius of the Earth assuming WGS-84 ellipsoid.
     google_earth_radius = 6378137.0
 
     # Make a local proj
     lon, lat = center_ll
-    proj_params = dict(proj='merc', datum='WGS84')
-    projloc = pyproj.Proj(proj_params)
+    projloc = pyproj.Proj('+init=EPSG:3857')
 
     # The size of the image is multiplied by the scaling factor
     nx *= scale
