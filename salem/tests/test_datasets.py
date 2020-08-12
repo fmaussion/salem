@@ -422,8 +422,9 @@ class TestGoogleStaticMap(unittest.TestCase):
         img = gm.get_vardata()[..., :3]
         img[np.nonzero(gm.roi == 0)] /= 2.
 
-        # from scipy.misc import toimage
-        # toimage(img).save(get_demo_file('hef_google_roi.png'))
+        # from PIL import Image
+        # Image.fromarray((img * 255).astype(np.uint8)).save(
+        #     get_demo_file('hef_google_roi.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_roi.png'))
         rmsd = np.sqrt(np.mean((ref - img)**2))
         self.assertTrue(rmsd < 0.2)
@@ -464,8 +465,9 @@ class TestGoogleStaticMap(unittest.TestCase):
             img[_j-3:_j+4, _i-3:_i+4, 0] = 1
             img[_j-3:_j+4, _i-3:_i+4, 1:] = 0
 
-        # from scipy.misc import toimage
-        # toimage(img).save(get_demo_file('hef_google_visible.png'))
+        # from PIL import Image
+        # Image.fromarray((img * 255).astype(np.uint8)).save(
+        #     get_demo_file('hef_google_visible.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_visible.png'))
         rmsd = np.sqrt(np.mean((ref-img)**2))
         self.assertTrue(rmsd < 1e-1)
@@ -481,8 +483,9 @@ class TestGoogleStaticMap(unittest.TestCase):
 
         img[np.nonzero(mask)] = np.clip(img[np.nonzero(mask)] + 0.3, 0, 1)
 
-        # from scipy.misc import toimage
-        # toimage(img).save(get_demo_file('hef_google_visible_grid.png'))
+        # from PIL import Image
+        # Image.fromarray((img * 255).astype(np.uint8)).save(
+        #     get_demo_file('hef_google_visible_grid.png'))
         ref = mpl.image.imread(get_demo_file('hef_google_visible_grid.png'))
         rmsd = np.sqrt(np.mean((ref-img)**2))
         self.assertTrue(rmsd < 5e-1)

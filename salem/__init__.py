@@ -46,7 +46,7 @@ download_dir = path.join(cache_dir, 'downloads')
 if not path.exists(download_dir):
     makedirs(download_dir)
 
-sample_data_gh_commit = '28d3372d3c503149b62b0f12b41f235dcee659d1'
+sample_data_gh_commit = '758f7ddd0fa6b5b1bd4c63b6dcfe8d5eec0f4c59'
 sample_data_dir = path.join(cache_dir, 'salem-sample-data-' +
                             sample_data_gh_commit)
 
