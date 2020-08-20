@@ -3,8 +3,11 @@
 What's New
 ==========
 
-v0.3.0 (unreleased)
--------------------
+v0.3.0 (20 August 2020)
+-----------------------
+
+A minor release of the salem package, mostly for bug fixes and small
+enhancements. **We dropped support for Python 2.**
 
 Enhancements
 ~~~~~~~~~~~~
@@ -16,8 +19,10 @@ Enhancements
 Bug fixes
 ~~~~~~~~~
 
+- More accurate web mercator proj for google static images (:pull:`178`).
 - Various fixes for upstream changes, mostly in pyrproj and geopandas
-  (:pull:`148`, :pull:`150`, :pull:`154`, :pull:`156`, :pull:`1164`).
+  (:pull:`148`, :pull:`150`, :pull:`154`, :pull:`156`, :pull:`164`).
+- Fixes for changes in matplotlib (:pull:`176`)
 
 
 v0.2.4 (25 March 2019)
