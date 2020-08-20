@@ -45,6 +45,4 @@ ax.gridlines()
 d2.HGT_M.plot(ax=ax, transform=proj, cmap='Oranges')
 ax.set_extent(d2.salem.grid.extent, crs=proj)
 
-# make it nice
-plt.tight_layout()
 plt.show()
