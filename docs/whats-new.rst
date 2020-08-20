@@ -22,7 +22,7 @@ Bug fixes
 - More accurate web mercator proj for google static images (:pull:`178`).
 - Various fixes for upstream changes, mostly in pyrproj and geopandas
   (:pull:`148`, :pull:`150`, :pull:`154`, :pull:`156`, :pull:`164`).
-- Fixes for changes in matplotlib (:pull:`176`)
+- Fixes for changes in matplotlib (:pull:`172`, :pull:`176`)
 
 
 v0.2.4 (25 March 2019)
