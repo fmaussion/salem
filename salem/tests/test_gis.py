@@ -960,14 +960,13 @@ class TestGrid(unittest.TestCase):
             r_i, r_j = g.ij_to_crs(exp_i, exp_j)
             assert_allclose(exp_i, r_i, atol=1e-03)
             assert_allclose(exp_j, r_j, atol=1e-03)
-            self.assertTrue(r_i.dims == exp_i.dims)
+            self.assertTrue(r_i.shape == exp_i.shape)
 
             # transform
             r_i, r_j = g.transform(exp_i, exp_j, crs=proj)
             assert_allclose(exp_i, r_i, atol=1e-03)
             assert_allclose(exp_j, r_j, atol=1e-03)
-            # TODO: this doesn't work:
-            # self.assertTrue(r_i.dims == exp_i.dims)
+            self.assertTrue(r_i.shape == exp_i.shape)
 
             # map
             nx, ny = (3, 4)
