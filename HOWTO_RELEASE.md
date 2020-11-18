@@ -4,7 +4,7 @@ How to issue a salem release.
        git pull upstream master
  2. Look over whats-new.rst and the docs. Make sure "What's New" is complete
     (check the date!) and add a brief summary note describing the release at the
-    top.
+    top. **Update setup.py** to reflect the new version number.
  3. If you have any doubts, run the full test suite one final time!
       pytest --mpl .
  4. On the master branch, commit the release in git:
