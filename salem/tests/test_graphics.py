@@ -803,7 +803,7 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=20)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)

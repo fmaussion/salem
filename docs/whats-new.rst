@@ -3,9 +3,11 @@
 What's New
 ==========
 
-v0.3.x (unreleased)
--------------------
+v0.3.1 (18 November 2020)
+-------------------------
 
+A minor release of the salem package to make up for a version problem
+in v0.3.0.
 
 
 v0.3.0 (20 August 2020)

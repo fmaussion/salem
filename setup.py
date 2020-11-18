@@ -12,9 +12,9 @@ import warnings
 import importlib
 
 MAJOR = 0
-MINOR = 2
-MICRO = 2
-ISRELEASED = False
+MINOR = 3
+MICRO = 1
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
