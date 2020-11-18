@@ -460,7 +460,7 @@ class Map(DataLevels):
         if crs is None:
             # Reform case, but with a sanity check
             if not np.isclose(shp[0] / shp[1], self.grid.ny / self.grid.nx,
-                              atolgit =1e-2):
+                              atol =1e-2):
                 raise ValueError('Dimensions of data do not match the map.')
 
             # need to resize if not same
