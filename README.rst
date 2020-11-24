@@ -6,6 +6,8 @@ Salem
 
 .. image:: https://badge.fury.io/py/salem.svg
     :target: https://badge.fury.io/py/salem
+.. image:: https://anaconda.org/conda-forge/salem/badges/version.svg
+   :target: https://anaconda.org/conda-forge/salem/
 .. image:: https://travis-ci.com/fmaussion/salem.svg?branch=master
     :target: https://travis-ci.com/fmaussion/salem
 .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
