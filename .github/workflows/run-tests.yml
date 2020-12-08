@@ -18,7 +18,6 @@ jobs:
           - py36-all
           - py37-all
           - py38-all
-          - py37-pyproj
           - py38-xarray-dev
           - py38-all-rc
         use-mpl:
