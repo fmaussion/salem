@@ -1,0 +1,72 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: ${{ matrix.test-env }}
+    strategy:
+      fail-fast: false
+      matrix:
+        test-env:
+          - py37-all
+          - py36-all
+          - py37-pyproj
+          - py37-xarray-dev
+          - py37-all-rc
+        use-mpl:
+          - "--mpl"
+        include:
+          - test-env: py37-min
+            use-mpl: ""
+          - test-env: py37-xr
+            use-mpl: ""
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: ci/requirements-${{ matrix.test-env }}.yml
+          activate-environment: test_env
+          auto-activate-base: false
+          auto-update-conda: true
+      - name: Install Self
+        run: pip install -e .
+      - name: Test
+        run: |
+          coverage erase
+          coverage run --source=./salem --parallel-mode --module pytest ${{ matrix.use-mpl }} --verbose salem
+          coverage combine
+          coverage xml
+          coverage report --skip-covered
+        env:
+          MPLBACKEND: agg
+          COVERAGE_RCFILE: ${{ github.workspace }}/.coveragerc
+      - name: Upload Coverage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_PARALLEL: true
+        run: coveralls
+  finish-coveralls:
+    name: Coveralls Finished
+    needs: test
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Coveralls Finished
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pip3 install --upgrade coveralls &&
+        coveralls --finish
