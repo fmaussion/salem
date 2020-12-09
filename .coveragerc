@@ -2,6 +2,8 @@
 source = salem
 omit = */sandbox.py/*
 
+concurrency = multiprocessing
+
 [report]
 omit = */sandbox.py/*
 # Regexes for lines to exclude from consideration
