@@ -705,7 +705,7 @@ class TestGrid(unittest.TestCase):
 
         for proj in projs:
             nx, ny = (4, 5)
-            data = np.arange(nx * ny).reshape((ny, nx)).astype(np.float)
+            data = np.arange(nx * ny).reshape((ny, nx)).astype(float)
 
             in_data = data * np.NaN
             in_data[0, :] = 78
