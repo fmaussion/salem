@@ -277,14 +277,14 @@ class Grid(object):
         else:
             raise ValueError('Input params not compatible')
 
-        self._nx = np.int(nx)
-        self._ny = np.int(ny)
+        self._nx = int(nx)
+        self._ny = int(ny)
         if (self._nx <= 0) or (self._ny <= 0):
             raise ValueError('nxny not valid')
-        self._dx = np.float(dx)
-        self._dy = np.float(dy)
-        self._x0 = np.float(x0)
-        self._y0 = np.float(y0)
+        self._dx = float(dx)
+        self._dy = float(dy)
+        self._x0 = float(x0)
+        self._y0 = float(y0)
         self._origin = origin
 
         # Check for pixel ref
@@ -712,8 +712,8 @@ class Grid(object):
         # See if we need to round
         if nearest:
             f = np.rint if self.pixel_ref == 'center' else np.floor
-            x = f(x).astype(np.int)
-            y = f(y).astype(np.int)
+            x = f(x).astype(int)
+            y = f(y).astype(int)
 
         # Mask?
         if maskout:
@@ -840,7 +840,7 @@ class Grid(object):
         out_shape[-2:] = [self.ny, self.nx]
 
         if data.dtype.kind == 'i':
-            out_data = np.zeros(out_shape, dtype=np.float) * np.NaN
+            out_data = np.zeros(out_shape, dtype=float) * np.NaN
         else:
             out_data = np.zeros(out_shape, dtype=data.dtype) * np.NaN
 
@@ -863,7 +863,7 @@ class Grid(object):
         # prepare output
         if method is len:
             out_data[~np.isfinite(out_data)] = 0
-            out_data = out_data.astype(np.int)
+            out_data = out_data.astype(int)
         else:
             out_data = np.ma.masked_invalid(out_data)
 
@@ -958,7 +958,7 @@ class Grid(object):
                 # We dont do integer arithmetics other than nearest
                 out_data = np.ma.masked_all(out_shape, dtype=data.dtype)
             elif data.dtype.kind == 'i':
-                out_data = np.ma.masked_all(out_shape, dtype=np.float)
+                out_data = np.ma.masked_all(out_shape, dtype=float)
             else:
                 out_data = np.ma.masked_all(out_shape, dtype=data.dtype)
 

@@ -590,7 +590,7 @@ def _ncl_slp(z, t, p, q):
 
     p0 = p[0, ...]
 
-    level = np.zeros((ny, nx), dtype=np.int) - 1
+    level = np.zeros((ny, nx), dtype=int) - 1
     for k in np.arange(nz):
         pok = np.nonzero((p[k, ...] < (p0 - pconst)) & (level == -1))
         level[pok] = k
@@ -604,8 +604,8 @@ def _ncl_slp(z, t, p, q):
     if np.any((klo - khi) == 0):
         raise RuntimeError('Trapping levels are weird.')  # pragma: no cover
 
-    x, y = np.meshgrid(np.arange(nx, dtype=np.int),
-                       np.arange(ny, dtype=np.int))
+    x, y = np.meshgrid(np.arange(nx, dtype=int),
+                       np.arange(ny, dtype=int))
 
     plo = p[klo, y, x]
     phi = p[khi, y, x]

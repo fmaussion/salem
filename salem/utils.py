@@ -278,7 +278,7 @@ def read_colormap(name):
             line = line.split('(')[-1].split(')')[0]
             out.append([float(n) for n in line.split(',')])
 
-    return np.asarray(out).astype(np.float) / 256.
+    return np.asarray(out).astype(float) / 256.
 
 
 @memory.cache

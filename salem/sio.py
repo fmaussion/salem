@@ -19,7 +19,6 @@ from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
 import xarray as xr
 from xarray.backends.netCDF4_ import NetCDF4DataStore
-from xarray.backends.api import _MultiFileCloser
 from xarray.core import dtypes
 try:
     from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK, combine_locks)
@@ -1176,17 +1175,28 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
         lock = NETCDF4_PYTHON_LOCK
     datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
                 for p in paths]
-    file_objs = [ds._file_obj for ds in datasets]
+    orig_datasets = datasets
+
+    def ds_closer():
+        for ods in orig_datasets:
+            ods.close()
 
     if preprocess is not None:
         datasets = [preprocess(ds) for ds in datasets]
+
     try:
         combined = xr.combine_nested(datasets, concat_dim='time',
                                      compat=compat)
     except AttributeError:
         combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
-    combined._file_obj = _MultiFileCloser(file_objs)
     combined.attrs = datasets[0].attrs
+
+    try:
+        combined.set_close(ds_closer)
+    except AttributeError:
+        from xarray.backends.api import _MultiFileCloser
+        mfc = _MultiFileCloser([ods._file_obj for ods in orig_datasets])
+        combined._file_obj = mfc
 
     # drop accumulated vars if needed (TODO: make this not hard coded)
     vns = ['PRCP', 'PRCP_C', 'PRCP_NC']
