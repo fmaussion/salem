@@ -11,9 +11,9 @@ dependencies:
   - joblib
   - netCDF4
   - shapely
-  - geopandas
+  - geopandas>=0.8
   - rasterio
-  - pandas
+  - pandas>=1.2
   - xarray
   - dask
   - matplotlib
