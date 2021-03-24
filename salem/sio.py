@@ -1173,8 +1173,15 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
 
     if lock is None:
         lock = NETCDF4_PYTHON_LOCK
-    datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
-                for p in paths]
+    try:
+        datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
+                    for p in paths]
+    except TypeError as err:
+        if 'lock' not in str(err):
+            raise
+        # New xarray backends
+        datasets = [open_wrf_dataset(p, chunks=chunks or {}) for p in paths]
+
     orig_datasets = datasets
 
     def ds_closer():
