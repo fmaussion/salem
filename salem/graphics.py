@@ -452,10 +452,6 @@ class Map(DataLevels):
             except:
                 pass
 
-        # We convert to float for img resizing
-        if data.dtype not in [np.float32, np.float64]:
-            data = data.astype(np.float64)
-
         data = np.ma.fix_invalid(np.squeeze(data))
         shp = data.shape
         if len(shp) != 2:
@@ -469,6 +465,11 @@ class Map(DataLevels):
 
             # need to resize if not same
             if not ((shp[0] == self.grid.ny) and (shp[1] == self.grid.nx)):
+
+                # We convert to float for img resizing
+                if data.dtype not in [np.float32, np.float64]:
+                    data = data.astype(np.float64)
+
                 if interp.lower() == 'nearest':
                     interp = 0
                 elif interp.lower() == 'linear':
