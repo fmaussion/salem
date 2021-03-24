@@ -452,6 +452,10 @@ class Map(DataLevels):
             except:
                 pass
 
+        # We convert to float for img resizing
+        if data.dtype not in [np.float32, np.float64]:
+            data = data.astype(np.float64)
+
         data = np.ma.fix_invalid(np.squeeze(data))
         shp = data.shape
         if len(shp) != 2:
