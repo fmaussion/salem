@@ -1305,8 +1305,7 @@ def transform_proj(p1, p2, x, y, nocopy=False):
 
     try:
         # This always makes a copy, even if projections are equivalent
-        return _transform_internal(p1, p2, x, y,
-                                   skip_equivalent=True, always_xy=True)
+        return _transform_internal(p1, p2, x, y, always_xy=True)
     except TypeError:
         if proj_is_same(p1, p2):
             if nocopy:

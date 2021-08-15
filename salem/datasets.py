@@ -78,15 +78,18 @@ class GeoDataset(object):
         # flexibility (see set_period)
         if time is not None:
             if isinstance(time, pd.Series):
-                time = pd.Series(np.arange(len(time)), index=time.index)
+                time = pd.Series(np.arange(len(time)), index=time.index,
+                                 dtype=np.float64)
             else:
                 try:
-                    time = pd.Series(np.arange(len(time)), index=time)
+                    time = pd.Series(np.arange(len(time)), index=time,
+                                     dtype=np.float64)
                 except AttributeError:
                     # https://github.com/pandas-dev/pandas/issues/23419
                     for t in time:
                         setattr(t, 'nanosecond', 0)
-                    time = pd.Series(np.arange(len(time)), index=time)
+                    time = pd.Series(np.arange(len(time)), index=time,
+                                     dtype=np.float64)
         self._time = time
 
         # set_period() will set those
