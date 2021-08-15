@@ -1114,7 +1114,7 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     return ds
 
 
-def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
+def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
                         preprocess=None):
     """Open multiple WRF files as a single WRF dataset.
 
@@ -1192,8 +1192,8 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
         datasets = [preprocess(ds) for ds in datasets]
 
     try:
-        combined = xr.combine_nested(datasets, concat_dim='time',
-                                     compat=compat)
+        combined = xr.combine_nested(datasets, combine_attrs='drop_conflicts',
+                                     concat_dim='time', compat=compat)
     except AttributeError:
         combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
     combined.attrs = datasets[0].attrs
