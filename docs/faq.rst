@@ -6,14 +6,13 @@ Frequently Asked Questions
 What is the development status of the salem library?
 ----------------------------------------------------
 
-As of today (January 2019), salem is used by several people (number unknown)
+As of today (August 2021), salem is used by several people (number unknown)
 and is used by at least one downstream larger project
 (`OGGM <https://oggm.org>`_). I plan to continue to maintain salem in the
-future, but cannot spend much time and enery in new, larger features that
+future, but cannot spend much time and energy in new, larger features that
 the community might need. These larger features (mostly: improved support
-for more datasets and improved plotting) should be carried out by larger
-projects (mostly: `geoxarray`_ and
-`cartopy`_).
+for more datasets and improved plotting) should be carried out by better and
+more adopted projects (mostly: `geoxarray`_ and `cartopy`_).
 
 Salem is small but well tested for the cases I encounter in my daily work.
 I don't think that salem will become a major library (there are so many
@@ -31,21 +30,25 @@ If you are using salem and would like to cite it in academic publication, we
 would certainly appreciate it. We recommend to use the zenodo DOI for
 this purpose:
 
-    .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1295582.svg
-       :target: https://doi.org/10.5281/zenodo.1295582
+    .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.596573.svg
+       :target: https://doi.org/10.5281/zenodo.596573
 
 An example BibTeX entry::
 
-    @misc{salem_v022,
+    @software{salem,
       author       = {Fabien Maussion and
-                      tbridel and
-                      Schlump and
-                      Daniel Rothenberg},
-      title        = {fmaussion/salem: v0.2.2},
-      month        = jun,
-      year         = 2018,
-      doi          = {10.5281/zenodo.1295582},
-      url          = {https://doi.org/10.5281/zenodo.1295582}
+                      TimoRoth and
+                      Johannes Landmann and
+                      Matthias Dusch and
+                      Ray Bell and
+                      tbridel},
+      title        = {fmaussion/salem: v0.3.4},
+      month        = mar,
+      year         = 2021,
+      publisher    = {Zenodo},
+      version      = {v0.3.4},
+      doi          = {10.5281/zenodo.4635291},
+      url          = {https://doi.org/10.5281/zenodo.4635291}
     }
 
 
@@ -111,8 +114,9 @@ pyproj alone.
 
 Furthermore, I use the atmospheric model WRF quite often in my work.
 Its output files are absolutely not compliant with the CF conventions.
-To my knowledge, there is no tool to plot and manipulate WRF data with Python,
-and Salem will be further developed with this model in mind.
+`wrf-python`_ is a great tool to manipulate WRF data with Python, but it also
+have several drawbacks (mostly: its syntax). Salem will be further developed
+with the WRF model in mind.
 
 .. _conda-forge: http://conda-forge.github.io/
 

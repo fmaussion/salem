@@ -3,8 +3,11 @@
 What's New
 ==========
 
-v0.3.5 (unreleased)
--------------------
+v0.3.5 (29 August 2021)
+-----------------------
+
+A minor release of the salem package to fix for updates in xarray and
+an update in the Natural Earth image url.
 
 v0.3.4 (24 March 2021)
 ----------------------
