@@ -19,7 +19,7 @@ dependencies:
   - scikit-image
   - Pillow
   - descartes
-  - cartopy
+  - cartopy<0.20
   - pip
   - pip:
     - coveralls
