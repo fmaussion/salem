@@ -1491,6 +1491,8 @@ def proj_to_cartopy(proj):
             if v == 'ob_tran':
                 cl = ccrs.RotatedPole
         if k in km_proj:
+            if k == 'zone':
+                v = int(v)
             kw_proj[km_proj[k]] = v
         if k in km_globe:
             kw_globe[km_globe[k]] = v
