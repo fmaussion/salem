@@ -6,6 +6,12 @@ What's New
 v0.X.Y (Unreleased)
 -------------------
 
+v0.3.6 (29 October 2021)
+------------------------
+
+A minor release of the salem package to fix a version number issue in v0.3.5
+and a compatibility fix for cartopy > 0.20.
+
 v0.3.5 (29 August 2021)
 -----------------------
 
