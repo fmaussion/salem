@@ -15,11 +15,11 @@ jobs:
       fail-fast: false
       matrix:
         test-env:
-          - py36-all
           - py37-all
           - py38-all
           - py38-xarray-dev
           - py38-all-rc
+          - py39-all
         use-mpl:
           - "--mpl"
         include:
