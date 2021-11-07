@@ -21,7 +21,7 @@ dependencies:
   - pip
   - pip:
     - git+https://github.com/pydata/xarray.git
-    - coveralls
+    - coveralls=3.2.0
     - pytest-cov
     - pytest-mpl
     - motionless
