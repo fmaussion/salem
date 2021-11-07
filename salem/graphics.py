@@ -731,9 +731,9 @@ class Map(DataLevels):
             for g in shape.geometry:
                 if 'Multi' in g.type:
                     for gg in g.geoms:
-                        lines.append(np.array(gg))
+                        lines.append(np.array(gg.coords))
                 else:
-                    lines.append(np.array(g))
+                    lines.append(np.array(g.coords))
             self._collections.append(LineCollection(lines, **kwargs))
         else:
             raise NotImplementedError(geomtype)
@@ -1146,7 +1146,7 @@ class Map(DataLevels):
                 kwargs.setdefault('facecolor', 'none')
                 plot_polygon(ax, g, **kwargs)  # was g.buffer(0). Why?
             if g.type in ['LineString', 'LinearRing']:
-                a = np.array(g)
+                a = np.array(g.coords)
                 kwargs.setdefault('color', 'k')
                 ax.plot(a[:, 0], a[:, 1], **kwargs)
             if g.type == 'Point':
