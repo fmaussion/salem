@@ -262,7 +262,11 @@ class TestGraphics(unittest.TestCase):
         a[2, 2] = 2.2
         a[2, 4] = 1.9
         a[3, 3] = 9
-        cmap = mpl.cm.get_cmap('jet').copy()
+        try:
+            cmap = mpl.cm.get_cmap('jet').copy()
+        except AttributeError:
+            import copy
+            cmap = copy.deepcopy(mpl.cm.get_cmap('jet'))
 
         # ll_corner (type geotiff)
         g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
@@ -397,7 +401,11 @@ def test_datalevels():
     a[2, 4] = 1.9
     a[3, 3] = 9
 
-    cm = mpl.cm.get_cmap('jet').copy()
+    try:
+        cm = mpl.cm.get_cmap('jet').copy()
+    except AttributeError:
+        import copy
+        cm = copy.deepcopy(mpl.cm.get_cmap('jet'))
     cm.set_bad('pink')
 
     # fig, axes = plt.subplots(nrows=3, ncols=2)
@@ -640,6 +648,7 @@ def test_oceans():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
 def test_geometries():
+
     # UL Corner
     g = Grid(nxny=(5, 4), dxdy=(10, 10), x0y0=(-20, -15), proj=wgs84,
              pixel_ref='corner')
@@ -928,7 +937,6 @@ def test_colormaps():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_geogrid_simulator():
-
     from salem.wrftools import geogrid_simulator
     g, maps = geogrid_simulator(get_demo_file('namelist_mercator.wps'),
                              do_maps=True)
