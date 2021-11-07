@@ -19,7 +19,6 @@ dependencies:
   - joblib
   - geopandas
   - xarray
-  - descartes
   - sphinx-gallery
   - scikit-image
   - motionless

@@ -17,7 +17,6 @@ dependencies:
   - matplotlib
   - Pillow
   - scikit-image
-  - descartes
   - cartopy
   - pip
   - pip:

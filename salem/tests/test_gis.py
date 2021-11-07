@@ -1056,7 +1056,8 @@ class TestTransform(unittest.TestCase):
         p = shpg.MultiPoint([shpg.Point(i, j) for i, j in zip(x.flatten(),
                                                               y.flatten())])
         o = gis.transform_geometry(p, to_crs=g.proj)
-        assert_allclose([_p.coords for _p in o], [_p.coords for _p in p])
+        assert_allclose([_p.coords for _p in o.geoms],
+                        [_p.coords for _p in p.geoms])
 
     @requires_geopandas
     def test_shape(self):

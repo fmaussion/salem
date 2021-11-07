@@ -26,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import MultiPoint, LineString, Polygon
-from descartes.patch import PolygonPatch
+from salem.descartes import PolygonPatch
 from matplotlib.transforms import Transform as MPLTranform
 
 from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff

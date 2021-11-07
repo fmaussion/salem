@@ -1,7 +1,6 @@
 from __future__ import division
 from distutils.version import LooseVersion
 
-import copy
 import warnings
 import os
 import shutil
@@ -263,7 +262,7 @@ class TestGraphics(unittest.TestCase):
         a[2, 2] = 2.2
         a[2, 4] = 1.9
         a[3, 3] = 9
-        cmap = copy.deepcopy(mpl.cm.get_cmap('jet'))
+        cmap = mpl.cm.get_cmap('jet').copy()
 
         # ll_corner (type geotiff)
         g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
@@ -398,7 +397,7 @@ def test_datalevels():
     a[2, 4] = 1.9
     a[3, 3] = 9
 
-    cm = copy.copy(mpl.cm.get_cmap('jet'))
+    cm = mpl.cm.get_cmap('jet').copy()
     cm.set_bad('pink')
 
     # fig, axes = plt.subplots(nrows=3, ncols=2)
