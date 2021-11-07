@@ -55,10 +55,10 @@ def PolygonPath(polygon):
 
     vertices = concatenate(
         [asarray(this.exterior.coords)[:, :2]]
-        + [asarray(r.coords)[:, :2] for r in this.interiors.geoms])
+        + [asarray(r.coords)[:, :2] for r in this.interiors])
     codes = concatenate(
         [coding(this.exterior)]
-        + [coding(r) for r in this.interiors.geoms])
+        + [coding(r) for r in this.interiors])
     return Path(vertices, codes)
 
 
