@@ -1193,7 +1193,7 @@ class Map(DataLevels):
 def plot_polygon(ax, poly, edgecolor='black', **kwargs):
     """ Plot a single Polygon geometry """
 
-    a = np.asarray(poly.exterior)
+    a = np.asarray(poly.exterior.coords)
     # without Descartes, we could make a Patch of exterior
     ax.add_patch(PolygonPatch(poly, **kwargs))
     ax.plot(a[:, 0], a[:, 1], color=edgecolor)
