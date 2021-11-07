@@ -624,7 +624,7 @@ class Map(DataLevels):
 
         # Save
         if 'Multi' in geom.type:
-            for g in geom:
+            for g in geom.geoms:
                 self._geometries.append((g, kwargs))
                 # dirty solution: I should use collections instead
                 if 'label' in kwargs:
@@ -717,7 +717,7 @@ class Map(DataLevels):
             patches = []
             for g in shape.geometry:
                 if 'Multi' in g.type:
-                    for gg in g:
+                    for gg in g.geoms:
                         patches.append(PolygonPatch(gg))
                 else:
                     patches.append(PolygonPatch(g))
@@ -730,7 +730,7 @@ class Map(DataLevels):
             lines = []
             for g in shape.geometry:
                 if 'Multi' in g.type:
-                    for gg in g:
+                    for gg in g.geoms:
                         lines.append(np.array(gg))
                 else:
                     lines.append(np.array(g))
