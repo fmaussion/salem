@@ -47,17 +47,16 @@ How to issue a salem release.
     We also update the stable branch with `git cherrypick` for documentation
       only fixes that apply the current released version.
 10. Add a section for the next release (`v.X.(Y+1)`) to `doc/whats-new.rst`.
+   Reset setup.py's `is_released` to False.
 11. Commit your changes and push to master again:
-
 
        git commit -a -m 'Revert to dev version'
        git push origin master
-    
-   You're done pushing to master!
-13. Issue the release on GitHub. Click on "Draft a new release" at
+
+12. Issue the release on GitHub. Click on "Draft a new release" at
     https://github.com/fmaussion/salem/releases. Type in the version number, but
     don't bother to describe it -- we maintain that on the docs instead.
-14. Update the docs. Login to https://readthedocs.org/projects/salem/versions/
+13. Update the docs. Login to https://readthedocs.org/projects/salem/versions/
     and switch your new release tag (at the bottom) from "Inactive" to "Active".
     It should now build automatically.
-15. Issue the release announcement!
+14. Issue the release announcement!
