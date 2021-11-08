@@ -18,11 +18,10 @@ dependencies:
   - matplotlib
   - scikit-image
   - Pillow
-  - descartes
   - cartopy
   - pip
   - pip:
-    - coveralls
+    - coveralls==3.2.0
     - pytest-cov
     - pytest-mpl
     - motionless

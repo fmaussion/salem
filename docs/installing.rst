@@ -38,7 +38,6 @@ For plotting
 - `matplotlib <http://matplotlib.org/>`__: required for :ref:`plotting`
 - `pillow <http://pillow.readthedocs.io>`__: required for salem.Map
 - `scikit-image <https://scikit-image.org>`__: required for salem.Map
-- `descartes <https://pypi.python.org/pypi/descartes/>`__: for paths and patches on maps
 - `motionless <https://github.com/ryancox/motionless/>`__: for google static maps
 
 

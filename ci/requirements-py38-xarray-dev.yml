@@ -17,12 +17,11 @@ dependencies:
   - matplotlib
   - Pillow
   - scikit-image
-  - descartes
   - cartopy
   - pip
   - pip:
     - git+https://github.com/pydata/xarray.git
-    - coveralls
+    - coveralls==3.2.0
     - pytest-cov
     - pytest-mpl
     - motionless

@@ -26,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import MultiPoint, LineString, Polygon
-from descartes.patch import PolygonPatch
+from salem.descartes import PolygonPatch
 from matplotlib.transforms import Transform as MPLTranform
 
 from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff
@@ -624,7 +624,7 @@ class Map(DataLevels):
 
         # Save
         if 'Multi' in geom.type:
-            for g in geom:
+            for g in geom.geoms:
                 self._geometries.append((g, kwargs))
                 # dirty solution: I should use collections instead
                 if 'label' in kwargs:
@@ -717,7 +717,7 @@ class Map(DataLevels):
             patches = []
             for g in shape.geometry:
                 if 'Multi' in g.type:
-                    for gg in g:
+                    for gg in g.geoms:
                         patches.append(PolygonPatch(gg))
                 else:
                     patches.append(PolygonPatch(g))
@@ -730,10 +730,10 @@ class Map(DataLevels):
             lines = []
             for g in shape.geometry:
                 if 'Multi' in g.type:
-                    for gg in g:
-                        lines.append(np.array(gg))
+                    for gg in g.geoms:
+                        lines.append(np.array(gg.coords))
                 else:
-                    lines.append(np.array(g))
+                    lines.append(np.array(g.coords))
             self._collections.append(LineCollection(lines, **kwargs))
         else:
             raise NotImplementedError(geomtype)
@@ -1146,7 +1146,7 @@ class Map(DataLevels):
                 kwargs.setdefault('facecolor', 'none')
                 plot_polygon(ax, g, **kwargs)  # was g.buffer(0). Why?
             if g.type in ['LineString', 'LinearRing']:
-                a = np.array(g)
+                a = np.array(g.coords)
                 kwargs.setdefault('color', 'k')
                 ax.plot(a[:, 0], a[:, 1], **kwargs)
             if g.type == 'Point':
@@ -1193,7 +1193,7 @@ class Map(DataLevels):
 def plot_polygon(ax, poly, edgecolor='black', **kwargs):
     """ Plot a single Polygon geometry """
 
-    a = np.asarray(poly.exterior)
+    a = np.asarray(poly.exterior.coords)
     # without Descartes, we could make a Patch of exterior
     ax.add_patch(PolygonPatch(poly, **kwargs))
     ax.plot(a[:, 0], a[:, 1], color=edgecolor)
