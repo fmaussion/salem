@@ -13,8 +13,8 @@ import importlib
 
 MAJOR = 0
 MINOR = 3
-MICRO = 6
-ISRELEASED = False
+MICRO = 7
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 

@@ -3,8 +3,11 @@
 What's New
 ==========
 
-v0.X.Y (Unreleased)
--------------------
+v0.3.7 (08 November 2021)
+-------------------------
+
+A minor release of the salem package to fix deprecation warnings from shapely,
+and remove the dependency to the discontinued package "descartes".
 
 v0.3.6 (29 October 2021)
 ------------------------
