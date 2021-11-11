@@ -38,12 +38,20 @@ For plotting
 - `matplotlib <http://matplotlib.org/>`__: required for :ref:`plotting`
 - `pillow <http://pillow.readthedocs.io>`__: required for salem.Map
 - `scikit-image <https://scikit-image.org>`__: required for salem.Map
-- `descartes <https://pypi.python.org/pypi/descartes/>`__: for paths and patches on maps
 - `motionless <https://github.com/ryancox/motionless/>`__: for google static maps
 
 
 Instructions
 ------------
+
+You can install Salem via `conda-forge`_::
+
+    conda config --add channels conda-forge
+    conda install salem
+
+or pip::
+
+    pip install salem
 
 The very best (unique?) way to install Salem without too much hassle is to
 install its dependencies with `conda`_ and `conda-forge`_::
@@ -59,7 +67,6 @@ If you want to install the latest master::
 
     pip install git+https://github.com/fmaussion/salem.git
 
-.. _conda: http://conda.pydata.org/docs/intro.html
 .. _conda-forge: http://conda-forge.github.io
 
 .. warning::

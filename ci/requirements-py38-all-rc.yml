@@ -1,8 +1,9 @@
 name: test_env
 channels:
+  - conda-forge/label/rc
   - conda-forge
 dependencies:
-  - python=2.7
+  - python=3.8
   - six
   - numpy
   - scipy
@@ -10,18 +11,18 @@ dependencies:
   - joblib
   - netCDF4
   - shapely
-  - geopandas
+  - geopandas>=0.8
   - rasterio
-  - pandas
+  - pandas>=1.2
   - xarray
   - dask
   - matplotlib
   - Pillow
   - scikit-image
-  - descartes
   - cartopy
+  - pip
   - pip:
-    - coveralls
+    - coveralls==3.2.0
     - pytest-cov
     - pytest-mpl
     - motionless

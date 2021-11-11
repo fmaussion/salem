@@ -1,0 +1,18 @@
+name: test_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - six
+  - numpy
+  - scipy
+  - pyproj
+  - joblib
+  - netCDF4
+  - pandas
+  - xarray
+  - dask
+  - pip
+  - pip:
+    - coveralls==3.2.0
+    - pytest-cov

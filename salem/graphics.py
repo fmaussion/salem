@@ -26,7 +26,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import MultiPoint, LineString, Polygon
-from descartes.patch import PolygonPatch
+from salem.descartes import PolygonPatch
 from matplotlib.transforms import Transform as MPLTranform
 
 from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff
@@ -201,7 +201,12 @@ class DataLevels(object):
             return levels
         else:
             if nlevels is None:
-                nlevels = 256
+                if self.extend in ['max', 'min']:
+                    nlevels = self.cmap.N - 1
+                elif self.extend in ['both']:
+                    nlevels = self.cmap.N - 2
+                else:
+                    nlevels = self.cmap.N
             if self.vmax == self.vmin:
                 return np.linspace(self.vmin, self.vmax+1, nlevels)
             return np.linspace(self.vmin, self.vmax, nlevels)
@@ -255,7 +260,11 @@ class DataLevels(object):
             warnings.warn('Minimum data out of bounds.', RuntimeWarning)
         if e not in ['both', 'max'] and (np.max(l) < np.max(self.data)):
             warnings.warn('Maximum data out of bounds.', RuntimeWarning)
-        return ExtendedNorm(l, self.cmap.N, extend=e)
+        try:
+            # Added in mpl 3.3.0
+            return mpl.colors.BoundaryNorm(l, self.cmap.N, extend=e)
+        except TypeError:
+            return ExtendedNorm(l, self.cmap.N, extend=e)
 
     def to_rgb(self):
         """Transform the data to RGB triples."""
@@ -448,7 +457,6 @@ class Map(DataLevels):
         if len(shp) != 2:
             raise ValueError('Data should be 2D.')
 
-        crs = gis.check_crs(crs)
         if crs is None:
             # Reform case, but with a sanity check
             if not np.isclose(shp[0] / shp[1], self.grid.ny / self.grid.nx,
@@ -457,6 +465,11 @@ class Map(DataLevels):
 
             # need to resize if not same
             if not ((shp[0] == self.grid.ny) and (shp[1] == self.grid.nx)):
+
+                # We convert to float for img resizing
+                if data.dtype not in [np.float32, np.float64]:
+                    data = data.astype(np.float64)
+
                 if interp.lower() == 'nearest':
                     interp = 0
                 elif interp.lower() == 'linear':
@@ -483,7 +496,10 @@ class Map(DataLevels):
                                         order=interp, mode='edge',
                                         anti_aliasing=False)
 
-        elif isinstance(crs, Grid):
+            return data
+
+        crs = gis.check_crs(crs, raise_on_error=True)
+        if isinstance(crs, Grid):
             # Remap
             if overplot:
                 data = self.grid.map_gridded_data(data, crs, interp=interp,
@@ -491,7 +507,8 @@ class Map(DataLevels):
             else:
                 data = self.grid.map_gridded_data(data, crs, interp=interp)
         else:
-            raise ValueError('crs not understood')
+            raise ValueError('crs should be a grid, not a proj')
+
         return data
 
     def set_data(self, data=None, crs=None, interp='nearest',
@@ -607,7 +624,7 @@ class Map(DataLevels):
 
         # Save
         if 'Multi' in geom.type:
-            for g in geom:
+            for g in geom.geoms:
                 self._geometries.append((g, kwargs))
                 # dirty solution: I should use collections instead
                 if 'label' in kwargs:
@@ -700,7 +717,7 @@ class Map(DataLevels):
             patches = []
             for g in shape.geometry:
                 if 'Multi' in g.type:
-                    for gg in g:
+                    for gg in g.geoms:
                         patches.append(PolygonPatch(gg))
                 else:
                     patches.append(PolygonPatch(g))
@@ -713,10 +730,10 @@ class Map(DataLevels):
             lines = []
             for g in shape.geometry:
                 if 'Multi' in g.type:
-                    for gg in g:
-                        lines.append(np.array(gg))
+                    for gg in g.geoms:
+                        lines.append(np.array(gg.coords))
                 else:
-                    lines.append(np.array(g))
+                    lines.append(np.array(g.coords))
             self._collections.append(LineCollection(lines, **kwargs))
         else:
             raise NotImplementedError(geomtype)
@@ -894,7 +911,7 @@ class Map(DataLevels):
         # Gradient in m m-1
         ddx = self.grid.dx
         ddy = self.grid.dy
-        if self.grid.proj.is_latlong():
+        if gis.proj_is_latlong(self.grid.proj):
             # we make a coarse approx of the avg dx on a sphere
             _, lat = self.grid.ll_coordinates
             ddx = np.mean(ddx * 111200 * np.cos(lat * np.pi / 180))
@@ -996,7 +1013,7 @@ class Map(DataLevels):
                 ]
 
         # Units
-        if self.grid.proj.is_latlong():
+        if gis.proj_is_latlong(self.grid.proj):
             units = 'deg'
         elif length >= 1000.:
             length /= 1000
@@ -1096,7 +1113,7 @@ class Map(DataLevels):
         # Image is the easiest
         out['imshow'] = ax.imshow(self.to_rgb(), interpolation='none',
                                   origin=self.origin)
-        ax.autoscale(False)
+        ax.autoscale(enable=False)
 
         # Contour
         if self._contour_data is not None:
@@ -1129,7 +1146,7 @@ class Map(DataLevels):
                 kwargs.setdefault('facecolor', 'none')
                 plot_polygon(ax, g, **kwargs)  # was g.buffer(0). Why?
             if g.type in ['LineString', 'LinearRing']:
-                a = np.array(g)
+                a = np.array(g.coords)
                 kwargs.setdefault('color', 'k')
                 ax.plot(a[:, 0], a[:, 1], **kwargs)
             if g.type == 'Point':
@@ -1176,7 +1193,7 @@ class Map(DataLevels):
 def plot_polygon(ax, poly, edgecolor='black', **kwargs):
     """ Plot a single Polygon geometry """
 
-    a = np.asarray(poly.exterior)
+    a = np.asarray(poly.exterior.coords)
     # without Descartes, we could make a Patch of exterior
     ax.add_patch(PolygonPatch(poly, **kwargs))
     ax.plot(a[:, 0], a[:, 1], color=edgecolor)

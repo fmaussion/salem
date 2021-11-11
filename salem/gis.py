@@ -25,15 +25,21 @@ except ImportError:
 # Locals
 from salem import lazy_property, wgs84
 
+try:
+    crs_type = pyproj.crs.CRS
+except AttributeError:
+    class Dummy():
+        pass
+    crs_type = Dummy
 
-def check_crs(crs):
+def check_crs(crs, raise_on_error=False):
     """Checks if the crs represents a valid grid, projection or ESPG string.
 
     Examples
     --------
-    >>> p = check_crs('+units=m +init=epsg:26915')
+    >>> p = check_crs('epsg:26915 +units=m')
     >>> p.srs
-    '+units=m +init=epsg:26915 '
+    'epsg:26915 +units=m'
     >>> p = check_crs('wrong')
     >>> p is None
     True
@@ -52,18 +58,48 @@ def check_crs(crs):
         # necessary for python 2
         crs = str(crs)
 
+    err1, err2 = None, None
+
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
+    elif isinstance(crs, crs_type):
+        out = pyproj.Proj(crs.to_wkt(), preserve_units=True)
     elif isinstance(crs, dict) or isinstance(crs, string_types):
-        try:
-            out = pyproj.Proj(crs, preserve_units=True)
-        except RuntimeError:
+        if isinstance(crs, string_types):
+            # quick fix for https://github.com/pyproj4/pyproj/issues/345
+            crs = crs.replace(' ', '').replace('+', ' +')
+
+        # A series of try-catch to handle the (too) many changes in pyproj
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning)
+            warnings.filterwarnings('ignore', category=FutureWarning)
             try:
-                out = pyproj.Proj(init=crs, preserve_units=True)
-            except RuntimeError:
-                out = None
+                out = pyproj.Proj(crs, preserve_units=True)
+            except RuntimeError as e:
+                err1 = str(e)
+                try:
+                    out = pyproj.Proj(init=crs, preserve_units=True)
+                except RuntimeError as e:
+                    err2 = str(e)
+                    out = None
     else:
         out = None
+
+    if raise_on_error and out is None:
+        msg = ('salem could not properly parse the provided coordinate '
+               'reference system (crs). This could be due to errors in your '
+               'data, in PyProj, or with salem itself. If this occurs '
+               'unexpectedly, report an issue to https://github.com/fmaussion/'
+               'salem/issues. Full log: \n'
+               'crs: {} ; \n'.format(crs))
+        if err1 is not None:
+            msg += 'Output of `pyproj.Proj(crs, preserve_units=True)`: {} ; \n'
+            msg = msg.format(err1)
+        if err2 is not None:
+            msg += 'Output of `pyproj.Proj(init=crs, preserve_units=True)`: {}'
+            msg = msg.format(err2)
+        raise ValueError(msg)
+
     return out
 
 
@@ -241,14 +277,14 @@ class Grid(object):
         else:
             raise ValueError('Input params not compatible')
 
-        self._nx = np.int(nx)
-        self._ny = np.int(ny)
+        self._nx = int(nx)
+        self._ny = int(ny)
         if (self._nx <= 0) or (self._ny <= 0):
             raise ValueError('nxny not valid')
-        self._dx = np.float(dx)
-        self._dy = np.float(dy)
-        self._x0 = np.float(x0)
-        self._y0 = np.float(y0)
+        self._dx = float(dx)
+        self._dy = float(dy)
+        self._x0 = float(x0)
+        self._y0 = float(y0)
         self._origin = origin
 
         # Check for pixel ref
@@ -400,7 +436,8 @@ class Grid(object):
         """
 
         x, y = self.xy_coordinates
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('EPSG:4326')
+
         return transform_proj(self.proj, proj_out, x, y)
 
     @property
@@ -433,7 +470,7 @@ class Grid(object):
         """
 
         x, y = self.xstagg_xy_coordinates
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
@@ -444,7 +481,7 @@ class Grid(object):
         """
 
         x, y = self.ystagg_xy_coordinates
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
@@ -460,7 +497,7 @@ class Grid(object):
         x = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
         y = self.corner_grid.y0 + np.arange(self.ny+1) * self.dy
         x, y = np.meshgrid(x, y)
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
@@ -625,13 +662,11 @@ class Grid(object):
             y = np.asarray(j) * self.dy + self.y0
 
         # Convert x, y to crs
-        _crs = check_crs(crs)
+        _crs = check_crs(crs, raise_on_error=True)
         if isinstance(_crs, pyproj.Proj):
             ret = transform_proj(self.proj, _crs, x, y)
         elif isinstance(_crs, Grid):
             ret = _crs.transform(x, y, crs=self.proj, nearest=nearest)
-        else:
-            raise ValueError('crs not understood')
         return ret
 
     def transform(self, x, y, z=None, crs=wgs84, nearest=False, maskout=False):
@@ -664,13 +699,11 @@ class Grid(object):
         x, y = np.ma.array(x), np.ma.array(y)
 
         # First to local proj
-        _crs = check_crs(crs)
+        _crs = check_crs(crs, raise_on_error=True)
         if isinstance(_crs, pyproj.Proj):
             x, y = transform_proj(_crs, self.proj, x, y)
         elif isinstance(_crs, Grid):
             x, y = _crs.ij_to_crs(x, y, crs=self.proj)
-        else:
-            raise ValueError('crs not understood')
 
         # Then to local grid
         x = (x - self.x0) / self.dx
@@ -679,8 +712,8 @@ class Grid(object):
         # See if we need to round
         if nearest:
             f = np.rint if self.pixel_ref == 'center' else np.floor
-            x = f(x).astype(np.int)
-            y = f(y).astype(np.int)
+            x = f(x).astype(int)
+            y = f(y).astype(int)
 
         # Mask?
         if maskout:
@@ -807,7 +840,7 @@ class Grid(object):
         out_shape[-2:] = [self.ny, self.nx]
 
         if data.dtype.kind == 'i':
-            out_data = np.zeros(out_shape, dtype=np.float) * np.NaN
+            out_data = np.zeros(out_shape, dtype=float) * np.NaN
         else:
             out_data = np.zeros(out_shape, dtype=data.dtype) * np.NaN
 
@@ -830,7 +863,7 @@ class Grid(object):
         # prepare output
         if method is len:
             out_data[~np.isfinite(out_data)] = 0
-            out_data = out_data.astype(np.int)
+            out_data = out_data.astype(int)
         else:
             out_data = np.ma.masked_invalid(out_data)
 
@@ -888,6 +921,11 @@ class Grid(object):
         except AttributeError:
             pass
 
+        try:  # in case someone gave a masked array (won't work with scipy)
+            data = data.filled(np.nan)
+        except AttributeError:
+            pass
+
         in_shape = data.shape
         ndims = len(in_shape)
         if (ndims < 2) or (ndims > 4):
@@ -920,7 +958,7 @@ class Grid(object):
                 # We dont do integer arithmetics other than nearest
                 out_data = np.ma.masked_all(out_shape, dtype=data.dtype)
             elif data.dtype.kind == 'i':
-                out_data = np.ma.masked_all(out_shape, dtype=np.float)
+                out_data = np.ma.masked_all(out_shape, dtype=float)
             else:
                 out_data = np.ma.masked_all(out_shape, dtype=data.dtype)
 
@@ -932,37 +970,73 @@ class Grid(object):
 
         # Interpolate
         if interp == 'nearest':
-            out_data[..., j, i] = data[..., oj, oi]
+            if out is not None:
+                if ndims > 2:
+                    raise ValueError('Need 2D for now.')
+                vok = np.isfinite(data[oj, oi])
+                out_data[j[vok], i[vok]] = data[oj[vok], oi[vok]]
+            else:
+                out_data[..., j, i] = data[..., oj, oi]
         elif interp == 'linear':
             points = (np.arange(grid.ny), np.arange(grid.nx))
             if ndims == 2:
                 f = RegularGridInterpolator(points, data, bounds_error=False)
-                out_data[j, i] = f((oj, oi))
+                if out is not None:
+                    tmp = f((oj, oi))
+                    vok = np.isfinite(tmp)
+                    out_data[j[vok], i[vok]] = tmp[vok]
+                else:
+                    out_data[j, i] = f((oj, oi))
             if ndims == 3:
                 for dimi, cdata in enumerate(data):
                     f = RegularGridInterpolator(points, cdata,
                                                 bounds_error=False)
-                    out_data[dimi, j, i] = f((oj, oi))
+                    if out is not None:
+                        tmp = f((oj, oi))
+                        vok = np.isfinite(tmp)
+                        out_data[dimi, j[vok], i[vok]] = tmp[vok]
+                    else:
+                        out_data[dimi, j, i] = f((oj, oi))
             if ndims == 4:
                 for dimj, cdata in enumerate(data):
                     for dimi, ccdata in enumerate(cdata):
                         f = RegularGridInterpolator(points, ccdata,
                                                     bounds_error=False)
-                        out_data[dimj, dimi, j, i] = f((oj, oi))
+                        if out is not None:
+                            tmp = f((oj, oi))
+                            vok = np.isfinite(tmp)
+                            out_data[dimj, dimi, j[vok], i[vok]] = tmp[vok]
+                        else:
+                            out_data[dimj, dimi, j, i] = f((oj, oi))
         elif interp == 'spline':
             px, py = np.arange(grid.ny), np.arange(grid.nx)
             if ndims == 2:
                 f = RectBivariateSpline(px, py, data, kx=ks, ky=ks)
-                out_data[j, i] = f(oj, oi, grid=False)
+                if out is not None:
+                    tmp = f(oj, oi, grid=False)
+                    vok = np.isfinite(tmp)
+                    out_data[j[vok], i[vok]] = tmp[vok]
+                else:
+                    out_data[j, i] = f(oj, oi, grid=False)
             if ndims == 3:
                 for dimi, cdata in enumerate(data):
                     f = RectBivariateSpline(px, py, cdata, kx=ks, ky=ks)
-                    out_data[dimi, j, i] = f(oj, oi, grid=False)
+                    if out is not None:
+                        tmp = f(oj, oi, grid=False)
+                        vok = np.isfinite(tmp)
+                        out_data[dimi, j[vok], i[vok]] = tmp[vok]
+                    else:
+                        out_data[dimi, j, i] = f(oj, oi, grid=False)
             if ndims == 4:
                 for dimj, cdata in enumerate(data):
                     for dimi, ccdata in enumerate(cdata):
                         f = RectBivariateSpline(px, py, ccdata, kx=ks, ky=ks)
-                        out_data[dimj, dimi, j, i] = f(oj, oi, grid=False)
+                        if out is not None:
+                            tmp = f(oj, oi, grid=False)
+                            vok = np.isfinite(tmp)
+                            out_data[dimj, dimi, j[vok], i[vok]] = tmp[vok]
+                        else:
+                            out_data[dimj, dimi, j, i] = f(oj, oi, grid=False)
         else:
             msg = 'interpolation not understood: {}'.format(interp)
             raise ValueError(msg)
@@ -1060,6 +1134,7 @@ class Grid(object):
         --------
         from_dict : create a Grid from a dict
         """
+        srs = self.proj.srs
         return dict(proj=self.proj.srs, x0y0=(self.x0, self.y0),
                     nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
                     pixel_ref=self.pixel_ref)
@@ -1197,6 +1272,14 @@ def proj_is_same(p1, p2):
         return p1 == p2
 
 
+def _transform_internal(p1, p2, x, y, **kwargs):
+    if hasattr(pyproj, 'Transformer'):
+        trf = pyproj.Transformer.from_proj(p1, p2, **kwargs)
+        return trf.transform(x, y)
+    else:
+        return pyproj.transform(p1, p2, x, y, **kwargs)
+
+
 def transform_proj(p1, p2, x, y, nocopy=False):
     """Wrapper around the pyproj.transform function.
 
@@ -1220,13 +1303,17 @@ def transform_proj(p1, p2, x, y, nocopy=False):
         in case the two projections are equal, you can use nocopy if you wish
     """
 
-    if proj_is_same(p1, p2):
-        if nocopy:
-            return x, y
-        else:
-            return copy.deepcopy(x), copy.deepcopy(y)
+    try:
+        # This always makes a copy, even if projections are equivalent
+        return _transform_internal(p1, p2, x, y, always_xy=True)
+    except TypeError:
+        if proj_is_same(p1, p2):
+            if nocopy:
+                return x, y
+            else:
+                return copy.deepcopy(x), copy.deepcopy(y)
 
-    return pyproj.transform(p1, p2, x, y)
+        return _transform_internal(p1, p2, x, y)
 
 
 def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
@@ -1262,13 +1349,15 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
     return transform(project, geom)
 
 
-def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
+def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
     """Reprojects a geopandas dataframe.
 
     Parameters
     ----------
     gdf : geopandas.DataFrame
         the dataframe to transform (must have a crs attribute)
+    from_crs : crs
+        if gdf has no crs attribute (happens when the crs is a salem grid)
     to_crs : crs
         the crs into which the dataframe must be transformed
     inplace : bool
@@ -1281,7 +1370,10 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     from shapely.ops import transform
     import geopandas as gpd
 
-    from_crs = check_crs(gdf.crs)
+    if from_crs is None:
+        from_crs = check_crs(gdf.crs)
+    else:
+        from_crs = check_crs(from_crs)
     to_crs = check_crs(to_crs)
 
     if inplace:
@@ -1301,6 +1393,10 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     # Do the job and set the new attributes
     result = out.geometry.apply(lambda geom: transform(project, geom))
     result.__class__ = gpd.GeoSeries
+    if isinstance(to_crs, pyproj.Proj):
+        to_crs = to_crs.srs
+    elif isinstance(to_crs, Grid):
+        to_crs = None
     result.crs = to_crs
     out.geometry = result
     out.crs = to_crs
@@ -1309,6 +1405,15 @@ def transform_geopandas(gdf, to_crs=wgs84, inplace=False):
     out['min_y'] = [g.bounds[1] for g in out.geometry]
     out['max_y'] = [g.bounds[3] for g in out.geometry]
     return out
+
+
+def proj_is_latlong(proj):
+    """Shortcut function because of deprecation."""
+
+    try:
+        return proj.is_latlong()
+    except AttributeError:
+        return proj.crs.is_geographic
 
 
 def proj_to_cartopy(proj):
@@ -1330,7 +1435,7 @@ def proj_to_cartopy(proj):
 
     proj = check_crs(proj)
 
-    if proj.is_latlong():
+    if proj_is_latlong(proj):
         return ccrs.PlateCarree()
 
     srs = proj.srs
@@ -1374,6 +1479,7 @@ def proj_to_cartopy(proj):
         if k == 'proj':
             if v == 'tmerc':
                 cl = ccrs.TransverseMercator
+                kw_proj['approx'] = True
             if v == 'lcc':
                 cl = ccrs.LambertConformal
             if v == 'merc':
@@ -1385,6 +1491,8 @@ def proj_to_cartopy(proj):
             if v == 'ob_tran':
                 cl = ccrs.RotatedPole
         if k in km_proj:
+            if k == 'zone':
+                v = int(v)
             kw_proj[km_proj[k]] = v
         if k in km_globe:
             kw_globe[km_globe[k]] = v
@@ -1414,6 +1522,11 @@ def proj_to_cartopy(proj):
             kw_proj.pop('central_longitude', None)
     else:
         kw_proj.pop('latitude_true_scale', None)
+
+    try:
+        return cl(globe=globe, **kw_proj)
+    except TypeError:
+        del kw_proj['approx']
 
     return cl(globe=globe, **kw_proj)
 
@@ -1458,7 +1571,7 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
     nx = np.rint(nx)
     ny = np.rint(ny)
 
-    e, n = pyproj.transform(wgs84, projloc, lon, lat)
+    e, n = transform_proj(wgs84, projloc, lon, lat)
 
     if origin== 'upper-left':
         corner = (-xx / 2. + e, yy / 2. + n)
@@ -1479,13 +1592,12 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
 
     # Number of pixels in an image with a zoom level of 0.
     google_pix = 256 * scale
-    # The equitorial radius of the Earth assuming WGS-84 ellipsoid.
+    # The equatorial radius of the Earth assuming WGS-84 ellipsoid.
     google_earth_radius = 6378137.0
 
     # Make a local proj
     lon, lat = center_ll
-    proj_params = dict(proj='merc', datum='WGS84')
-    projloc = pyproj.Proj(proj_params)
+    projloc = check_crs('epsg:3857')
 
     # The size of the image is multiplied by the scaling factor
     nx *= scale
@@ -1496,7 +1608,7 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
     xx = nx * mpix
     yy = ny * mpix
 
-    e, n = pyproj.transform(wgs84, projloc, lon, lat)
+    e, n = transform_proj(wgs84, projloc, lon, lat)
     corner = (-xx / 2. + e, yy / 2. + n)
     dxdy = (xx / nx, - yy / ny)
 

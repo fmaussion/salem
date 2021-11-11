@@ -3,14 +3,74 @@
 What's New
 ==========
 
-v0.3.0 (unreleased)
+v0.3.X (Unreleased)
 -------------------
+
+
+v0.3.7 (08 November 2021)
+-------------------------
+
+A minor release of the salem package to fix deprecation warnings from shapely,
+and remove the dependency to the discontinued package "descartes".
+
+v0.3.6 (29 October 2021)
+------------------------
+
+A minor release of the salem package to fix a version number issue in v0.3.5
+and a compatibility fix for cartopy > 0.20.
+
+v0.3.5 (29 August 2021)
+-----------------------
+
+A minor release of the salem package to fix for updates in xarray and
+an update in the Natural Earth image url.
+
+v0.3.4 (24 March 2021)
+----------------------
+
+A minor release of the salem package to fix for updates in
+xarray.
+
+v0.3.3 (18 November 2020)
+-------------------------
+
+A minor release of the salem package to make up for bugs in 0.3.2 and 0.3.1
+that happened because of tiredness.
+
+v0.3.1 (18 November 2020)
+-------------------------
+
+A minor release of the salem package to make up for a version problem
+in v0.3.0.
+
+
+v0.3.0 (20 August 2020)
+-----------------------
+
+A minor release of the salem package, mostly for bug fixes and small
+enhancements. **We dropped support for Python 2.**
 
 Enhancements
 ~~~~~~~~~~~~
 
+- Region Of Interest (ROI) now also accepts GeoDataFrame objects
+  (:pull:`161`).
+- Added support for lossy compression on WRF files (:pull:`167`).
+
 Bug fixes
 ~~~~~~~~~
+
+- More accurate web mercator proj for google static images (:pull:`178`).
+- Various fixes for upstream changes, mostly in pyrproj and geopandas
+  (:pull:`148`, :pull:`150`, :pull:`154`, :pull:`156`, :pull:`164`).
+- Fixes for changes in matplotlib (:pull:`172`, :pull:`176`)
+
+
+v0.2.4 (25 March 2019)
+------------------------
+
+A minor release of the salem package with a fix to support xarray v0.12.
+**This will (probably) be the last release to support python 2**.
 
 
 v0.2.3 (06 January 2019)

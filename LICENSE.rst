@@ -2,11 +2,11 @@ Salem - License
 ===============
 
 Salem is distributed under a 3-clause ("Simplified" or "New") BSD
-license. Salem uses short parts of the code of the "xarray" and "NCL"
-libraries (when this is the case, this is indicated in the function's
+license. Salem uses short parts of the code of the "xarray", "descartes" and
+"NCL" libraries (when this is the case, this is indicated in the function's
 docstring). Their licenses are reproduced in the salem/licenses directory.
 
-Copyright (c) 2014-2016, Fabien Maussion and Salem Development Team
+Copyright (c) 2014-2021, Fabien Maussion and Salem Development Team
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

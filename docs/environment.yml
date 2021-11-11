@@ -1,12 +1,24 @@
-name: salem
+name: salem-docs
 channels:
-  - oggm
+  # Don't change to pkgs/main, as it causes random timeouts in readthedocs
   - conda-forge
+  - nodefaults
 dependencies:
-  - python=3.6
-  - oggm-deps
-  - conda-forge/label/dev::rasterio
-  - numpydoc
+  - python=3.8
+  - bottleneck
+  - cartopy
+  - ipykernel
   - ipython
+  - netcdf4
+  - numpy
+  - numpydoc
+  - pandas
+  - rasterio
   - sphinx
+  - matplotlib
+  - joblib
+  - geopandas
+  - xarray
   - sphinx-gallery
+  - scikit-image
+  - motionless

@@ -12,8 +12,8 @@ import warnings
 import importlib
 
 MAJOR = 0
-MINOR = 2
-MICRO = 2
+MINOR = 3
+MICRO = 7
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -32,8 +32,6 @@ CLASSIFIERS = [
         'License :: OSI Approved :: BSD License',
         'Topic :: Scientific/Engineering :: Atmospheric Science',
         'Topic :: Scientific/Engineering :: GIS',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
@@ -155,6 +153,8 @@ setup(
     version=FULLVERSION,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
+    # Support python 3+ only
+    python_requires='>=3.5',
     # The project's main homepage.
     url=URL,
     # Author details

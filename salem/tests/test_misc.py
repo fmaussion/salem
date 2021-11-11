@@ -23,6 +23,28 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 testdir = os.path.join(current_dir, 'tmp')
 
 
+def is_cartopy_rotated_working():
+
+    from salem.gis import proj_to_cartopy
+    from cartopy.crs import PlateCarree
+    import pyproj
+
+    cp = pyproj.Proj('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+                     '+to_meter=0.0174532925199433 +o_lon_p=0.0 +o_lat_p=80.5 '
+                     '+lon_0=357.5 +no_defs')
+    cp = proj_to_cartopy(cp)
+
+    out = PlateCarree().transform_points(cp, np.array([-20]), np.array([-9]))
+
+    if not (np.allclose(out[0, 0], -22.243473889042903, atol=1e-5) and
+            np.allclose(out[0, 1], -0.06328365194179102, atol=1e-5)):
+
+        # Cartopy also had issues
+        return False
+
+    return True
+
+
 @requires_geopandas
 def create_dummy_shp(fname):
 
@@ -142,7 +164,6 @@ class TestIO(unittest.TestCase):
         self.assertRaises(ValueError, read_shapefile, 'f1.sph')
         self.assertRaises(ValueError, utils.cached_shapefile_path, 'f1.splash')
 
-
     @requires_geopandas
     def test_read_to_grid(self):
 
@@ -198,6 +219,7 @@ class TestSkyIsFalling(unittest.TestCase):
 
         import pyproj
         import matplotlib.pyplot as plt
+        from salem.gis import transform_proj, check_crs
 
         wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
         fig = plt.figure()
@@ -205,11 +227,21 @@ class TestSkyIsFalling(unittest.TestCase):
 
         srs = '+units=m +proj=lcc +lat_1=29.0 +lat_2=29.0 +lat_0=29.0 +lon_0=89.8'
 
-        proj_out = pyproj.Proj("+init=EPSG:4326", preserve_units=True)
+        proj_out = check_crs('EPSG:4326')
         proj_in = pyproj.Proj(srs, preserve_units=True)
 
-        lon, lat = pyproj.transform(proj_in, proj_out, -2235000, -2235000)
+        lon, lat = transform_proj(proj_in, proj_out, -2235000, -2235000)
         np.testing.assert_allclose(lon, 70.75731, atol=1e-5)
+
+    def test_gh_152(self):
+
+        # https://github.com/fmaussion/salem/issues/152
+
+        import xarray as xr
+        da = xr.DataArray(np.arange(20).reshape(4, 5), dims=['lat', 'lon'],
+                          coords={'lat': np.linspace(0, 30, 4),
+                                  'lon': np.linspace(-20, 20, 5)})
+        da.salem.roi()
 
 
 class TestXarray(unittest.TestCase):
@@ -325,9 +357,7 @@ class TestXarray(unittest.TestCase):
         wf = get_demo_file('wrf_cropped.nc')
         ncl_out = get_demo_file('wrf_cropped_ncl.nc')
 
-        with warnings.catch_warnings(record=True) as war:
-            w = sio.open_wrf_dataset(wf).chunk()
-            self.assertEqual(len(war), 0)
+        w = sio.open_wrf_dataset(wf).chunk()
         nc = xr.open_dataset(ncl_out)
 
         ref = nc['TK']
@@ -362,6 +392,47 @@ class TestXarray(unittest.TestCase):
         tot = w['SLP']
         tot = tot.values
         assert_allclose(ref, tot, rtol=1e-6)
+
+    @requires_dask
+    def test_ncl_diagvars_compressed(self):
+
+        rtol = 2e-5
+        import xarray as xr
+        wf = get_demo_file('wrf_cropped_compressed.nc')
+        ncl_out = get_demo_file('wrf_cropped_ncl.nc')
+
+        w = sio.open_wrf_dataset(wf).chunk()
+        nc = xr.open_dataset(ncl_out)
+
+        ref = nc['TK']
+        tot = w['TK']
+        assert_allclose(ref, tot, rtol=rtol)
+
+        ref = nc['SLP']
+        tot = w['SLP'].data
+        assert_allclose(ref, tot, rtol=rtol)
+
+        w = w.isel(time=1, south_north=slice(12, 16), west_east=slice(9, 16))
+        nc = nc.isel(Time=1, south_north=slice(12, 16), west_east=slice(9, 16))
+
+        ref = nc['TK']
+        tot = w['TK']
+        assert_allclose(ref, tot, rtol=rtol)
+
+        ref = nc['SLP']
+        tot = w['SLP']
+        assert_allclose(ref, tot, rtol=rtol)
+
+        w = w.isel(bottom_top=slice(3, 5))
+        nc = nc.isel(bottom_top=slice(3, 5))
+
+        ref = nc['TK']
+        tot = w['TK']
+        assert_allclose(ref, tot, rtol=rtol)
+
+        ref = nc['SLP']
+        tot = w['SLP']
+        assert_allclose(ref, tot, rtol=rtol)
 
     @requires_dask
     def test_unstagger(self):
@@ -409,9 +480,32 @@ class TestXarray(unittest.TestCase):
         w['PH'].chunk()
 
     @requires_dask
+    def test_unstagger_compressed(self):
+
+        wf = get_demo_file('wrf_cropped.nc')
+        wfc = get_demo_file('wrf_cropped_compressed.nc')
+
+        w = sio.open_wrf_dataset(wf).chunk()
+        wc = sio.open_wrf_dataset(wfc).chunk()
+
+        assert_allclose(w['PH'], wc['PH'], rtol=0.003)
+
+    @requires_dask
     def test_diagvars(self):
 
         wf = get_demo_file('wrf_d01_allvars_cropped.nc')
+        w = sio.open_wrf_dataset(wf).chunk()
+
+        # ws
+        w['ws_ref'] = np.sqrt(w['U']**2 + w['V']**2)
+        assert_allclose(w['ws_ref'], w['WS'])
+        wcrop = w.isel(west_east=slice(4, 8), bottom_top=4)
+        assert_allclose(wcrop['ws_ref'], wcrop['WS'])
+
+    @requires_dask
+    def test_diagvars_compressed(self):
+
+        wf = get_demo_file('wrf_d01_allvars_cropped_compressed.nc')
         w = sio.open_wrf_dataset(wf).chunk()
 
         # ws
@@ -475,6 +569,18 @@ class TestXarray(unittest.TestCase):
 
             wn = w.isel(time=0, south_north=slice(50, -1))
             self.assertTrue(~np.any(np.isfinite(wn['PRCP' + suf].values)))
+
+    @requires_dask
+    def test_prcp_compressed(self):
+
+        wf = get_demo_file('wrfout_d01.nc')
+        wfc = get_demo_file('wrfout_d01_compressed.nc')
+
+        w = sio.open_wrf_dataset(wf).chunk().isel(time=slice(1, -1))
+        wc = sio.open_wrf_dataset(wfc).chunk().isel(time=slice(1, -1))
+
+        for suf in ['_NC', '_C', '']:
+            assert_allclose(w['PRCP' + suf], wc['PRCP' + suf], atol=0.0003)
 
     @requires_geopandas  # because of the grid tests, more robust with GDAL
     def test_transform_logic(self):
@@ -583,13 +689,44 @@ class TestXarray(unittest.TestCase):
         assert_allclose(v.max(), ds.PRCP.max())
 
     @requires_dask
+    def test_full_wrf_wfile_compressed(self):
+
+        from salem.wrftools import var_classes
+
+        # TODO: these tests are qualitative and should be compared against ncl
+        f = get_demo_file('wrf_d01_allvars_cropped_compressed.nc')
+        ds = sio.open_wrf_dataset(f).chunk()
+
+        # making a repr was causing trouble because of the small chunks
+        _ = ds.__repr__()
+
+        # just check that the data is here
+        var_classes = copy.deepcopy(var_classes)
+        for vn in var_classes:
+            _ = ds[vn].values
+            dss = ds.isel(west_east=slice(2, 6), south_north=slice(2, 5),
+                          bottom_top=slice(0, 15))
+            _ = dss[vn].values
+            dss = ds.isel(west_east=1, south_north=2,
+                          bottom_top=3,  time=2)
+            _ = dss[vn].values
+
+        # some chunking experiments
+        v = ds.WS.chunk((2, 1, 4, 5))
+        assert_allclose(v.mean(), ds.WS.mean(), atol=1e-3)
+        ds = ds.isel(time=slice(1, 4))
+        v = ds.PRCP.chunk((1, 2, 2))
+        assert_allclose(v.mean(), ds.PRCP.mean())
+        assert_allclose(v.max(), ds.PRCP.max())
+
+    @requires_dask
     def test_3d_interp(self):
 
         f = get_demo_file('wrf_d01_allvars_cropped.nc')
         ds = sio.open_wrf_dataset(f).chunk()
 
         out = ds.salem.wrf_zlevel('Z', levels=6000.)
-        ref_2d = out*0. + 6000.
+        ref_2d = out * 0. + 6000.
         assert_allclose(out, ref_2d)
 
         # this used to raise an error
@@ -597,26 +734,69 @@ class TestXarray(unittest.TestCase):
 
         out = ds.salem.wrf_zlevel('Z', levels=[6000., 7000.])
         assert_allclose(out.sel(z=6000.), ref_2d)
-        assert_allclose(out.sel(z=7000.), ref_2d*0. + 7000.)
+        assert_allclose(out.sel(z=7000.), ref_2d * 0. + 7000.)
         assert np.all(np.isfinite(out))
 
         out = ds.salem.wrf_zlevel('Z')
-        assert_allclose(out.sel(z=7500.), ref_2d*0. + 7500.)
+        assert_allclose(out.sel(z=7500.), ref_2d * 0. + 7500.)
 
         out = ds.salem.wrf_plevel('PRESSURE', levels=400.)
-        ref_2d = out*0. + 400.
+        ref_2d = out * 0. + 400.
         assert_allclose(out, ref_2d)
 
         out = ds.salem.wrf_plevel('PRESSURE', levels=[400., 300.])
         assert_allclose(out.sel(p=400.), ref_2d)
-        assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+        assert_allclose(out.sel(p=300.), ref_2d * 0. + 300.)
 
         out = ds.salem.wrf_plevel('PRESSURE')
-        assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+        assert_allclose(out.sel(p=300.), ref_2d * 0. + 300.)
         assert np.any(~np.isfinite(out))
 
         out = ds.salem.wrf_plevel('PRESSURE', fill_value='extrapolate')
-        assert_allclose(out.sel(p=300.), ref_2d*0. + 300.)
+        assert_allclose(out.sel(p=300.), ref_2d * 0. + 300.)
+        assert np.all(np.isfinite(out))
+
+        ds = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
+        ws_h = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.,
+                                                use_multiprocessing=False)
+        assert np.all(np.isfinite(ws_h))
+        ws_h2 = ds.isel(time=1).salem.wrf_zlevel('WS', levels=8000.)
+        assert_allclose(ws_h, ws_h2)
+
+    @requires_dask
+    def test_3d_interp_compressed(self):
+        f = get_demo_file('wrf_d01_allvars_cropped_compressed.nc')
+        ds = sio.open_wrf_dataset(f).chunk()
+
+        out = ds.salem.wrf_zlevel('Z', levels=6000.)
+        ref_2d = out * 0. + 6000.
+        assert_allclose(out, ref_2d)
+
+        # this used to raise an error
+        _ = out.isel(time=1)
+
+        out = ds.salem.wrf_zlevel('Z', levels=[6000., 7000.])
+        assert_allclose(out.sel(z=6000.), ref_2d)
+        assert_allclose(out.sel(z=7000.), ref_2d * 0. + 7000.)
+        assert np.all(np.isfinite(out))
+
+        out = ds.salem.wrf_zlevel('Z')
+        assert_allclose(out.sel(z=7500.), ref_2d * 0. + 7500.)
+
+        out = ds.salem.wrf_plevel('PRESSURE', levels=400.)
+        ref_2d = out * 0. + 400.
+        assert_allclose(out, ref_2d)
+
+        out = ds.salem.wrf_plevel('PRESSURE', levels=[400., 300.])
+        assert_allclose(out.sel(p=400.), ref_2d)
+        assert_allclose(out.sel(p=300.), ref_2d * 0. + 300.)
+
+        out = ds.salem.wrf_plevel('PRESSURE')
+        assert_allclose(out.sel(p=300.), ref_2d * 0. + 300.)
+        assert np.any(~np.isfinite(out))
+
+        out = ds.salem.wrf_plevel('PRESSURE', fill_value='extrapolate')
+        assert_allclose(out.sel(p=300.), ref_2d * 0. + 300.)
         assert np.all(np.isfinite(out))
 
         ds = sio.open_wrf_dataset(get_demo_file('wrfout_d01.nc'))
@@ -671,6 +851,12 @@ class TestXarray(unittest.TestCase):
 
     @requires_cartopy
     def test_metum(self):
+
+        if not sio.is_rotated_proj_working():
+            with pytest.raises(RuntimeError):
+                sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
+            return
+
         ds = sio.open_metum_dataset(get_demo_file('rotated_grid.nc'))
 
         # One way
@@ -685,6 +871,9 @@ class TestXarray(unittest.TestCase):
         assert_allclose(j, jj, atol=1e-7)
 
         # Cartopy
+        if not is_cartopy_rotated_working():
+            return
+
         from salem.gis import proj_to_cartopy
         from cartopy.crs import PlateCarree
         cp = proj_to_cartopy(ds.salem.grid.proj)

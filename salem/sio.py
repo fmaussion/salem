@@ -12,13 +12,13 @@ import warnings
 
 import numpy as np
 import netCDF4
+import cftime
 
 from salem.utils import memory, cached_shapefile_path
 from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
 
 import xarray as xr
 from xarray.backends.netCDF4_ import NetCDF4DataStore
-from xarray.backends.api import _MultiFileCloser
 from xarray.core import dtypes
 try:
     from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK, combine_locks)
@@ -31,6 +31,9 @@ try:
 except ImportError:
     # latest xarray dropped python2 support, so we can safely assume py3 here
     basestring = str
+
+# Locals
+from salem import transform_proj
 
 
 def read_shapefile(fpath, cached=False):
@@ -85,10 +88,10 @@ def _memory_shapefile_to_grid(shape_cpath, grid=None,
 
     shape = read_shapefile(shape_cpath, cached=True)
     e = grid.extent_in_crs(crs=shape.crs)
-    p = np.nonzero(~((shape['min_x'] > e[1]) |
-                     (shape['max_x'] < e[0]) |
-                     (shape['min_y'] > e[3]) |
-                     (shape['max_y'] < e[2])))
+    p = np.nonzero(~((shape['min_x'].to_numpy() > e[1]) |
+                     (shape['max_x'].to_numpy() < e[0]) |
+                     (shape['min_y'].to_numpy() > e[3]) |
+                     (shape['max_y'].to_numpy() < e[2])))
     shape = shape.iloc[p]
     shape = gis.transform_geopandas(shape, to_crs=grid, inplace=True)
     return shape
@@ -217,7 +220,8 @@ def _wrf_grid_from_dataset(ds):
             reflon = reflon[0, :, :]
             reflat = reflat[0, :, :]
         mylon, mylat = grid.ll_coordinates
-        atol = 1e-3
+
+        atol = 5e-3 if proj_id == 2 else 1e-3
         check = np.isclose(reflon, mylon, atol=atol)
         if not np.alltrue(check):
             n_pix = np.sum(~check)
@@ -370,13 +374,21 @@ def netcdf_time(ncobj, monthbegin=False):
         except AttributeError:
             stimes = ncobj.variables['Times'][:]
         for t in stimes:
-            time.append(pd.to_datetime(t.tostring().decode(),
+            time.append(pd.to_datetime(t.tobytes().decode(),
                                        errors='raise',
                                        format='%Y-%m-%d_%H:%M:%S'))
     elif vt is not None:
         # CF time
         var = ncobj.variables[vt]
-        time = netCDF4.num2date(var[:], var.units)
+        try:
+            # We want python times because pandas doesn't understand
+            # CFtime
+            time = cftime.num2date(var[:], var.units,
+                                   only_use_cftime_datetimes=False,
+                                   only_use_python_datetimes=True)
+        except TypeError:
+            # Old versions of cftime did return python times when possible
+            time = cftime.num2date(var[:], var.units)
 
         if monthbegin:
             # sometimes monthly data is centered in the month (stupid)
@@ -992,7 +1004,10 @@ def open_wrf_dataset(file, **kwargs):
     # drop ugly vars
     vns = ['Times', 'XLAT_V', 'XLAT_U', 'XLONG_U', 'XLONG_V']
     vns = [vn for vn in vns if vn in ds.variables]
-    ds = ds.drop(vns)
+    try:
+        ds = ds.drop_vars(vns)
+    except AttributeError:
+        ds = ds.drop(vns)
 
     # add cartesian coords
     ds['west_east'] = ds.salem.grid.x_coord
@@ -1004,6 +1019,21 @@ def open_wrf_dataset(file, **kwargs):
         ds[v].attrs['pyproj_srs'] = ds.salem.grid.proj.srs
 
     return ds
+
+
+def is_rotated_proj_working():
+
+    import pyproj
+    srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+           '+to_meter=0.0174532925199433 +o_lon_p=0.0 +o_lat_p=80.5 '
+           '+lon_0=357.5 +no_defs')
+
+    p1 = pyproj.Proj(srs)
+    p2 = wgs84
+
+    return np.isclose(transform_proj(p1, p2, -20, -9),
+                      [-22.243473889042903, -0.06328365194179102],
+                      atol=1e-5).all()
 
 
 def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
@@ -1032,6 +1062,11 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     -------
     an xarray Dataset
     """
+
+    if not is_rotated_proj_working():
+        raise RuntimeError('open_metum_dataset currently does not '
+                           'work with certain PROJ versions: '
+                           'https://github.com/pyproj4/pyproj/issues/424')
 
     # open with xarray
     ds = xr.open_dataset(file, **kwargs)
@@ -1079,7 +1114,7 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     return ds
 
 
-def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
+def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
                         preprocess=None):
     """Open multiple WRF files as a single WRF dataset.
 
@@ -1093,7 +1128,7 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     Parameters
     ----------
     paths : str or sequence
-        Either a string glob in the form "path/to/my/files/\*.nc" or an
+        Either a string glob in the form `path/to/my/files/*.nc` or an
         explicit list of files to open.
     chunks : int or dict, optional
         Dictionary with keys given by dimension names and values given by chunk
@@ -1125,8 +1160,8 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
     Returns
     -------
     xarray.Dataset
-
     """
+
     if isinstance(paths, basestring):
         paths = sorted(glob(paths))
     if not paths:
@@ -1138,20 +1173,49 @@ def open_mf_wrf_dataset(paths, chunks=None,  compat='no_conflicts', lock=None,
 
     if lock is None:
         lock = NETCDF4_PYTHON_LOCK
-    datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
-                for p in paths]
-    file_objs = [ds._file_obj for ds in datasets]
+    try:
+        datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
+                    for p in paths]
+    except TypeError as err:
+        if 'lock' not in str(err):
+            raise
+        # New xarray backends
+        datasets = [open_wrf_dataset(p, chunks=chunks or {}) for p in paths]
+
+    orig_datasets = datasets
+
+    def ds_closer():
+        for ods in orig_datasets:
+            ods.close()
 
     if preprocess is not None:
         datasets = [preprocess(ds) for ds in datasets]
 
-    combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
-    combined._file_obj = _MultiFileCloser(file_objs)
+    try:
+        combined = xr.combine_nested(datasets, combine_attrs='drop_conflicts',
+                                     concat_dim='time', compat=compat)
+    except ValueError:
+        # Older xarray
+        combined = xr.combine_nested(datasets, concat_dim='time',
+                                     compat=compat)
+    except AttributeError:
+        # Even older
+        combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
     combined.attrs = datasets[0].attrs
+
+    try:
+        combined.set_close(ds_closer)
+    except AttributeError:
+        from xarray.backends.api import _MultiFileCloser
+        mfc = _MultiFileCloser([ods._file_obj for ods in orig_datasets])
+        combined._file_obj = mfc
 
     # drop accumulated vars if needed (TODO: make this not hard coded)
     vns = ['PRCP', 'PRCP_C', 'PRCP_NC']
     vns = [vn for vn in vns if vn in combined.variables]
-    combined = combined.drop(vns)
+    try:
+        combined = combined.drop_vars(vns)
+    except AttributeError:
+        combined = combined.drop(vns)
 
     return combined

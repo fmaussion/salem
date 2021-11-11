@@ -110,7 +110,7 @@ valid_names['lat_var'] = ['lat', 'latitude', 'latitudes', 'lats']
 valid_names['time_var'] = ['time', 'times']
 
 sample_data_gh_repo = 'fmaussion/salem-sample-data'
-nearth_base = 'http://naturalearth.springercarto.com/ne3_data/'
+nearth_base = 'http://shadedrelief.com/natural3/ne3_data/'
 
 
 def str_in_list(l1, l2):
@@ -278,7 +278,7 @@ def read_colormap(name):
             line = line.split('(')[-1].split(')')[0]
             out.append([float(n) for n in line.split(',')])
 
-    return np.asarray(out).astype(np.float) / 256.
+    return np.asarray(out).astype(float) / 256.
 
 
 @memory.cache
