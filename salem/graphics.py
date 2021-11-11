@@ -117,8 +117,17 @@ class DataLevels(object):
     with a few examples, available in the docs.
     """
 
-    def __init__(self, data=None, levels=None, nlevels=None, vmin=None,
-                 vmax=None, extend=None, cmap=None):
+    def __init__(
+        self,
+        data=None,
+        levels=None,
+        nlevels=None,
+        vmin=None,
+        vmax=None,
+        extend=None,
+        cmap=None,
+        norm=None,
+    ):
         """Instanciate.
 
         Parameters
@@ -132,6 +141,7 @@ class DataLevels(object):
         self.set_vmax(vmax)
         self.set_extend(extend)
         self.set_cmap(cmap)
+        self.set_norm(norm)
 
     def update(self, d):
         """
@@ -171,12 +181,24 @@ class DataLevels(object):
         """Set a colormap."""
         self.cmap = get_cmap(cm or 'viridis' )
 
+    def set_norm(self, norm=None):
+        """Set a normalization function. Related parameters will be ignored if set (e.g., vmin and vmax will be ignored if using LogNorm)"""
+        self._norm = norm
+
     def set_extend(self, extend=None):
         """Colorbar extensions: 'neither' | 'both' | 'min' | 'max'"""
         self._extend = extend
 
-    def set_plot_params(self, levels=None, nlevels=None, vmin=None, vmax=None,
-                        extend=None, cmap=None):
+    def set_plot_params(
+        self,
+        levels=None,
+        nlevels=None,
+        vmin=None,
+        vmax=None,
+        extend=None,
+        cmap=None,
+        norm=None,
+    ):
         """Shortcut to all parameters related to the plot.
 
         As a side effect, running set_plot_params() without arguments will
@@ -189,6 +211,7 @@ class DataLevels(object):
         self.set_extend(extend)
         if cmap is not None:
             self.set_cmap(cmap)
+        self.set_norm(norm)
 
     @property
     def levels(self):
@@ -255,16 +278,19 @@ class DataLevels(object):
         """Clever getter."""
         l = self.levels
         e = self.extend
-        # Warnings
-        if e not in ['both', 'min'] and (np.min(l) > np.min(self.data)):
-            warnings.warn('Minimum data out of bounds.', RuntimeWarning)
-        if e not in ['both', 'max'] and (np.max(l) < np.max(self.data)):
-            warnings.warn('Maximum data out of bounds.', RuntimeWarning)
-        try:
-            # Added in mpl 3.3.0
-            return mpl.colors.BoundaryNorm(l, self.cmap.N, extend=e)
-        except TypeError:
-            return ExtendedNorm(l, self.cmap.N, extend=e)
+        if self._norm is None:
+            # Warnings
+            if e not in ["both", "min"] and (np.min(l) > np.min(self.data)):
+                warnings.warn("Minimum data out of bounds.", RuntimeWarning)
+            if e not in ["both", "max"] and (np.max(l) < np.max(self.data)):
+                warnings.warn("Maximum data out of bounds.", RuntimeWarning)
+            try:
+                # Added in mpl 3.3.0
+                return mpl.colors.BoundaryNorm(l, self.cmap.N, extend=e)
+            except TypeError:
+                return ExtendedNorm(l, self.cmap.N, extend=e)
+        else:
+            return self._norm
 
     def to_rgb(self):
         """Transform the data to RGB triples."""
@@ -280,7 +306,7 @@ class DataLevels(object):
 
         # This is a discutable choice: with more than 60 colors (could be
         # less), we assume a continuous colorbar.
-        if self.nlevels < 60:
+        if self.nlevels < 60 or self._norm is not None:
             norm = self.norm
         else:
             norm = mpl.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
@@ -293,7 +319,7 @@ class DataLevels(object):
 
         # This is a discutable choice: with more than 60 colors (could be
         # less), we assume a continuous colorbar.
-        if self.nlevels < 60:
+        if self.nlevels < 60 or self._norm is not None:
             norm = self.norm
         else:
             norm = mpl.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
@@ -779,8 +805,8 @@ class Map(DataLevels):
         add_ytick_label : bool
             add ticks labels to the y axis
         max_nticks : int
-            maximum number of contour levels (when chosen automatically). 
-            Ignore if ``interval`` is set to a value 
+            maximum number of contour levels (when chosen automatically).
+            Ignore if ``interval`` is set to a value
         kwargs : {}
             any keyword accepted by contour()
         """
