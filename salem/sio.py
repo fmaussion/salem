@@ -280,6 +280,89 @@ def _lonlat_grid_from_dataset(ds):
                 x0y0=(lon[0], lat[0]))
     return gis.Grid(**args)
 
+def _rotated_grid_from_dataset(ds):
+    """ Seek for rotated pole grid.
+        Based on _salem_grid_from_dataset
+    """
+    #Insert little check here for COSMO data - needs to be extended for other rotated datasets
+    if 'rotated_pole' in list(ds.variables.keys()):
+        # get pyproj string
+        n_lon = 'grid_north_pole_longitude'
+        n_lat = 'grid_north_pole_latitude'
+        cen_lon = 'north_pole_grid_longitude'
+        # Since it seems to rely on Netcdf4
+        # Add here extended code for other rotated datasets that do not have rotated pole as var
+        try:
+            pole_longitude = ds['rotated_pole'].getncattr(n_lon)
+            pole_latitude = ds['rotated_pole'].getncattr(n_lat)
+            if 'cen_lon' in ds['rotated_pole'].ncattrs():
+                central_rotated_longitude = ds['rotated_pole'].getncattr(cen_lon)
+            else:
+                central_rotated_longitude = 0
+        except:
+            pole_longitude = ds.attrs.get(n_lon, None)
+            pole_latitude = ds.attrs.get(n_lat, None)
+            central_rotated_longitude = ds.attrs.get(cen_lon, None)
+            # then as variable attribute
+            if pole_longitude is None or pole_latitude is None or central_rotated_longitude is None:
+                for k, v in ds.variables.items():
+                    if n_lon in v.attrs:
+                        pole_longitude = v.attrs[n_lon]
+                    if n_lat in v.attrs:
+                        pole_latitude = v.attrs[n_lat]
+                    if cen_lon in v.attrs:
+                        central_rotated_longitude = v.attrs[cen_lon]
+                    else:
+                        central_rotated_longitude = 0 #defaults to zero
+                    if pole_longitude is not None and pole_latitude is not None:
+                        break        
+        
+        srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+               '+to_meter=0.0174532925199433 '
+               '+o_lon_p={o_lon_p} +o_lat_p={o_lat_p} +lon_0={lon_0} +no_defs')
+        params = {
+            'o_lon_p': central_rotated_longitude,
+            'o_lat_p': pole_latitude,
+            'lon_0': 180 + pole_longitude,
+        }
+        proj = srs.format(**params)
+
+    proj = gis.check_crs(proj)
+    if proj is None:
+        return None
+
+    # Rest can be copied from _salem_grid_from_dataset
+    # Do we have some standard names as variable?
+    vns = ds.variables.keys()
+    xc = utils.str_in_list(vns, utils.valid_names['x_dim'])
+    yc = utils.str_in_list(vns, utils.valid_names['y_dim'])
+
+    # Sometimes there are more than one coordinates, one of which might have
+    # more dims (e.g. lons in WRF files): take the first one with ndim = 1:
+    x = None
+    for xp in xc:
+        if len(ds.variables[xp].shape) == 1:
+            x = xp
+    y = None
+    for yp in yc:
+        if len(ds.variables[yp].shape) == 1:
+            y = yp
+    if (x is None) or (y is None):
+        return None
+
+    # OK, get it
+    x = ds.variables[x][:]
+    y = ds.variables[y][:]
+
+    # Make the grid
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy),
+                x0y0=(x[0], y[0]))
+
+    return gis.Grid(**args)
+
+
 
 def _salem_grid_from_dataset(ds):
     """Seek for coordinates that Salem might have created.
@@ -340,6 +423,9 @@ def grid_from_dataset(ds):
     out = _salem_grid_from_dataset(ds)
     if out is not None:
         return out
+
+    if hasattr(ds,'rotated_pole') or 'rotated_pole' in list(ds.variables.keys()):
+        return _rotated_grid_from_dataset(ds)
 
     # maybe it's a WRF file?
     if hasattr(ds, 'MOAD_CEN_LAT') or hasattr(ds, 'PROJ_ENVI_STRING'):
