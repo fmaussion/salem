@@ -285,47 +285,46 @@ def _rotated_grid_from_dataset(ds):
         Based on _salem_grid_from_dataset
     """
     #Insert little check here for COSMO data - needs to be extended for other rotated datasets
-    if 'rotated_pole' in list(ds.variables.keys()):
-        # get pyproj string
-        n_lon = 'grid_north_pole_longitude'
-        n_lat = 'grid_north_pole_latitude'
-        cen_lon = 'north_pole_grid_longitude'
-        # Since it seems to rely on Netcdf4
-        # Add here extended code for other rotated datasets that do not have rotated pole as var
-        try:
-            pole_longitude = ds['rotated_pole'].getncattr(n_lon)
-            pole_latitude = ds['rotated_pole'].getncattr(n_lat)
-            if 'cen_lon' in ds['rotated_pole'].ncattrs():
-                central_rotated_longitude = ds['rotated_pole'].getncattr(cen_lon)
-            else:
-                central_rotated_longitude = 0
-        except:
-            pole_longitude = ds.attrs.get(n_lon, None)
-            pole_latitude = ds.attrs.get(n_lat, None)
-            central_rotated_longitude = ds.attrs.get(cen_lon, None)
-            # then as variable attribute
-            if pole_longitude is None or pole_latitude is None or central_rotated_longitude is None:
-                for k, v in ds.variables.items():
-                    if n_lon in v.attrs:
-                        pole_longitude = v.attrs[n_lon]
-                    if n_lat in v.attrs:
-                        pole_latitude = v.attrs[n_lat]
-                    if cen_lon in v.attrs:
-                        central_rotated_longitude = v.attrs[cen_lon]
-                    else:
-                        central_rotated_longitude = 0 #defaults to zero
-                    if pole_longitude is not None and pole_latitude is not None:
-                        break        
+    # get pyproj string
+    n_lon = 'grid_north_pole_longitude'
+    n_lat = 'grid_north_pole_latitude'
+    cen_lon = 'north_pole_grid_longitude'
+    # Since it seems to rely on Netcdf4
+    # Add here extended code for other rotated datasets that do not have rotated pole as var
+    try:
+        pole_longitude = ds['rotated_pole'].getncattr(n_lon)
+        pole_latitude = ds['rotated_pole'].getncattr(n_lat)
+        if 'cen_lon' in ds['rotated_pole'].ncattrs():
+            central_rotated_longitude = ds['rotated_pole'].getncattr(cen_lon)
+        else:
+            central_rotated_longitude = 0
+    except:
+        pole_longitude = ds.attrs.get(n_lon, None)
+        pole_latitude = ds.attrs.get(n_lat, None)
+        central_rotated_longitude = ds.attrs.get(cen_lon, None)
+        # then as variable attribute
+        if pole_longitude is None or pole_latitude is None or central_rotated_longitude is None:
+            for k, v in ds.variables.items():
+                if n_lon in v.attrs:
+                    pole_longitude = v.attrs[n_lon]
+                if n_lat in v.attrs:
+                    pole_latitude = v.attrs[n_lat]
+                if cen_lon in v.attrs:
+                    central_rotated_longitude = v.attrs[cen_lon]
+                else:
+                    central_rotated_longitude = 0 #defaults to zero
+                if pole_longitude is not None and pole_latitude is not None:
+                    break        
         
-        srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
-               '+to_meter=0.0174532925199433 '
-               '+o_lon_p={o_lon_p} +o_lat_p={o_lat_p} +lon_0={lon_0} +no_defs')
-        params = {
-            'o_lon_p': central_rotated_longitude,
-            'o_lat_p': pole_latitude,
-            'lon_0': 180 + pole_longitude,
-        }
-        proj = srs.format(**params)
+    srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+           '+to_meter=0.0174532925199433 '
+           '+o_lon_p={o_lon_p} +o_lat_p={o_lat_p} +lon_0={lon_0} +no_defs')
+    params = {
+        'o_lon_p': central_rotated_longitude,
+        'o_lat_p': pole_latitude,
+        'lon_0': 180 + pole_longitude,
+    }
+    proj = srs.format(**params)
 
     proj = gis.check_crs(proj)
     if proj is None:

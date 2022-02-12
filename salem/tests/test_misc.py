@@ -890,6 +890,53 @@ class TestXarray(unittest.TestCase):
         assert_allclose(out[:, 0].reshape(ii.shape), xx, atol=1e-7)
         assert_allclose(out[:, 1].reshape(ii.shape), yy, atol=1e-7)
 
+    @requires_cartopy
+    #This function is basically a copy of test_metum with changed filenames.
+    def test_rotated_cosmo(self):
+
+        if not sio.is_rotated_proj_working():
+            with pytest.raises(RuntimeError):
+                sio.open_xr_dataset(get_demo_file('rotated_cosmo.nc'))
+            return
+        #The implemented changes should allow for open_xr_dataset to detect the rotated grid
+        #If this works here, it is assumed that it also works for the GeoNetcdf function
+        ds = sio.open_xr_dataset(get_demo_file('rotated_cosmo.nc'))
+
+        # One way
+        mylons, mylats = ds.salem.grid.ll_coordinates
+        assert_allclose(mylons, ds.lon, atol=1e-7)
+        assert_allclose(mylats, ds.lat, atol=1e-7)
+        # This leads to an error but the inaccuracies is very small - discussion here needed!
+
+        # Round trip
+        i, j = ds.salem.grid.transform(mylons, mylats)
+        ii, jj = ds.salem.grid.ij_coordinates
+        assert_allclose(i, ii, atol=1e-7)
+        assert_allclose(j, jj, atol=1e-7)
+        #this should run without an error
+
+        # Cartopy
+        if not is_cartopy_rotated_working():
+            return
+
+        from salem.gis import proj_to_cartopy
+        from cartopy.crs import PlateCarree
+        cp = proj_to_cartopy(ds.salem.grid.proj)
+
+        xx, yy = ds.salem.grid.xy_coordinates
+        out = PlateCarree().transform_points(cp, xx.flatten(), yy.flatten())
+        assert_allclose(out[:, 0].reshape(ii.shape), ds.lon, atol=1e-7)
+        assert_allclose(out[:, 1].reshape(ii.shape), ds.lat, atol=1e-7)
+
+        # This check leads to larger errors and faulty value ranges.. requires more investigation
+
+        # Round trip
+        out = cp.transform_points(PlateCarree(),
+                                  ds.lon.values.flatten(),
+                                  ds.lat.values.flatten())
+        assert_allclose(out[:, 0].reshape(ii.shape), xx, atol=1e-7)
+        assert_allclose(out[:, 1].reshape(ii.shape), yy, atol=1e-7)
+
 
 class TestGeogridSim(unittest.TestCase):
 
