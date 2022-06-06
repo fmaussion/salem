@@ -60,7 +60,7 @@ Based on the same principle, one can mask out the useless grid points:
 Plotting
 --------
 
-Maps can be pimped with topographical shading, points of interest,
+Maps can be embellished with topographical shading, points of interest,
 and more:
 
 .. ipython:: python
