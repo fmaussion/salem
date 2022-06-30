@@ -63,7 +63,12 @@ class Unstaggerer(object):
         self.ncvar = ncvar
 
         # Attributes
-        self.description = ncvar.description
+        # if no description is provided, gives empty string
+        try:
+            self.description = ncvar.description
+        except:
+            self.description = ''
+            
         self.units = ncvar.units
         # Replace the dimension name
         dims = list(ncvar.dimensions)
