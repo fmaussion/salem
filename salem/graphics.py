@@ -512,6 +512,8 @@ class Map(DataLevels):
                     mess = ("Possible precision loss when converting from "
                             "int64 to float64")
                     warnings.filterwarnings("ignore", message=mess)
+                    mess = "Passing `np.nan` to mean no clipping in np.clip"
+                    warnings.filterwarnings("ignore", message=mess)
                     try:
                         data = imresize(data.filled(np.NaN),
                                         (self.grid.ny, self.grid.nx),

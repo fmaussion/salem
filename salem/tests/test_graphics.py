@@ -893,6 +893,7 @@ def test_plot_on_map():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
 def test_example_docs():
+
     import salem
     from salem.utils import get_demo_file
     ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
