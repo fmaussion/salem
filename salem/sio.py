@@ -140,6 +140,8 @@ def _wrf_grid_from_dataset(ds):
         if ds.PROJ_NAME in ['Lambert Conformal Conic',
                             'WRF Lambert Conformal']:
             proj_id = 1
+        elif ds.PROJ_NAME in ['lat-lon']:
+            proj_id = 6
         else:
             proj_id = 99  # pragma: no cover
     else:
@@ -170,6 +172,12 @@ def _wrf_grid_from_dataset(ds):
         # Mercator
         p4 = '+proj=merc +lat_ts={lat_1} ' \
              '+lon_0={center_lon} ' \
+             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        p4 = p4.format(**pargs)
+    elif proj_id == 6:
+        # Lat-long
+        p4 = '+proj=eqc ' \
+             '+lon_0={lon_0} ' \
              '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         p4 = p4.format(**pargs)
     else:
@@ -515,11 +523,6 @@ class _XarrayAccessorBase(object):
             kwargs.setdefault('grid', grid)
 
         mask = self.grid.region_of_interest(**kwargs)
-        # coords = {self.y_dim: self._obj[self.y_dim].values,
-        #           self.x_dim: self._obj[self.x_dim].values}
-        # mask = xr.DataArray(mask, coords=coords,
-        #                     dims=(self.y_dim, self.x_dim))
-
         out = self._obj.where(mask, other=other)
 
         # keep attrs and encoding
