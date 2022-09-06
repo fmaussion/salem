@@ -722,11 +722,6 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
         pwrf = '+proj=stere +lat_ts={lat_1} +lat_0=90.0 +lon_0={lon_0} ' \
                '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
         pwrf = pwrf.format(**pargs)
-    #TODO: not sure how map_proj is converted to this string instead of int?
-    elif map_proj == 'LATLON':
-        pwrf = '+proj=eqc +lon_0={lon_0} ' \
-               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
-        pwrf = pwrf.format(**pargs)
     else:
         raise NotImplementedError('WRF proj not implemented yet: '
                                   '{}'.format(map_proj))

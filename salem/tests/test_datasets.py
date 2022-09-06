@@ -370,6 +370,25 @@ class TestGeoNetcdf(unittest.TestCase):
         np.testing.assert_allclose(reflon, mylon, atol=1e-4)
         np.testing.assert_allclose(reflat, mylat, atol=1e-4)
 
+    @requires_geopandas
+    def test_wrf_latlon(self):
+
+        d = GeoNetcdf(get_demo_file('geo_em.d01_lon-lat.nc'))
+        mylon, mylat = d.grid.ll_coordinates
+        reflon = np.squeeze(d.get_vardata('XLONG_M'))
+        reflat = np.squeeze(d.get_vardata('XLAT_M'))
+
+        np.testing.assert_allclose(reflon, mylon, atol=1e-4)
+        np.testing.assert_allclose(reflat, mylat, atol=1e-4)
+
+        d = GeoNetcdf(get_demo_file('geo_em.d04_lon-lat.nc'))
+        mylon, mylat = d.grid.ll_coordinates
+        reflon = np.squeeze(d.get_vardata('XLONG_M'))
+        reflat = np.squeeze(d.get_vardata('XLAT_M'))
+
+        np.testing.assert_allclose(reflon, mylon, atol=1e-4)
+        np.testing.assert_allclose(reflat, mylat, atol=1e-4)
+
     def test_longtime(self):
         """There was a bug with time"""
 
