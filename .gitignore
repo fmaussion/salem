@@ -37,3 +37,4 @@ docs/.doctrees
 docs/auto_examples
 docs/modules
 salem/version.py
+.pytest_cache

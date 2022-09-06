@@ -515,10 +515,10 @@ class _XarrayAccessorBase(object):
             kwargs.setdefault('grid', grid)
 
         mask = self.grid.region_of_interest(**kwargs)
-        coords = {self.y_dim: self._obj[self.y_dim].values,
-                  self.x_dim: self._obj[self.x_dim].values}
-        mask = xr.DataArray(mask, coords=coords,
-                            dims=(self.y_dim, self.x_dim)) 
+        # coords = {self.y_dim: self._obj[self.y_dim].values,
+        #           self.x_dim: self._obj[self.x_dim].values}
+        # mask = xr.DataArray(mask, coords=coords,
+        #                     dims=(self.y_dim, self.x_dim))
 
         out = self._obj.where(mask, other=other)
 

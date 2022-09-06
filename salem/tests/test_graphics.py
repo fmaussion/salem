@@ -1,5 +1,5 @@
 from __future__ import division
-from distutils.version import LooseVersion
+from packaging.version import Version
 
 import warnings
 import os
@@ -24,9 +24,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import geopandas as gpd
-MPL_VERSION = LooseVersion(mpl.__version__)
-ftver = LooseVersion(mpl.ft2font.__freetype_version__)
-if ftver >= LooseVersion('2.8.0'):
+MPL_VERSION = Version(mpl.__version__)
+ftver = Version(mpl.ft2font.__freetype_version__)
+if ftver >= Version('2.8.0'):
     freetype_subdir = 'freetype_28'
 else:
     freetype_subdir = 'freetype_old'
@@ -893,6 +893,7 @@ def test_plot_on_map():
 @requires_matplotlib
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
 def test_example_docs():
+
     import salem
     from salem.utils import get_demo_file
     ds = salem.open_xr_dataset(get_demo_file('wrfout_d01.nc'))
