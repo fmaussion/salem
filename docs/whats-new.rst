@@ -8,12 +8,8 @@ v0.3.8 (07 September 2022)
 
 A minor release of the salem package to fix deprecation warnings and some
 improvements:
-- Add ability to use custom norm function in salem plotting
-  (`PR212 <https://github.com/fmaussion/salem/pull/212>`_ by
-  `Ting Sun <https://github.com/sunt05>`_)
-- Add WRF lon-lat projection
-  (`PR224 <https://github.com/fmaussion/salem/pull/224>`_ by
-  `Matthias Demuzere  <https://github.com/matthiasdemuzere>`_)
+- Add ability to use custom norm function in salem plotting (`PR212 <https://github.com/fmaussion/salem/pull/212>`_ by `Ting Sun <https://github.com/sunt05>`_)
+- Add WRF lon-lat projection (`PR224 <https://github.com/fmaussion/salem/pull/224>`_ by `Matthias Demuzere  <https://github.com/matthiasdemuzere>`_)
 
 v0.3.7 (08 November 2021)
 -------------------------

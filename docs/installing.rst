@@ -67,6 +67,7 @@ If you want to install the latest master::
 
     pip install git+https://github.com/fmaussion/salem.git
 
+.. _conda: https://docs.conda.io
 .. _conda-forge: http://conda-forge.github.io
 
 .. warning::
