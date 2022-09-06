@@ -100,7 +100,6 @@ The proj info has to be provided as attribute:
     psrs = 'epsg:32630'  # http://spatialreference.org/ref/epsg/wgs-84-utm-zone-30n/
     dutm.attrs['pyproj_srs'] = psrs
 
-
     @savefig plot_xarray_utm.png width=80%
     dutm.salem.quick_map(interp='linear');
 
