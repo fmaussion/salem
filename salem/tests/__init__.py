@@ -1,6 +1,6 @@
 from __future__ import division
 import unittest
-from distutils.version import LooseVersion
+from packaging.version import Version
 import os
 from salem import python_version
 from six.moves.urllib.request import urlopen
@@ -40,11 +40,11 @@ except ImportError:
 
 try:
     import matplotlib
-    mpl_version = LooseVersion(matplotlib.__version__)
-    has_matplotlib = mpl_version >= LooseVersion('2')
+    mpl_version = Version(matplotlib.__version__)
+    has_matplotlib = mpl_version >= Version('2')
 except ImportError:
     has_matplotlib = False
-    mpl_version = LooseVersion('0.0.0')
+    mpl_version = Version('0.0.0')
 
 try:
     import rasterio
