@@ -1,10 +1,7 @@
 name: salem-docs
 channels:
-  # Don't change to pkgs/main, as it causes random timeouts in readthedocs
   - conda-forge
-  - nodefaults
 dependencies:
-  - python=3.10
   - bottleneck
   - cartopy
   - ipykernel
@@ -22,3 +19,7 @@ dependencies:
   - sphinx-gallery
   - scikit-image
   - motionless
+  - pip
+  - pip:
+    # relative to this file. Needs to be editable to be accepted.
+    - -e ..
