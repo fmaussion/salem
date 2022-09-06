@@ -63,10 +63,9 @@ class Unstaggerer(object):
         self.ncvar = ncvar
 
         # Attributes
-        # if no description is provided, gives empty string
         try:
             self.description = ncvar.description
-        except:
+        except AttributeError:
             self.description = ''
             
         self.units = ncvar.units
