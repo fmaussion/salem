@@ -1,0 +1,10 @@
+[build-system]
+build-backend = 'setuptools.build_meta'
+requires = [
+    "setuptools>=61",
+    "setuptools_scm[toml]>=7.0",
+    "wheel",
+]
+
+[tool.setuptools_scm]
+fallback_version = "0.3.8"
