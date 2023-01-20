@@ -6,8 +6,7 @@ How to issue a salem release.
 
 2. Look over whats-new.rst and the docs. Make sure "What's New" is complete
    (check the date!) and add a brief summary note describing the release at the
-   top. **Update setup.py** to reflect the new version number 
-   (**don't forget ``is_released!``**).
+   top.
 3. If you have any doubts, run the full test suite one final time!
 
        pytest --mpl .
@@ -47,7 +46,6 @@ How to issue a salem release.
     We also update the stable branch with `git cherrypick` for documentation
       only fixes that apply the current released version.
 10. Add a section for the next release (`v.X.(Y+1)`) to `doc/whats-new.rst`.
-   Reset setup.py's `is_released` to False.
 11. Commit your changes and push to master again:
 
        git commit -a -m 'Revert to dev version'
