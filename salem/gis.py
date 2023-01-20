@@ -926,6 +926,10 @@ class Grid(object):
         except AttributeError:
             pass
 
+        if data.dtype == np.float32:
+            # New in scipy - issue with float32
+            data = data.astype(np.float64)
+
         in_shape = data.shape
         ndims = len(in_shape)
         if (ndims < 2) or (ndims > 4):
