@@ -1172,14 +1172,14 @@ class Map(DataLevels):
 
         # Geometries
         for g, kwargs in self._geometries:
-            if g.type == 'Polygon':
+            if g.geom_type == 'Polygon':
                 kwargs.setdefault('facecolor', 'none')
                 plot_polygon(ax, g, **kwargs)  # was g.buffer(0). Why?
-            if g.type in ['LineString', 'LinearRing']:
+            if g.geom_type in ['LineString', 'LinearRing']:
                 a = np.array(g.coords)
                 kwargs.setdefault('color', 'k')
                 ax.plot(a[:, 0], a[:, 1], **kwargs)
-            if g.type == 'Point':
+            if g.geom_type == 'Point':
                 kwargs.setdefault('zorder', 5)
                 kwargs.setdefault('marker', 'o')
                 kwargs.setdefault('s', 60)
