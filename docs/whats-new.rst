@@ -3,11 +3,11 @@
 What's New
 ==========
 
-v0.X.Y (unreleased)
--------------------
+v0.3.9 (20 January 2023)
+------------------------
 
-- update of the packaging scheme
-- various maintenance checks
+A minor release of the salem package to fix deprecation warnings and
+modernize the packaging and versioning system.
 
 v0.3.8 (07 September 2022)
 --------------------------
