@@ -6,6 +6,9 @@ What's New
 v0.X.Y (unreleased)
 -------------------
 
+- update of the packaging scheme
+- various maintenance checks
+
 v0.3.8 (07 September 2022)
 --------------------------
 
