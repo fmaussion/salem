@@ -653,7 +653,7 @@ class Map(DataLevels):
                           **text_kwargs)
 
         # Save
-        if 'Multi' in geom.type:
+        if 'Multi' in geom.geom_type:
             for g in geom.geoms:
                 self._geometries.append((g, kwargs))
                 # dirty solution: I should use collections instead
@@ -742,11 +742,11 @@ class Map(DataLevels):
             return
 
         # Different collection for each type
-        geomtype = shape.iloc[0].geometry.type
+        geomtype = shape.iloc[0].geometry.geom_type
         if 'Polygon' in geomtype:
             patches = []
             for g in shape.geometry:
-                if 'Multi' in g.type:
+                if 'Multi' in g.geom_type:
                     for gg in g.geoms:
                         patches.append(PolygonPatch(gg))
                 else:
@@ -759,7 +759,7 @@ class Map(DataLevels):
         elif 'LineString' in geomtype:
             lines = []
             for g in shape.geometry:
-                if 'Multi' in g.type:
+                if 'Multi' in g.geom_type:
                     for gg in g.geoms:
                         lines.append(np.array(gg.coords))
                 else:

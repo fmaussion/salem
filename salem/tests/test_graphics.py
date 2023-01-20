@@ -76,7 +76,7 @@ class TestColors(unittest.TestCase):
     def test_extendednorm(self):
 
         bounds = [1, 2, 3]
-        cm = mpl.cm.get_cmap('jet')
+        cm = mpl.colormaps.get_cmap('jet')
 
         mynorm = graphics.ExtendedNorm(bounds, cm.N)
         refnorm = mpl.colors.BoundaryNorm(bounds, cm.N)
@@ -146,7 +146,7 @@ class TestColors(unittest.TestCase):
 
         # General case
         bounds = [1, 2, 3, 4]
-        cm = mpl.cm.get_cmap('jet')
+        cm = mpl.colormaps.get_cmap('jet')
         mynorm = graphics.ExtendedNorm(bounds, cm.N, extend='both')
         refnorm = mpl.colors.BoundaryNorm([-100] + bounds + [100], cm.N)
         x = np.random.randn(100) * 10 - 5
@@ -263,10 +263,10 @@ class TestGraphics(unittest.TestCase):
         a[2, 4] = 1.9
         a[3, 3] = 9
         try:
-            cmap = mpl.cm.get_cmap('jet').copy()
+            cmap = mpl.colormaps.get_cmap('jet').copy()
         except AttributeError:
             import copy
-            cmap = copy.deepcopy(mpl.cm.get_cmap('jet'))
+            cmap = copy.deepcopy(mpl.colormaps.get_cmap('jet'))
 
         # ll_corner (type geotiff)
         g = Grid(nxny=(5, 4), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84,
@@ -365,7 +365,7 @@ def test_extendednorm():
     a[2, 4] = 1.9
     a[3, 3] = 9999999
 
-    cm = mpl.cm.get_cmap('jet')
+    cm = mpl.colormaps.get_cmap('jet')
     bounds = [0, 1, 2, 3]
     norm = ExtendedNorm(bounds, cm.N, extend='both')
 
@@ -402,10 +402,10 @@ def test_datalevels():
     a[3, 3] = 9
 
     try:
-        cm = mpl.cm.get_cmap('jet').copy()
+        cm = mpl.colormaps.get_cmap('jet').copy()
     except AttributeError:
         import copy
-        cm = copy.deepcopy(mpl.cm.get_cmap('jet'))
+        cm = copy.deepcopy(mpl.colormaps.get_cmap('jet'))
     cm.set_bad('pink')
 
     # fig, axes = plt.subplots(nrows=3, ncols=2)
@@ -450,7 +450,7 @@ def test_datalevels():
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=5)
 def test_datalevels_visu_h():
     a = np.array([-1., 0., 1.1, 1.9, 9.])
-    cm = mpl.cm.get_cmap('RdYlBu_r')
+    cm = mpl.colormaps.get_cmap('RdYlBu_r')
 
     dl = DataLevels(a, cmap=cm, levels=[0, 1, 2, 3])
 
@@ -464,7 +464,7 @@ def test_datalevels_visu_h():
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir)
 def test_datalevels_visu_v():
     a = np.array([-1., 0., 1.1, 1.9, 9.])
-    cm = mpl.cm.get_cmap('RdYlBu_r')
+    cm = mpl.colormaps.get_cmap('RdYlBu_r')
 
     dl = DataLevels(a.reshape((5, 1)), cmap=cm, levels=[0, 1, 2, 3])
 
@@ -498,7 +498,7 @@ def test_simple_map():
 
     # Settings
     for c, data in zip([c1, c2], [a_inv, a]):
-        c.set_cmap(mpl.cm.get_cmap('jet'))
+        c.set_cmap(mpl.colormaps.get_cmap('jet'))
         c.set_plot_params(levels=[0, 1, 2, 3])
         c.set_data(data)
         c.set_shapefile(fs)
@@ -515,7 +515,7 @@ def test_simple_map():
     c2 = Map(g2, ny=400, countries=False)
     # Settings
     for c, data, g in zip([c1, c2], [a_inv, a], [g1, g2]):
-        c.set_cmap(mpl.cm.get_cmap('jet'))
+        c.set_cmap(mpl.colormaps.get_cmap('jet'))
         c.set_data(data, crs=g)
         c.set_shapefile(fs)
         c.set_plot_params(nlevels=256)
@@ -556,7 +556,7 @@ def test_contourf():
              pixel_ref='corner')
     c = Map(g, ny=400, countries=False)
 
-    c.set_cmap(mpl.cm.get_cmap('viridis'))
+    c.set_cmap(mpl.colormaps.get_cmap('viridis'))
     c.set_plot_params(levels=[0, 1, 2, 3])
     c.set_data(a)
     s = a * 0.
