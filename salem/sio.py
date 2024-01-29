@@ -922,8 +922,8 @@ def open_xr_dataset(file):
         geo = GeoTiff(file)
         # TODO: currently everything is loaded in memory (baaad)
         da = xr.DataArray(geo.get_vardata(),
-                          coords={'x': geo.grid.x_coord,
-                                  'y': geo.grid.y_coord},
+                          coords={'x': geo.grid.center_grid.x_coord,
+                                  'y': geo.grid.center_grid.y_coord},
                           dims=['y', 'x'])
         ds = xr.Dataset()
         ds.attrs['pyproj_srs'] = geo.grid.proj.srs
