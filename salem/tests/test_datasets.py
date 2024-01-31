@@ -211,8 +211,8 @@ class TestGeotiff(unittest.TestCase):
         np.testing.assert_array_equal(ref.shape, (gos.salem.grid.ny, gos.salem.grid.nx))
         np.testing.assert_array_equal(ref.shape, totest.shape)
         np.testing.assert_array_equal(ref, totest)
-        rlon, rlat = geo.grid.ll_coordinates
-        tlon, tlat = go.salem.grid.ll_coordinates
+        rlon, rlat = geo.grid.center_grid.ll_coordinates
+        tlon, tlat = go.salem.grid.center_grid.ll_coordinates
         assert_allclose(rlon, tlon)
         assert_allclose(rlat, tlat)
 
