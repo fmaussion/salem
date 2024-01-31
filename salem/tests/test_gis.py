@@ -114,7 +114,7 @@ class TestGrid(unittest.TestCase):
                                        g.corner_grid.xy_coordinates)
 
             ex = g.corner_grid.extent
-            assert_allclose([-0.5,  2.5, -0.5,  2.5], ex)
+            assert_allclose([-0.5, 2.5, -0.5, 2.5], ex)
             assert_allclose(g.center_grid.extent,
                                        g.corner_grid.extent)
 
@@ -157,7 +157,7 @@ class TestGrid(unittest.TestCase):
                                        g.corner_grid.xy_coordinates)
 
             ex = g.corner_grid.extent
-            assert_allclose([-0.5,  2.5, -2.5,  0.5], ex)
+            assert_allclose([-0.5, 2.5, -2.5, 0.5], ex)
             assert_allclose(g.center_grid.extent,
                                        g.corner_grid.extent)
 
@@ -180,7 +180,6 @@ class TestGrid(unittest.TestCase):
 
     def test_comparisons(self):
         """See if the grids can compare themselves"""
-
         args = dict(nxny=(3, 3), dxdy=(1, 1), x0y0=(0, 0), proj=wgs84)
         g1 = Grid(**args)
         self.assertEqual(g1.center_grid, g1.corner_grid)

@@ -231,7 +231,7 @@ def _wrf_grid_from_dataset(ds):
 
         atol = 5e-3 if proj_id == 2 else 1e-3
         check = np.isclose(reflon, mylon, atol=atol)
-        if not np.alltrue(check):
+        if not np.all(check):
             n_pix = np.sum(~check)
             maxe = np.max(np.abs(reflon - mylon))
             if maxe < (360 - atol):
@@ -239,7 +239,7 @@ def _wrf_grid_from_dataset(ds):
                               'of our lons did not match those of the WRF '
                               'file. Max error: {}'.format(n_pix, atol, maxe))
         check = np.isclose(reflat, mylat, atol=atol)
-        if not np.alltrue(check):
+        if not np.all(check):
             n_pix = np.sum(~check)
             maxe = np.max(np.abs(reflat - mylat))
             warnings.warn('For {} grid points, the expected accuracy ({}) '

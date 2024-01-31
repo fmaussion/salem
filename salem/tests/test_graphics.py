@@ -63,9 +63,8 @@ def _create_dummy_shp(fname):
     p4 = shpg.Point(1, 1)
     df = gpd.GeoDataFrame()
     df['name'] = ['Polygon', 'Line']
-    df['geometry'] = gpd.GeoSeries([p1, p2])
+    df.set_geometry(gpd.GeoSeries([p1, p2]), crs='epsg:4326', inplace=True)
     of = os.path.join(testdir, fname)
-    df.crs = 'epsg:4326'
     df.to_file(of)
     return of
 

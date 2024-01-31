@@ -220,7 +220,6 @@ class TestGeotiff(unittest.TestCase):
 class TestGeoNetcdf(unittest.TestCase):
 
     def test_eraint(self):
-
         f = get_demo_file('era_interim_tibet.nc')
         d = GeoNetcdf(f)
         assert d.grid.origin == 'upper-left'
