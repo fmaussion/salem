@@ -137,16 +137,16 @@ class TestDataset(unittest.TestCase):
                  pixel_ref='corner')
         p = shpg.Polygon([(1.5, 1.), (2., 1.5), (1.5, 2.), (1., 1.5)])
         roi = g.region_of_interest(geometry=p)
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], roi)
+        np.testing.assert_array_equal([[0, 0, 0], [0, 1, 0], [0, 0, 0]], roi)
 
         d = GeoDataset(g)
-        d.set_roi(corners=([1.1,1.1], [1.9,1.9]))
+        d.set_roi(corners=([1.1, 1.1], [1.9, 1.9]))
         d.set_subset(toroi=True)
         np.testing.assert_array_equal([[1]], d.roi)
         d.set_subset()
-        np.testing.assert_array_equal([[0,0,0],[0,1,0],[0,0,0]], d.roi)
+        np.testing.assert_array_equal([[0, 0, 0], [0, 1, 0], [0, 0, 0]], d.roi)
         d.set_roi()
-        np.testing.assert_array_equal([[0,0,0],[0,0,0],[0,0,0]], d.roi)
+        np.testing.assert_array_equal([[0, 0, 0], [0, 0, 0], [0, 0, 0]], d.roi)
 
         # Raises
         self.assertRaises(RuntimeError, d.set_subset, toroi=True)
@@ -174,7 +174,7 @@ class TestGeotiff(unittest.TestCase):
         go.set_subset()
 
         eps = 1e-5
-        ex = gs.grid.extent_in_crs(crs=wgs84) # [left, right, bot, top
+        ex = gs.grid.extent_in_crs(crs=wgs84)  # [left, right, bot, top
         go.set_subset(corners=((ex[0], ex[2]+eps), (ex[1], ex[3]-eps)),
                       crs=wgs84,
                       margin=-2)
@@ -190,7 +190,7 @@ class TestGeotiff(unittest.TestCase):
 
         gf = get_demo_file('02_surface_Academy_1997_UTM47.asc')
         ds = EsriITMIX(gf)
-        topo = ds.get_vardata()
+        ds.get_vardata()
 
     @requires_rasterio
     def test_xarray(self):
@@ -220,6 +220,7 @@ class TestGeotiff(unittest.TestCase):
 class TestGeoNetcdf(unittest.TestCase):
 
     def test_eraint(self):
+
         f = get_demo_file('era_interim_tibet.nc')
         d = GeoNetcdf(f)
         assert d.grid.origin == 'upper-left'
@@ -258,15 +259,15 @@ class TestGeoNetcdf(unittest.TestCase):
         stat_lat = 31.1
         d.set_subset(corners=((stat_lon, stat_lat), (stat_lon, stat_lat)))
         t2_sub = d.get_vardata('t2m', as_xarray=True)
-        np.testing.assert_allclose(t2_sub - t2, np.zeros(4).reshape((4,1,1)))
+        np.testing.assert_allclose(t2_sub - t2, np.zeros(4).reshape((4, 1, 1)))
 
         d.set_period(t0='2012-06-01 06:00:00', t1='2012-06-01 12:00:00')
         t2_sub = d.get_vardata('t2m', as_xarray=True)
-        np.testing.assert_allclose(t2_sub - t2, np.zeros(2).reshape((2,1,1)))
+        np.testing.assert_allclose(t2_sub - t2, np.zeros(2).reshape((2, 1, 1)))
 
         wf = get_demo_file('wrf_cropped.nc')
         d = WRF(wf)
-        tk = d.get_vardata('TK', as_xarray=True)
+        d.get_vardata('TK', as_xarray=True)
         # TODO: the z dim is not ok
 
     @requires_geopandas
@@ -297,7 +298,7 @@ class TestGeoNetcdf(unittest.TestCase):
         self.assertTrue(d1.y_dim == 'south_north')
         self.assertTrue(d1.z_dim is None)
 
-        #Time
+        # Time
         assert_array_equal(d1.time, pd.to_datetime([datetime(2005, 9, 21),
                                                     datetime(2005, 9, 21, 3)]))
 
@@ -511,7 +512,7 @@ class TestGoogleStaticMap(unittest.TestCase):
         gm = GoogleVisibleMap(x=i, y=j, crs=d.grid,
                               size_x=500, size_y=500)
         gm2 = GoogleVisibleMap(x=i, y=j, crs=d.grid, scale=2,
-                              size_x=500, size_y=500)
+                               size_x=500, size_y=500)
         assert (gm.grid.nx * 2) == gm2.grid.nx
         assert gm.grid.extent == gm2.grid.extent
 

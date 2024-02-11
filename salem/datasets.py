@@ -11,7 +11,7 @@ from __future__ import division
 import io
 import os
 import warnings
-from six.moves.urllib.request import urlopen
+from urllib.request import urlopen
 
 # External libs
 import pyproj
@@ -32,14 +32,6 @@ from salem import wgs84
 from salem import utils, gis, wrftools, sio, check_crs
 
 API_KEY = None
-
-
-def _to_scalar(x):
-    """If a list then scalar"""
-    try:
-        return x[0]
-    except IndexError:
-        return x
 
 
 class GeoDataset(object):
@@ -102,7 +94,7 @@ class GeoDataset(object):
             return None
         return self._time[self.t0:self.t1].index
 
-    def set_period(self, t0=[0], t1=[-1]):
+    def set_period(self, t0=0, t1=-1):
         """Set a period of interest for the dataset.
          This will be remembered at later calls to time() or GeoDataset's
          getvardata implementations.
@@ -114,10 +106,16 @@ class GeoDataset(object):
          """
 
         if self._time is not None:
+            self.sub_t = [0, -1]
             # we dont check for what t0 or t1 is, we let Pandas do the job
-            # TODO quick and dirty solution for test_longtime, TBR
-            self.sub_t = [_to_scalar(self._time[t0]),
-                          _to_scalar(self._time[t1])]
+            try:
+                self.sub_t[0] = self._time.loc[t0]
+            except KeyError:
+                self.sub_t[0] = self._time.iloc[t0]
+            try:
+                self.sub_t[1] = self._time.loc[t1]
+            except KeyError:
+                self.sub_t[1] = self._time.iloc[t1]
             self.t0 = self._time.index[self.sub_t[0]]
             self.t1 = self._time.index[self.sub_t[1]]
 
@@ -487,7 +485,7 @@ class GoogleCenterMap(GeoDataset):
     """
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
-                 scale=1, zoom=12, maptype='satellite', use_cache=True, 
+                 scale=1, zoom=12, maptype='satellite', use_cache=True,
                  **kwargs):
         """Initialize
 
@@ -500,7 +498,7 @@ class GoogleCenterMap(GeoDataset):
         size_y : int
           image size
         scale : int
-          image scaling factor. 1, 2. 2 is higher resolution but takes 
+          image scaling factor. 1, 2. 2 is higher resolution but takes
           longer to download
         zoom : int
           google zoom level (https://developers.google.com/maps/documentation/
@@ -530,7 +528,7 @@ class GoogleCenterMap(GeoDataset):
         import motionless
         googleurl = motionless.CenterMap(lon=center_ll[0], lat=center_ll[1],
                                          size_x=size_x, size_y=size_y,
-                                         maptype=maptype, zoom=zoom, scale=scale, 
+                                         maptype=maptype, zoom=zoom, scale=scale,
                                          **kwargs)
 
         # done

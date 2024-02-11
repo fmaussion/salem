@@ -55,8 +55,6 @@ def create_dummy_shp(fname):
     i_line = shpg.LinearRing([(1.4, 1.4), (1.6, 1.4), (1.6, 1.6), (1.4, 1.6)])
     p1 = shpg.Polygon(e_line, [i_line])
     p2 = shpg.Polygon([(2.5, 1.3), (3., 1.8), (2.5, 2.3), (2, 1.8)])
-    p3 = shpg.Point(0.5, 0.5)
-    p4 = shpg.Point(1, 1)
     df = gpd.GeoDataFrame()
     df['name'] = ['Polygon', 'Line']
     df.set_geometry(gpd.GeoSeries([p1, p2]), inplace=True)
@@ -100,8 +98,8 @@ class TestUtils(unittest.TestCase):
         assert_allclose(cl[-1, :], (235, 233, 235))
 
         cl = utils.read_colormap('dem') * 256
-        assert_allclose(cl[4, :], (153,100, 43))
-        assert_allclose(cl[-1, :], (255,255,255))
+        assert_allclose(cl[4, :], (153, 100, 43))
+        assert_allclose(cl[-1, :], (255, 255, 255))
 
     def test_reduce(self):
 
@@ -221,8 +219,8 @@ class TestSkyIsFalling(unittest.TestCase):
         import matplotlib.pyplot as plt
         from salem.gis import transform_proj, check_crs
 
-        wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
-        fig = plt.figure()
+        pyproj.Proj(proj='latlong', datum='WGS84')
+        plt.figure()
         plt.close()
 
         srs = '+units=m +proj=lcc +lat_1=29.0 +lat_2=29.0 +lat_0=29.0 +lon_0=89.8'
@@ -309,7 +307,7 @@ class TestXarray(unittest.TestCase):
         # the grid should not be missunderstood as lonlat
         t2 = ds.T2.isel(Time=0) - 273.15
         with pytest.raises(RuntimeError):
-            g = t2.salem.grid
+            t2.salem.grid
 
     @requires_dask
     def test_geo_em(self):
@@ -348,7 +346,7 @@ class TestXarray(unittest.TestCase):
         # the grid should not be missunderstood as lonlat
         t2 = ds.T2.isel(time=0) - 273.15
         with pytest.raises(RuntimeError):
-            g = t2.salem.grid
+            t2.salem.grid
 
     @requires_dask
     def test_ncl_diagvars(self):
@@ -450,7 +448,7 @@ class TestXarray(unittest.TestCase):
         assert_allclose(w['PH'], nc['PH_UNSTAGG'])
 
         # chunk
-        v = w['PH'].chunk((1, 6, 13, 13))
+        v = w['PH'].chunk({'time': 1, 'bottom_top': 6, 'south_north': 13, 'west_east': 13})
         assert_allclose(v.mean(), nc['PH_UNSTAGG'].mean(), atol=1e-2)
 
         wn = w.isel(west_east=slice(4, 8))
@@ -624,7 +622,7 @@ class TestXarray(unittest.TestCase):
 
         # dataset case
         ds1.salem.transform_and_add(ds2[['RAINC', 'RAINNC']],
-                                    name={'RAINC':'PRCPC',
+                                    name={'RAINC': 'PRCPC',
                                           'RAINNC': 'PRCPNC'})
         assert 'PRCPC' in ds1
         assert_allclose(ds1.PRCPC, ds1.RAINC)
@@ -677,14 +675,14 @@ class TestXarray(unittest.TestCase):
                           bottom_top=slice(0, 15))
             _ = dss[vn].values
             dss = ds.isel(west_east=1, south_north=2,
-                          bottom_top=3,  time=2)
+                          bottom_top=3, time=2)
             _ = dss[vn].values
 
         # some chunking experiments
-        v = ds.WS.chunk((2, 1, 4, 5))
+        v = ds.WS.chunk({'time': 2, 'bottom_top': 1, 'south_north': 4, 'west_east': 5})
         assert_allclose(v.mean(), ds.WS.mean(), atol=1e-3)
         ds = ds.isel(time=slice(1, 4))
-        v = ds.PRCP.chunk((1, 2, 2))
+        v = ds.PRCP.chunk({'time': 1, 'south_north': 2, 'west_east': 2})
         assert_allclose(v.mean(), ds.PRCP.mean())
         assert_allclose(v.max(), ds.PRCP.max())
 
@@ -708,14 +706,14 @@ class TestXarray(unittest.TestCase):
                           bottom_top=slice(0, 15))
             _ = dss[vn].values
             dss = ds.isel(west_east=1, south_north=2,
-                          bottom_top=3,  time=2)
+                          bottom_top=3, time=2)
             _ = dss[vn].values
 
         # some chunking experiments
-        v = ds.WS.chunk((2, 1, 4, 5))
+        v = ds.WS.chunk({'time': 2, 'bottom_top': 1, 'south_north': 4, 'west_east': 5})
         assert_allclose(v.mean(), ds.WS.mean(), atol=1e-3)
         ds = ds.isel(time=slice(1, 4))
-        v = ds.PRCP.chunk((1, 2, 2))
+        v = ds.PRCP.chunk({'time': 1, 'south_north': 2, 'west_east': 2})
         assert_allclose(v.mean(), ds.PRCP.mean())
         assert_allclose(v.max(), ds.PRCP.max())
 
