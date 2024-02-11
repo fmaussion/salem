@@ -88,7 +88,7 @@ accumulated fields). For a list of diagnostic variables (and TODOs!), refer to
 .. ipython:: python
 
     @savefig plot_wrf_diag.png width=80%
-    ds.PRCP.isel(time=-1).salem.quick_map(cmap='Purples', vmax=5)
+    ds.PRCP.isel(time=-1).salem.quick_map(cmap='Purples', vmax=5);
 
 
 Vertical interpolation
@@ -147,4 +147,4 @@ file and parse it:
 
     maps[0].set_rgb(natural_earth='lr')  # add a background image
     @savefig plot_geo_simu.png width=100%
-    maps[0].visualize(title='Domains 1 to 4')
+    maps[0].visualize(title='Domains 1 to 4');

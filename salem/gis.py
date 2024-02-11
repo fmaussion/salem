@@ -3,7 +3,6 @@ Projections and grids
 """
 # Python 2 stuff
 from __future__ import division
-from six import string_types
 
 # Builtins
 import copy
@@ -55,18 +54,14 @@ def check_crs(crs, raise_on_error=False):
     except:
         pass
 
-    if isinstance(crs, string_types):
-        # necessary for python 2
-        crs = str(crs)
-
     err1, err2 = None, None
 
     if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
         out = crs
     elif isinstance(crs, crs_type):
         out = pyproj.Proj(crs.to_wkt(), preserve_units=True)
-    elif isinstance(crs, dict) or isinstance(crs, string_types):
-        if isinstance(crs, string_types):
+    elif isinstance(crs, dict) or isinstance(crs, str):
+        if isinstance(crs, str):
             # quick fix for https://github.com/pyproj4/pyproj/issues/345
             crs = crs.replace(' ', '').replace('+', ' +')
 

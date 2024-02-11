@@ -68,7 +68,7 @@ The default is to define the grids according to the pixels center point:
     smap.set_points(lon.flatten(), lat.flatten())
 
     @savefig plot_example_grid.png width=80%
-    smap.visualize(addcbar=False)
+    smap.visualize(addcbar=False);
 
 But with the ``pixel_ref`` keyword you can use another convention. For Salem,
 the two conventions are identical:
