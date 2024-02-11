@@ -3,10 +3,15 @@
 What's New
 ==========
 
-v0.3.X (Unreleased)
--------------------
+v0.3.10 (11 Februrary 2024)
+---------------------------
 
-
+A minor release of the salem package to fix deprecation warnings and a few bugs:
+- we stop enforcing singe threaded Dask. This may have unintended consequences,
+  will monitor (:issue:`233`)
+- Geotiff files opened with `open_xr_dataset` are now correctly using the center grid
+  representation. This bug may have shifted coordinates by half a pixel on such applications
+  (:pull:`234`).
 
 v0.3.9 (20 January 2023)
 ------------------------
