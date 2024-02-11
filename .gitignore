@@ -1,6 +1,10 @@
 *.py[cod]
 __pycache__
 .vscode
+savefig
+.eggs
+dist/
+sg_execution_times.rst
 
 # PyCharm stuffs
 .idea/
