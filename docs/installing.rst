@@ -8,15 +8,14 @@ Salem is a pure python package, but it has several non-trivial dependencies.
 Required dependencies
 ---------------------
 
-- Python 2.7 or 3+ (Py3 `recommended <https://python3statement.github.io/>`__)
+- Python 3+
 - `numpy <http://www.numpy.org/>`__ (of course)
 - `scipy <http://scipy.org/>`__: for its interpolation tools, among other things
 - `pyproj <https://jswhit.github.io/pyproj/>`__: for map projections transformations
 - `netCDF4 <https://github.com/Unidata/netcdf4-python>`__: to read most geoscientific files
 - `pandas <http://pandas.pydata.org/>`__: working with labeled data
-- `xarray <https://jswhit.github.io/pyproj/>`__ (0.8 or later): pandas in N-dimensions
+- `xarray <https://jswhit.github.io/pyproj/>`__ : pandas in N-dimensions
 - `joblib <https://pythonhosted.org/joblib/>`__: for it's `Memory`_ class
-- `six <https://pythonhosted.org/six//>`__: for Py2 compatibility
 
 .. _Memory: https://pythonhosted.org/joblib/memory.html
 

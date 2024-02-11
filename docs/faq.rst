@@ -6,8 +6,8 @@ Frequently Asked Questions
 What is the development status of the salem library?
 ----------------------------------------------------
 
-As of today (August 2021), salem is used by several people (number unknown)
-and is used by at least one downstream larger project
+As of today (February 2024), salem is used by several people (number unknown)
+and is used by at least one larger project important to me
 (`OGGM <https://oggm.org>`_). I plan to continue to maintain salem in the
 future, but cannot spend much time and energy in new, larger features that
 the community might need. These larger features (mostly: improved support

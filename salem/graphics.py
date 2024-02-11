@@ -2,7 +2,6 @@
 Color handling and maps.
 """
 from __future__ import division
-import six
 
 # Builtins
 import warnings
@@ -148,9 +147,9 @@ class DataLevels(object):
         Update the properties of :class:`DataLevels` from the dictionary *d*.
         """
 
-        for k, v in six.iteritems(d):
+        for k, v in d.items():
             func = getattr(self, 'set_' + k, None)
-            if func is None or not six.callable(func):
+            if func is None or not callable(func):
                 raise AttributeError('Unknown property %s' % k)
             func(v)
 
@@ -179,10 +178,12 @@ class DataLevels(object):
 
     def set_cmap(self, cm=None):
         """Set a colormap."""
-        self.cmap = get_cmap(cm or 'viridis' )
+        self.cmap = get_cmap(cm or 'viridis')
 
     def set_norm(self, norm=None):
-        """Set a normalization function. Related parameters will be ignored if set (e.g., vmin and vmax will be ignored if using LogNorm)"""
+        """Set a normalization function. Related parameters will be ignored if set.
+
+        (e.g., vmin and vmax will be ignored if using LogNorm)"""
         self._norm = norm
 
     def set_extend(self, extend=None):
@@ -576,7 +577,6 @@ class Map(DataLevels):
         kwargs: anything accepted by contourf
         """
 
-
         # Check input
         if data is None:
             self._contourf_data = None
@@ -597,7 +597,6 @@ class Map(DataLevels):
         interp: 'nearest' (default) or 'linear', the interpolation algorithm
         kwargs: anything accepted by contour
         """
-
 
         # Check input
         if data is None:
@@ -921,7 +920,7 @@ class Map(DataLevels):
 
         kwargs.setdefault('interp', 'spline')
 
-        if isinstance(topo, six.string_types):
+        if isinstance(topo, str):
             _, ext = os.path.splitext(topo)
             if ext.lower() == '.tif':
                 g = GeoTiff(topo)

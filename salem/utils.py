@@ -13,7 +13,7 @@ import numpy as np
 from joblib import Memory
 from salem import (cache_dir, sample_data_dir, sample_data_gh_commit,
                    download_dir, python_version)
-from six.moves.urllib.request import urlretrieve, urlopen
+from urllib.request import urlretrieve, urlopen
 
 
 def _hash_cache_dir():
@@ -99,9 +99,9 @@ valid_names['x_dim'] = ['west_east', 'lon', 'longitude', 'longitudes', 'lons',
                         'phony_dim_0', 'eastings', 'easting', 'nlon', 'nlong',
                         'grid_longitude_t']
 valid_names['y_dim'] = ['south_north', 'lat', 'latitude', 'latitudes', 'lats',
-                        'xlat', 'xlat_m', 'dimlat', 'y','lat_3', 'phony_dim_1',
+                        'xlat', 'xlat_m', 'dimlat', 'y', 'lat_3', 'phony_dim_1',
                         'northings', 'northing', 'nlat', 'grid_latitude_t']
-valid_names['z_dim'] = ['levelist','level', 'pressure', 'press', 'zlevel', 'z',
+valid_names['z_dim'] = ['levelist', 'level', 'pressure', 'press', 'zlevel', 'z',
                         'bottom_top']
 valid_names['t_dim'] = ['time', 'times', 'xtime']
 
@@ -254,7 +254,7 @@ def get_natural_earth_file(res='lr'):
         urlpath = nearth_base + '8192/textures/2_no_clouds_8k.jpg'
     elif res == 'hr':
         urlpath = nearth_base + '16200/textures/2_no_clouds_16k.jpg'
-    ofile = os.path.join(download_dir, 'natural_earth_' + res+ '.jpg')
+    ofile = os.path.join(download_dir, 'natural_earth_' + res + '.jpg')
 
     # download only if necessary
     if not os.path.exists(ofile):
@@ -309,7 +309,7 @@ def nice_scale(mapextent, maxlen=0.15):
     """
     d = np.array([1, 2, 5])
     e = (np.ones(12) * 10) ** (np.arange(12)-5)
-    candidates = np.matmul(e[:, None],  d[None, :]).flatten()
+    candidates = np.matmul(e[:, None], d[None, :]).flatten()
     return np.max(candidates[candidates / mapextent <= maxlen])
 
 

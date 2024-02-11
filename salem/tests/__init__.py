@@ -3,8 +3,8 @@ import unittest
 from packaging.version import Version
 import os
 from salem import python_version
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import URLError
+from urllib.request import urlopen
+from urllib.error import URLError
 
 on_travis = False
 if os.environ.get('TRAVIS') is not None:
@@ -19,6 +19,7 @@ def has_internet():
     except URLError:
         pass
     return False
+
 
 try:
     import shapely

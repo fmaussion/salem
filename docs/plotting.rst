@@ -57,7 +57,7 @@ nice looking regional maps:
 .. ipython:: python
 
     @savefig salem_quickmap.png width=80%
-    ds.T2C.isel(time=1).salem.quick_map()
+    ds.T2C.isel(time=1).salem.quick_map();
 
 Salem maps are different from cartopy's in that they don't change the
 matplotlib axes' projection. The map background is always going to be a
@@ -79,7 +79,7 @@ call to `imshow()`_, with an image size decided at instanciation:
     smap.grid.nx, smap.grid.ny  # size of the "image", and thus of the axes
 
     @savefig map_central_europe.png width=100%
-    smap.visualize(addcbar=False)
+    smap.visualize(addcbar=False);
 
 The map has it's own grid, wich is used internally in order to transform
 the data that has to be plotted on it:
@@ -89,7 +89,7 @@ the data that has to be plotted on it:
     ds = open_xr_dataset(get_demo_file('histalp_avg_1961-1990.nc'))
     smap.set_data(ds.prcp)  # histalp is a lon/lat dataset
     @savefig map_histalp.png width=100%
-    smap.visualize()
+    smap.visualize();
 
 Refer to :ref:`recipes` for more examples on how to use salem's maps.
 
