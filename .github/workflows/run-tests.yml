@@ -15,17 +15,15 @@ jobs:
       fail-fast: false
       matrix:
         test-env:
-          - py38-all
-          - py38-xarray-dev
-          - py38-all-rc
-          - py39-all
           - py310-all
+          - py311-all
+          - py312-all
         use-mpl:
           - "--mpl"
         include:
-          - test-env: py38-min
+          - test-env: py311-min
             use-mpl: ""
-          - test-env: py38-xr
+          - test-env: py311-xr
             use-mpl: ""
     runs-on: ubuntu-latest
     defaults:

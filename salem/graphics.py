@@ -42,7 +42,7 @@ shapefiles['lakes'] = path.join(sample_data_dir, 'shapes', 'lakes',
                                 'ne_50m_lakes.shp')
 
 # Be sure we have the directory
-if ~ os.path.exists(shapefiles['world_borders']):
+if not os.path.exists(shapefiles['world_borders']):
     from salem.utils import get_demo_file
     _ = get_demo_file('world_borders.shp')
 

@@ -32,6 +32,7 @@ except AttributeError:
         pass
     crs_type = Dummy
 
+
 def check_crs(crs, raise_on_error=False):
     """Checks if the crs represents a valid grid, projection or ESPG string.
 
@@ -1123,7 +1124,7 @@ class Grid(object):
             x0, y0 = cgrid.transform(*xy0, crs=crs, nearest=True)
             x1, y1 = cgrid.transform(*xy1, crs=crs, nearest=True)
             mask[np.min([y0, y1]):np.max([y0, y1]) + 1,
-            np.min([x0, x1]):np.max([x0, x1]) + 1] = 1
+                 np.min([x0, x1]):np.max([x0, x1]) + 1] = 1
 
         return mask
 
@@ -1138,7 +1139,6 @@ class Grid(object):
         --------
         from_dict : create a Grid from a dict
         """
-        srs = self.proj.srs
         return dict(proj=self.proj.srs, x0y0=(self.x0, self.y0),
                     nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
                     pixel_ref=self.pixel_ref)
@@ -1242,8 +1242,7 @@ class Grid(object):
                 ii.append(i)
         out['j'] = jj
         out['i'] = ii
-        out['geometry'] = geoms
-        out.crs = self.proj.srs
+        out.set_geometry(geoms, crs=self.proj.srs, inplace=True)
 
         if check_crs(to_crs):
             transform_geopandas(out, to_crs=to_crs, inplace=True)
@@ -1264,6 +1263,7 @@ def proj_is_same(p1, p2):
     """
     if has_gdal:
         # this is more robust, but gdal is a pain
+        osr.UseExceptions()
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(p1.srs)
         s2 = osr.SpatialReference()
@@ -1577,7 +1577,7 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
 
     e, n = transform_proj(wgs84, projloc, lon, lat)
 
-    if origin== 'upper-left':
+    if origin == 'upper-left':
         corner = (-xx / 2. + e, yy / 2. + n)
         dxdy = (xx / nx, - yy / ny)
     else:

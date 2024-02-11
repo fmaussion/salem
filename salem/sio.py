@@ -194,8 +194,8 @@ def _wrf_grid_from_dataset(ds):
         ny = len(ds.dimensions['south_north'])
     except AttributeError:
         # maybe an xarray dataset
-        nx = ds.dims['west_east']
-        ny = ds.dims['south_north']
+        nx = ds.sizes['west_east']
+        ny = ds.sizes['south_north']
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR
         x0 = ds['west_east'][0]
@@ -231,7 +231,7 @@ def _wrf_grid_from_dataset(ds):
 
         atol = 5e-3 if proj_id == 2 else 1e-3
         check = np.isclose(reflon, mylon, atol=atol)
-        if not np.alltrue(check):
+        if not np.all(check):
             n_pix = np.sum(~check)
             maxe = np.max(np.abs(reflon - mylon))
             if maxe < (360 - atol):
@@ -239,7 +239,7 @@ def _wrf_grid_from_dataset(ds):
                               'of our lons did not match those of the WRF '
                               'file. Max error: {}'.format(n_pix, atol, maxe))
         check = np.isclose(reflat, mylat, atol=atol)
-        if not np.alltrue(check):
+        if not np.all(check):
             n_pix = np.sum(~check)
             maxe = np.max(np.abs(reflat - mylat))
             warnings.warn('For {} grid points, the expected accuracy ({}) '
@@ -294,7 +294,6 @@ def _salem_grid_from_dataset(ds):
 
     Current convention: x_coord, y_coord, pyproj_srs as attribute
     """
-
 
     # Projection
     try:
@@ -426,7 +425,7 @@ class _XarrayAccessorBase(object):
         if self.grid is None:
             raise RuntimeError('dataset Grid not understood.')
 
-        dn = xarray_obj.dims.keys()
+        dn = xarray_obj.sizes.keys()
         self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
         self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
         dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
@@ -478,9 +477,9 @@ class _XarrayAccessorBase(object):
         sub_x = [np.min(ids[1]) - margin, np.max(ids[1]) + margin]
         sub_y = [np.min(ids[0]) - margin, np.max(ids[0]) + margin]
 
-        out_ds = self._obj[{self.x_dim : slice(sub_x[0], sub_x[1]+1),
-                            self.y_dim : slice(sub_y[0], sub_y[1]+1)}
-                          ]
+        out_ds = self._obj[{self.x_dim: slice(sub_x[0], sub_x[1]+1),
+                            self.y_dim: slice(sub_y[0], sub_y[1]+1)}
+                           ]
         return out_ds
 
     def roi(self, ds=None, **kwargs):
@@ -590,9 +589,9 @@ class _XarrayAccessorBase(object):
                     dims = (self.y_dim, self.x_dim)
                 elif nd == 3:
                     newdim = 'new_dim'
-                    if self.t_dim and sh[0] == self._obj.dims[self.t_dim]:
+                    if self.t_dim and sh[0] == self._obj.sizes[self.t_dim]:
                         newdim = self.t_dim
-                    if self.z_dim and sh[0] == self._obj.dims[self.z_dim]:
+                    if self.z_dim and sh[0] == self._obj.sizes[self.z_dim]:
                         newdim = self.z_dim
                     dims = (newdim, self.y_dim, self.x_dim)
                 else:
@@ -733,9 +732,9 @@ class DataArrayAccessor(_XarrayAccessorBase):
           but units per given data timestep
         """
 
-        out = self._obj[{self.t_dim : slice(1, len(self._obj[self.t_dim]))}]
-        diff = self._obj[{self.t_dim : slice(0, len(self._obj[self.t_dim])-1)}]
-        out.values =  out.values - diff.values
+        out = self._obj[{self.t_dim: slice(1, len(self._obj[self.t_dim]))}]
+        diff = self._obj[{self.t_dim: slice(0, len(self._obj[self.t_dim])-1)}]
+        out.values = out.values - diff.values
         out.attrs['description'] = out.attrs['description'].replace('ACCUMULATED ', '')
 
         if as_rate:
@@ -787,7 +786,7 @@ class DataArrayAccessor(_XarrayAccessorBase):
         out = xr.DataArray(data, name=self._obj.name, dims=dims, coords=coords)
         out.attrs['pyproj_srs'] = self.grid.proj.srs
         if not np.asarray(levels).shape:
-            out = out.isel(**{dim_name:0})
+            out = out.isel(**{dim_name: 0})
         return out
 
 
@@ -863,8 +862,7 @@ class DatasetAccessor(_XarrayAccessorBase):
         zcoord = self._obj['Z']
         out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='z',
                                                fill_value=fill_value,
-                                               use_multiprocessing=
-                                               use_multiprocessing)
+                                               use_multiprocessing=use_multiprocessing)
         out['z'].attrs['description'] = 'height above sea level'
         out['z'].attrs['units'] = 'm'
         return out
@@ -896,8 +894,7 @@ class DatasetAccessor(_XarrayAccessorBase):
         zcoord = self._obj['PRESSURE']
         out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='p',
                                                fill_value=fill_value,
-                                               use_multiprocessing=
-                                               use_multiprocessing)
+                                               use_multiprocessing=use_multiprocessing)
         out['p'].attrs['description'] = 'pressure'
         out['p'].attrs['units'] = 'hPa'
         return out
@@ -999,7 +996,7 @@ def open_wrf_dataset(file, **kwargs):
         time = netcdf_time(ds)
         if time is not None:
             ds['Time'] = time
-        ds = ds.rename({'Time':'time'})
+        ds = ds.rename({'Time': 'time'})
     tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
     tr = {k: tr[k] for k in tr.keys() if k in ds.variables}
     ds = ds.rename(tr)

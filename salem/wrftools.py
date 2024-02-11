@@ -37,7 +37,7 @@ class ScaledVar():
             self.scale = ncvar.scale
         except AttributeError:
             self.scale = False
-            
+
     def __enter__(self):
         self.ncvar.set_auto_scale(True)
         return self.ncvar
@@ -68,7 +68,7 @@ class Unstaggerer(object):
         except AttributeError:
             # This attr might be needed later
             self.description = ''
-            
+
         self.units = ncvar.units
         # Replace the dimension name
         dims = list(ncvar.dimensions)
@@ -76,15 +76,19 @@ class Unstaggerer(object):
         dims[self.ds] = dims[self.ds].replace('_stag', '')
         self.dimensions = dims
         shape = list(ncvar.shape)
-        shape[self.ds] -=1
+        shape[self.ds] -= 1
         self.shape = tuple(shape)
+        self.datatype = ncvar.datatype
 
         # this is quickndirty, and probably wrong
         self.set_auto_maskandscale = dummy_func
         self.set_auto_scale = dummy_func
         attrs = list(ncvar.ncattrs())
-        if 'add_offset' in attrs: attrs.remove('add_offset')
-        if 'scale_factor' in attrs: attrs.remove('scale_factor')
+        if 'add_offset' in attrs:
+            attrs.remove('add_offset')
+        if 'scale_factor' in attrs:
+            attrs.remove('scale_factor')
+
         def filter_attrs():
             return attrs
         self.ncattrs = filter_attrs
@@ -159,8 +163,11 @@ class FakeVariable(object):
     def _copy_attrs_from(self, ncvar):
         # copies the necessary nc attributes from a template variable
         attrs = list(ncvar.ncattrs())
-        if 'add_offset' in attrs: attrs.remove('add_offset')
-        if 'scale_factor' in attrs: attrs.remove('scale_factor')
+        if 'add_offset' in attrs:
+            attrs.remove('add_offset')
+        if 'scale_factor' in attrs:
+            attrs.remove('scale_factor')
+
         def filter_attrs():
             return attrs
         self.ncattrs = filter_attrs
@@ -170,6 +177,7 @@ class FakeVariable(object):
             setattr(self, attr, getattr(ncvar, attr))
         self.dimensions = ncvar.dimensions
         self.dtype = ncvar.dtype
+        self.datatype = ncvar.datatype
         self.set_auto_maskandscale = dummy_func
         self.set_auto_scale = dummy_func
         self.shape = ncvar.shape
@@ -320,8 +328,9 @@ class PRCP(FakeVariable):
 
     @staticmethod
     def can_do(nc):
-        return AccumulatedVariable.can_do(nc) and \
-               'RAINC' in nc.variables and 'RAINNC' in nc.variables
+        return (AccumulatedVariable.can_do(nc) and
+                'RAINC' in nc.variables and
+                'RAINNC' in nc.variables)
 
     def __getitem__(self, item):
         with ScaledVar(self.nc.variables['PRCP_NC']) as p1, \
@@ -484,6 +493,7 @@ class SLP(FakeVariable):
         with ScaledVar(vars['PH']) as ph, ScaledVar(vars['PHB']) as phb:
             z = (ph[item] + phb[item]) / 9.81
         return np.squeeze(_ncl_slp(z, tk, p, q), axis=tuple(squeezax))
+
 
 # Diagnostic variable classes in a list
 var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
