@@ -327,7 +327,7 @@ class TestGraphics(unittest.TestCase):
         cmap.set_bad('pink')
 
         # Add masked arrays
-        a[1, 1] = np.NaN
+        a[1, 1] = np.nan
         c.set_data(a)
         rgb1 = c.to_rgb()
         c.set_data(a, crs=g)
@@ -436,7 +436,7 @@ def test_datalevels():
     c.visualize(next(ax), title="Auto levels with oob data")
 
     # Missing data
-    a[3, 0] = np.NaN
+    a[3, 0] = np.nan
     c = DataLevels(nlevels=127, vmin=0, vmax=3, data=a, cmap=cm)
     c.visualize(next(ax), title="missing data")
 
@@ -801,7 +801,7 @@ def test_hef_topo_withnan():
     c.set_cmap(get_cmap('topo'))
     c.set_plot_params(nlevels=256)
     # Try with nan data
-    h[-100:, -100:] = np.NaN
+    h[-100:, -100:] = np.nan
     c.set_data(h)
     fig, ax = plt.subplots(1, 1)
     c.visualize(ax=ax, title='color with NaN')

@@ -286,7 +286,7 @@ class AccumulatedVariable(FakeVariable):
                 except:
                     pass
                 out[1:, ...] -= var[item]
-                out[0, ...] = np.NaN
+                out[0, ...] = np.nan
             else:
                 out = var[itemr]
                 out -= var[item]
@@ -508,7 +508,7 @@ def _interp1d(args):
     return f(args[2])
 
 
-def interp3d(data, zcoord, levels, fill_value=np.NaN,
+def interp3d(data, zcoord, levels, fill_value=np.nan,
              use_multiprocessing=True):
     """Interpolate on the first dimension of a 3d var
 
@@ -522,7 +522,7 @@ def interp3d(data, zcoord, levels, fill_value=np.NaN,
       same dims as data, the z coordinates of the data points
     levels: 1darray
       the levels at which to interpolate
-    fill_value : np.NaN or 'extrapolate', optional
+    fill_value : np.nan or 'extrapolate', optional
       how to handle levels below the topography. Default is to mark them
       as invalid, but you might want the have them extrapolated.
     use_multiprocessing: bool
