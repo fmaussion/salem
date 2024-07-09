@@ -126,22 +126,25 @@ tmp_check_wrf = True
 
 def _wrf_grid_from_dataset(ds):
     """Get the WRF projection out of the file."""
-
-    pargs = dict()
+    pargs = {}
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR and other TU Berlin files
-        dx = ds.GRID_DX
-        dy = ds.GRID_DY
-        pargs['lat_1'] = ds.PROJ_STANDARD_PAR1
-        pargs['lat_2'] = ds.PROJ_STANDARD_PAR2
-        pargs['lat_0'] = ds.PROJ_CENTRAL_LAT
-        pargs['lon_0'] = ds.PROJ_CENTRAL_LON
-        pargs['center_lon'] = ds.PROJ_CENTRAL_LON
+        dx = ds.GRID_DX if hasattr(ds, 'GRID_DX') else ds.DX
+        dy = ds.GRID_DY if hasattr(ds, 'GRID_DY') else ds.DY
         if ds.PROJ_NAME in ['Lambert Conformal Conic',
                             'WRF Lambert Conformal']:
             proj_id = 1
+            pargs['lat_1'] = ds.PROJ_STANDARD_PAR1
+            pargs['lat_2'] = ds.PROJ_STANDARD_PAR2
+            pargs['lat_0'] = ds.PROJ_CENTRAL_LAT
+            pargs['lon_0'] = ds.PROJ_CENTRAL_LON
+            pargs['center_lon'] = ds.PROJ_CENTRAL_LON
         elif ds.PROJ_NAME in ['lat-lon']:
             proj_id = 6
+        elif "mercator" in ds.PROJ_NAME.lower():
+            proj_id = 3
+            pargs['lat_ts'] = ds.TRUELAT1
+            pargs['center_lon'] = ds.CEN_LON
         else:
             proj_id = 99  # pragma: no cover
     else:
