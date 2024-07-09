@@ -23,6 +23,21 @@ see :ref:`whysalem` and
 
 .. _geoxarray: https://github.com/geoxarray/geoxarray
 
+
+My Google static maps stopped working! Why?
+-------------------------------------------
+
+In 2018, Google Static Map API enforced anyone creating a map image
+to use an API key. Salem was able to generate maps by exposing
+my own private key, which worked for a while but was recently
+used for extensive (costly) jobs. As a result, users now have
+to get their own key and pass it to salem as a kw argument,
+or by setting an environment variable named
+``STATIC_MAP_API_KEY``, containing your private key.
+
+See `this page <https://developers.google.com/maps/documentation/maps-static/get-api-key>`_
+for documentation about how to get a key.
+
 How should I cite salem?
 ------------------------
 

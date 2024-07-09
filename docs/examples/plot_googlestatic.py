@@ -30,9 +30,9 @@ f, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
 # read the shapefile and use its extent to define a ideally sized map
 shp = salem.read_shapefile(get_demo_file('rgi_kesselwand.shp'))
-# I you need to do a lot of maps you might want
-# to use an API key and set it here with key='YOUR_API_KEY'
-# or set it in your environment as STATIC_MAP_API_KEY
+# For this to work you'll need to use an API key and set it
+# here with key='YOUR_API_KEY' or set it as an
+# environment variable called STATIC_MAP_API_KEY
 g = GoogleVisibleMap(x=[shp.min_x, shp.max_x], y=[shp.min_y, shp.max_y],
                      scale=2,  # scale is for more details
                      maptype='satellite')  # try out also: 'terrain'
