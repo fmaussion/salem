@@ -8,10 +8,11 @@ v0.3.11 (9 July 2024)
 
 A minor release of the salem package to fix a few deprecation warnings
 and an important change in how google maps are generated:
+
 - salem now works with numpy 2.0 (``np.NaN`` is no longer used, :pull:`241`).
 - salem no longer generates google static maps without a user provided key.
   It was able to do so by exposing my own private key, which is not a good idea.
-  (:issue:`244`). See https://developers.google.com/maps/documentation/maps-static/get-api-key
+  (:pull:`244`). See https://developers.google.com/maps/documentation/maps-static/get-api-key
   for more information.
 - suport for a new WRF map type (:pull:`242`).
 - some other simple maintenance for depcrecations, etc.
@@ -20,8 +21,9 @@ v0.3.10 (11 February 2024)
 ---------------------------
 
 A minor release of the salem package to fix deprecation warnings and a few bugs:
+
 - we stop enforcing singe threaded Dask. This may have unintended consequences,
-  will monitor (:issue:`233`)
+  let us know if its the case (:pull:`233`)
 - Geotiff files opened with `open_xr_dataset` are now correctly using the center grid
   representation. This bug may have shifted coordinates by half a pixel on such applications
   (:pull:`234`).

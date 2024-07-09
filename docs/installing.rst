@@ -52,16 +52,6 @@ or pip::
 
     pip install salem
 
-The very best (unique?) way to install Salem without too much hassle is to
-install its dependencies with `conda`_ and `conda-forge`_::
-
-    conda config --add channels conda-forge
-    conda install <package-name>
-
-Currently, Salem can only be installed via pip::
-
-    pip install salem
-
 If you want to install the latest master::
 
     pip install git+https://github.com/fmaussion/salem.git

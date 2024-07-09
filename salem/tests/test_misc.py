@@ -12,7 +12,7 @@ import netCDF4
 import numpy as np
 from numpy.testing import assert_allclose
 
-from salem.tests import (requires_travis, requires_geopandas, requires_dask,
+from salem.tests import (requires_geopandas, requires_dask,
                          requires_matplotlib, requires_cartopy)
 from salem import utils, transform_geopandas, GeoTiff, read_shapefile, sio
 from salem import read_shapefile_to_grid
@@ -75,10 +75,6 @@ class TestUtils(unittest.TestCase):
 
     def tearDown(self):
         delete_test_dir()
-
-    @requires_travis
-    def test_empty_cache(self):
-        utils.empty_cache()
 
     def test_hash_cache_dir(self):
         h1 = utils._hash_cache_dir()

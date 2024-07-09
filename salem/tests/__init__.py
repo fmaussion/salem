@@ -6,10 +6,6 @@ from salem import python_version
 from urllib.request import urlopen
 from urllib.error import URLError
 
-on_travis = False
-if os.environ.get('TRAVIS') is not None:
-    on_travis = True
-
 
 def has_internet():
     """Not so recommended it seems"""
@@ -111,7 +107,3 @@ def requires_dask(test):
     msg = "requires dask"
     return test if has_dask else unittest.skip(msg)(test)
 
-
-def requires_travis(test):
-    msg = "requires travis"
-    return test if on_travis else unittest.skip(msg)(test)

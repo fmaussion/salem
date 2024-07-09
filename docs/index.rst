@@ -68,8 +68,8 @@ About
 :Status:
     .. image:: https://badge.fury.io/py/salem.svg
         :target: https://badge.fury.io/py/salem
-    .. image:: https://travis-ci.com/fmaussion/salem.svg?branch=master
-        :target: https://travis-ci.com/fmaussion/salem
+    .. image:: https://github.com/OGGM/fmaussion/salem/workflows/run-tests.yml/badge.svg?branch=master
+        :target: https://github.com/fmaussion/salem/actions/workflows/run-tests.yml
     .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
         :target: https://coveralls.io/github/fmaussion/salem?branch=master
 
