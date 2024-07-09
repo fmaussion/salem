@@ -747,7 +747,7 @@ class DataArrayAccessor(_XarrayAccessorBase):
 
         return out
 
-    def interpz(self, zcoord, levels, dim_name='', fill_value=np.NaN,
+    def interpz(self, zcoord, levels, dim_name='', fill_value=np.nan,
                 use_multiprocessing=True):
         """Interpolates the array along the vertical dimension
 
@@ -759,7 +759,7 @@ class DataArrayAccessor(_XarrayAccessorBase):
           the levels at which to interpolate
         dim_name: str
           the name of the new dimension
-        fill_value : np.NaN or 'extrapolate', optional
+        fill_value : np.nan or 'extrapolate', optional
           how to handle levels below the topography. Default is to mark them
           as invalid, but you might want the have them extrapolated.
         use_multiprocessing: bool
@@ -835,7 +835,7 @@ class DatasetAccessor(_XarrayAccessorBase):
                     new_name = v
                 self._obj[new_name] = out[v]
 
-    def wrf_zlevel(self, varname, levels=None, fill_value=np.NaN,
+    def wrf_zlevel(self, varname, levels=None, fill_value=np.nan,
                    use_multiprocessing=True):
         """Interpolates to a specified height above sea level.
 
@@ -845,7 +845,7 @@ class DatasetAccessor(_XarrayAccessorBase):
           the name of the variable to interpolate
         levels: 1d array
           levels at which to interpolate (default: some levels I thought of)
-        fill_value : np.NaN or 'extrapolate', optional
+        fill_value : np.nan or 'extrapolate', optional
           how to handle levels below the topography. Default is to mark them
           as invalid, but you might want the have them extrapolated.
         use_multiprocessing: bool
@@ -867,7 +867,7 @@ class DatasetAccessor(_XarrayAccessorBase):
         out['z'].attrs['units'] = 'm'
         return out
 
-    def wrf_plevel(self, varname, levels=None, fill_value=np.NaN,
+    def wrf_plevel(self, varname, levels=None, fill_value=np.nan,
                    use_multiprocessing=True):
         """Interpolates to a specified pressure level (hPa).
 
@@ -877,7 +877,7 @@ class DatasetAccessor(_XarrayAccessorBase):
           the name of the variable to interpolate
         levels: 1d array
           levels at which to interpolate (default: some levels I thought of)
-        fill_value : np.NaN or 'extrapolate', optional
+        fill_value : np.nan or 'extrapolate', optional
           how to handle levels below the topography. Default is to mark them
           as invalid, but you might want the have them extrapolated.
         use_multiprocessing: bool

@@ -274,8 +274,8 @@ class TestXarray(unittest.TestCase):
         import xarray as xr
         # Check that all attrs are preserved
         with sio.open_xr_dataset(get_demo_file('era_interim_tibet.nc')) as ds:
-            ds.encoding = {'_FillValue': np.NaN}
-            ds['t2m'].encoding = {'_FillValue': np.NaN}
+            ds.encoding = {'_FillValue': np.nan}
+            ds['t2m'].encoding = {'_FillValue': np.nan}
             ds_ = ds.salem.roi(roi=np.ones_like(ds.t2m.values[0, ...]))
             xr.testing.assert_identical(ds, ds_)
             assert ds.encoding == ds_.encoding
@@ -524,13 +524,13 @@ class TestXarray(unittest.TestCase):
         uns = nc['RAINNC'].isel(Time=slice(1, len(nc.bottom_top_stag))).values - \
               nc['RAINNC'].isel(Time=slice(0, -1)).values
         nc['REF_PRCP_NC'].values[1:, ...] = uns * 60 / 180.  # for three hours
-        nc['REF_PRCP_NC'].values[0, ...] = np.NaN
+        nc['REF_PRCP_NC'].values[0, ...] = np.nan
 
         nc['REF_PRCP_C'] = nc['RAINC']*0.
         uns = nc['RAINC'].isel(Time=slice(1, len(nc.bottom_top_stag))).values - \
               nc['RAINC'].isel(Time=slice(0, -1)).values
         nc['REF_PRCP_C'].values[1:, ...] = uns * 60 / 180.  # for three hours
-        nc['REF_PRCP_C'].values[0, ...] = np.NaN
+        nc['REF_PRCP_C'].values[0, ...] = np.nan
 
         nc['REF_PRCP'] = nc['REF_PRCP_C'] + nc['REF_PRCP_NC']
 

@@ -835,10 +835,11 @@ class Grid(object):
         out_shape = list(in_shape)
         out_shape[-2:] = [self.ny, self.nx]
 
-        if data.dtype.kind == 'i':
-            out_data = np.zeros(out_shape, dtype=float) * np.NaN
-        else:
-            out_data = np.zeros(out_shape, dtype=data.dtype) * np.NaN
+        out_data = np.full(
+            out_shape,
+            np.nan,
+            dtype=float if data.dtype.kind == 'i' else data.dtype,
+        )
 
         def _2d_trafo(ind, outd):
             for ji, l in lut.items():

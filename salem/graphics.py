@@ -515,14 +515,15 @@ class Map(DataLevels):
                     warnings.filterwarnings("ignore", message=mess)
                     mess = "Passing `np.nan` to mean no clipping in np.clip"
                     warnings.filterwarnings("ignore", message=mess)
+                    nans = data.filled(np.nan)
                     try:
-                        data = imresize(data.filled(np.NaN),
+                        data = imresize(nans,
                                         (self.grid.ny, self.grid.nx),
                                         order=interp, mode='edge',
                                         anti_aliasing=True)
                     except RuntimeError:
                         # For some order anti_aliasing doesnt work with 'edge'
-                        data = imresize(data.filled(np.NaN),
+                        data = imresize(nans,
                                         (self.grid.ny, self.grid.nx),
                                         order=interp, mode='edge',
                                         anti_aliasing=False)
