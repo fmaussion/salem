@@ -129,8 +129,8 @@ def _wrf_grid_from_dataset(ds):
     pargs = {}
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR and other TU Berlin files
-        dx = ds.GRID_DX or ds.DX
-        dy = ds.GRID_DY or ds.DY
+        dx = ds.GRID_DX if hasattr(ds, 'GRID_DX') else ds.DX
+        dy = ds.GRID_DY if hasattr(ds, 'GRID_DY') else ds.DY
         if ds.PROJ_NAME in ['Lambert Conformal Conic',
                             'WRF Lambert Conformal']:
             proj_id = 1
