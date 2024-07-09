@@ -1278,7 +1278,7 @@ def _transform_internal(p1, p2, x, y, **kwargs):
         with warnings.catch_warnings():
             # https://github.com/pyproj4/pyproj/issues/1415
             warnings.filterwarnings("ignore", category=DeprecationWarning,
-                                    message=".*ndim > 1 to a scalar.*")
+                                    message=".*ndim > 0 to a scalar.*")
             return trf.transform(x, y)
     else:
         return pyproj.transform(p1, p2, x, y, **kwargs)
