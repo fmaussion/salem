@@ -1069,14 +1069,14 @@ class TestTransform(unittest.TestCase):
         st = gis.transform_geopandas(so, to_crs=sref.crs)
         self.assertFalse(st is so)
         assert_allclose(st.geometry[0].exterior.coords,
-                                   sref.geometry[0].exterior.coords)
+                        sref.geometry[0].exterior.coords)
 
         sti = gis.transform_geopandas(so, to_crs=sref.crs, inplace=True)
         self.assertTrue(sti is so)
         assert_allclose(so.geometry[0].exterior.coords,
-                                   sref.geometry[0].exterior.coords)
+                        sref.geometry[0].exterior.coords)
         assert_allclose(sti.geometry[0].exterior.coords,
-                                   sref.geometry[0].exterior.coords)
+                        sref.geometry[0].exterior.coords)
 
         g = Grid(nxny=(1, 1), dxdy=(1, 1), x0y0=(10., 46.), proj=wgs84)
         so = read_shapefile(get_demo_file('Hintereisferner.shp'))

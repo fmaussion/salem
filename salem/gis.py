@@ -1401,8 +1401,7 @@ def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
         to_crs = to_crs.srs
     elif isinstance(to_crs, Grid):
         to_crs = None
-    result.set_crs(to_crs, allow_override=True, inplace=True)
-    out.geometry = result
+    out['geometry'] = result
     out.set_crs(to_crs, allow_override=True, inplace=True)
     out['min_x'] = [g.bounds[0] for g in out.geometry]
     out['max_x'] = [g.bounds[2] for g in out.geometry]
