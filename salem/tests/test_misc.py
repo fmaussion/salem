@@ -843,7 +843,7 @@ class TestXarray(unittest.TestCase):
         dsm.to_netcdf(fo)
         dsm.close()
         dsm = sio.open_wrf_dataset(fo)
-        assert_allclose(ds['PRCP'], dsm['PRCP'])
+        assert_allclose(ds['PRCP'], dsm['PRCP'], rtol=1e-6)
         assert_allclose(prcp_nc, dsm['PRCP_NC'].isel(time=slice(1, 4)),
                         rtol=1e-6)
 

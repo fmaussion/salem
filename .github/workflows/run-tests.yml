@@ -51,6 +51,7 @@ jobs:
         env:
           MPLBACKEND: agg
           COVERAGE_RCFILE: ${{ github.workspace }}/.coveragerc
+          STATIC_MAP_API_KEY: ${{ secrets.STATIC_MAP_API_KEY }}
       - name: Upload Coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -5,6 +5,7 @@ savefig
 .eggs
 dist/
 sg_execution_times.rst
+.env
 
 # PyCharm stuffs
 .idea/
