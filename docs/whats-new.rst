@@ -13,6 +13,7 @@ and an important change in how google maps are generated:
   It was able to do so by exposing my own private key, which is not a good idea.
   (:issue:`244`). See https://developers.google.com/maps/documentation/maps-static/get-api-key
   for more information.
+- suport for a new WRF map type (:pull:`242`).
 - some other simple maintenance for depcrecations, etc.
 
 v0.3.10 (11 February 2024)
