@@ -55,9 +55,8 @@ def create_dummy_shp(fname):
     i_line = shpg.LinearRing([(1.4, 1.4), (1.6, 1.4), (1.6, 1.6), (1.4, 1.6)])
     p1 = shpg.Polygon(e_line, [i_line])
     p2 = shpg.Polygon([(2.5, 1.3), (3., 1.8), (2.5, 2.3), (2, 1.8)])
-    df = gpd.GeoDataFrame()
+    df = gpd.GeoDataFrame(crs='EPSG:4326', geometry=gpd.GeoSeries([p1, p2]))
     df['name'] = ['Polygon', 'Line']
-    df.set_geometry(gpd.GeoSeries([p1, p2]), inplace=True)
     of = os.path.join(testdir, fname)
     df.to_file(of)
     return of
