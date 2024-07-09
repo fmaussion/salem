@@ -480,6 +480,9 @@ class GoogleCenterMap(GeoDataset):
     """Google static map centered on a point.
 
     Needs motionless.
+
+    See https://developers.google.com/maps/documentation/maps-static/usage-and-billing
+    for pricing.
     """
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
@@ -518,7 +521,12 @@ class GoogleCenterMap(GeoDataset):
                                               zoom=zoom, scale=scale)
 
         if key is None:
-            key = os.environ['STATIC_MAP_API_KEY']
+            try:
+                key = os.environ['STATIC_MAP_API_KEY']
+            except KeyError:
+                raise ValueError('You need to provide a Google API key'
+                                 ' or set the STATIC_MAP_API_KEY environment'
+                                 ' variable.')
 
         # Motionless
         import motionless
@@ -553,6 +561,9 @@ class GoogleVisibleMap(GoogleCenterMap):
     """Google static map automatically sized and zoomed to a selected region.
 
     It's usually more practical to use than GoogleCenterMap.
+
+    See https://developers.google.com/maps/documentation/maps-static/usage-and-billing
+    for pricing.
     """
 
     def __init__(self, x, y, crs=wgs84, size_x=640, size_y=640, scale=1,
@@ -590,6 +601,14 @@ class GoogleVisibleMap(GoogleCenterMap):
         play with the `size_x` and `size_y` kwargs.
         """
 
+        if key is None:
+            try:
+                key = os.environ['STATIC_MAP_API_KEY']
+            except KeyError:
+                raise ValueError('You need to provide a Google API key'
+                                 ' or set the STATIC_MAP_API_KEY environment'
+                                 ' variable.')
+
         if 'zoom' in kwargs or 'center_ll' in kwargs:
             raise ValueError('incompatible kwargs.')
 
@@ -614,9 +633,6 @@ class GoogleVisibleMap(GoogleCenterMap):
                 zoom -= 1
             else:
                 break
-
-        if key is None:
-            key = os.environ['STATIC_MAP_API_KEY']
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
                                  size_y=size_y, zoom=zoom, scale=scale,
