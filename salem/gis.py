@@ -17,6 +17,7 @@ from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
 
 try:
     from osgeo import osr
+    osr.UseExceptions()
     has_gdal = True
 except ImportError:
     has_gdal = False
@@ -1259,7 +1260,6 @@ def proj_is_same(p1, p2):
     """
     if has_gdal:
         # this is more robust, but gdal is a pain
-        osr.UseExceptions()
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(p1.srs)
         s2 = osr.SpatialReference()
@@ -1275,7 +1275,11 @@ def proj_is_same(p1, p2):
 def _transform_internal(p1, p2, x, y, **kwargs):
     if hasattr(pyproj, 'Transformer'):
         trf = pyproj.Transformer.from_proj(p1, p2, **kwargs)
-        return trf.transform(x, y)
+        with warnings.catch_warnings():
+            # https://github.com/pyproj4/pyproj/issues/1415
+            warnings.filterwarnings("ignore", category=DeprecationWarning,
+                                    message=".*ndim > 0 to a scalar.*")
+            return trf.transform(x, y)
     else:
         return pyproj.transform(p1, p2, x, y, **kwargs)
 
@@ -1397,9 +1401,9 @@ def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
         to_crs = to_crs.srs
     elif isinstance(to_crs, Grid):
         to_crs = None
-    result.crs = to_crs
+    result.set_crs(to_crs, allow_override=True, inplace=True)
     out.geometry = result
-    out.crs = to_crs
+    out.set_crs(to_crs, allow_override=True, inplace=True)
     out['min_x'] = [g.bounds[0] for g in out.geometry]
     out['max_x'] = [g.bounds[2] for g in out.geometry]
     out['min_y'] = [g.bounds[1] for g in out.geometry]
@@ -1441,7 +1445,6 @@ def proj_to_cartopy(proj):
     srs = proj.srs
     if has_gdal:
         # this is more robust, as srs could be anything (espg, etc.)
-        from osgeo import osr
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(proj.srs)
         if s1.ExportToProj4():
