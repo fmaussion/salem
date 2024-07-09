@@ -20,6 +20,9 @@ shpf = salem.get_demo_file('Lev_09_MAIN_BAS_4099000881.shp')
 gdf = salem.read_shapefile(shpf)
 
 # Get the google map which encompasses all geometries
+# For this to work you'll need to use an API key and set it
+# here with key='YOUR_API_KEY' or set it as an
+# environment variable called STATIC_MAP_API_KEY
 g = salem.GoogleVisibleMap(x=[gdf.min_x.min(), gdf.max_x.max()],
                            y=[gdf.min_y.min(), gdf.max_y.max()],
                            maptype='satellite', scale=2,

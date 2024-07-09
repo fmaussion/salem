@@ -481,7 +481,7 @@ class GoogleCenterMap(GeoDataset):
 
     Needs motionless.
 
-    See https://developers.google.com/maps/documentation/maps-static/usage-and-billing
+    See https://developers.google.com/maps/documentation/maps-static/get-api-key
     for pricing.
     """
 
@@ -562,7 +562,7 @@ class GoogleVisibleMap(GoogleCenterMap):
 
     It's usually more practical to use than GoogleCenterMap.
 
-    See https://developers.google.com/maps/documentation/maps-static/usage-and-billing
+    See https://developers.google.com/maps/documentation/maps-static/get-api-key
     for pricing.
     """
 
