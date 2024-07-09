@@ -31,8 +31,6 @@ from salem import Grid
 from salem import wgs84
 from salem import utils, gis, wrftools, sio, check_crs
 
-API_KEY = None
-
 
 class GeoDataset(object):
     """Interface for georeferenced datasets.
@@ -486,7 +484,7 @@ class GoogleCenterMap(GeoDataset):
 
     def __init__(self, center_ll=(11.38, 47.26), size_x=640, size_y=640,
                  scale=1, zoom=12, maptype='satellite', use_cache=True,
-                 **kwargs):
+                 key=None, **kwargs):
         """Initialize
 
         Parameters
@@ -507,28 +505,27 @@ class GoogleCenterMap(GeoDataset):
           'roadmap', 'satellite', 'hybrid', 'terrain'
         use_cache : bool, default: True
           store the downloaded image in the cache to avoid future downloads
+        key : str, default: None
+          Google API key. If None, it will try to read it from
+          the environment variable STATIC_MAP_API_KEY
         kwargs : **
-          any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
+          any keyword accepted by motionless.CenterMap
         """
-
-        global API_KEY
 
         # Google grid
         grid = gis.googlestatic_mercator_grid(center_ll=center_ll,
                                               nx=size_x, ny=size_y,
                                               zoom=zoom, scale=scale)
 
-        if 'key' not in kwargs:
-            if API_KEY is None:
-                with open(utils.get_demo_file('.api_key'), 'r') as f:
-                    API_KEY = f.read().replace('\n', '')
-            kwargs['key'] = API_KEY
+        if key is None:
+            key = os.environ['STATIC_MAP_API_KEY']
 
         # Motionless
         import motionless
         googleurl = motionless.CenterMap(lon=center_ll[0], lat=center_ll[1],
                                          size_x=size_x, size_y=size_y,
-                                         maptype=maptype, zoom=zoom, scale=scale,
+                                         maptype=maptype, zoom=zoom,
+                                         scale=scale, key=key,
                                          **kwargs)
 
         # done
@@ -559,7 +556,7 @@ class GoogleVisibleMap(GoogleCenterMap):
     """
 
     def __init__(self, x, y, crs=wgs84, size_x=640, size_y=640, scale=1,
-                 maptype='satellite', use_cache=True, **kwargs):
+                 maptype='satellite', use_cache=True, key=None, **kwargs):
         """Initialize
 
         Parameters
@@ -581,6 +578,9 @@ class GoogleVisibleMap(GoogleCenterMap):
           'roadmap', 'satellite', 'hybrid', 'terrain'
         use_cache : bool, default: True
           store the downloaded image in the cache to avoid future downloads
+        key : str, default: None
+          Google API key. If None, it will try to read it from
+          the environment variable STATIC_MAP_API_KEY
         kwargs : **
           any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
 
@@ -589,8 +589,6 @@ class GoogleVisibleMap(GoogleCenterMap):
         To obtain the exact domain specified in `x` and `y` you may have to
         play with the `size_x` and `size_y` kwargs.
         """
-
-        global API_KEY
 
         if 'zoom' in kwargs or 'center_ll' in kwargs:
             raise ValueError('incompatible kwargs.')
@@ -617,12 +615,10 @@ class GoogleVisibleMap(GoogleCenterMap):
             else:
                 break
 
-        if 'key' not in kwargs:
-            if API_KEY is None:
-                with open(utils.get_demo_file('.api_key'), 'r') as f:
-                    API_KEY = f.read().replace('\n', '')
-            kwargs['key'] = API_KEY
+        if key is None:
+            key = os.environ['STATIC_MAP_API_KEY']
 
         GoogleCenterMap.__init__(self, center_ll=mc, size_x=size_x,
                                  size_y=size_y, zoom=zoom, scale=scale,
-                                 maptype=maptype, use_cache=use_cache, **kwargs)
+                                 maptype=maptype, use_cache=use_cache,
+                                 key=key, **kwargs)
