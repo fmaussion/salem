@@ -1405,6 +1405,7 @@ def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
     try:
         out.set_crs(to_crs, allow_override=True, inplace=True)
     except ValueError:
+        # Older versions of geopandas
         out.crs = to_crs
         out.geometry.crs = to_crs
     out['min_x'] = [g.bounds[0] for g in out.geometry]

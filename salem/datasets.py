@@ -593,7 +593,7 @@ class GoogleVisibleMap(GoogleCenterMap):
           Google API key. If None, it will try to read it from
           the environment variable STATIC_MAP_API_KEY
         kwargs : **
-          any keyword accepted by motionless.CenterMap (e.g. `key` for the API)
+          any keyword accepted by motionless.CenterMap
 
         Notes
         -----
