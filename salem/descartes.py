@@ -1,4 +1,4 @@
-"""Paths and patches
+"""Paths and patches.
 
 This file is part of the package "descartes" by sgilles,
 apparently discontinued today.
@@ -13,7 +13,7 @@ from matplotlib.path import Path
 from numpy import asarray, concatenate, ones
 
 
-class Polygon(object):
+class Polygon:
     # Adapt Shapely or GeoJSON/geo_interface polygons to a common interface
     def __init__(self, context):
         if hasattr(context, 'interiors'):
@@ -23,13 +23,14 @@ class Polygon(object):
 
     @property
     def geom_type(self):
-        return (getattr(self.context, 'geom_type', None)
-                or self.context['type'])
+        return getattr(self.context, 'geom_type', None) or self.context['type']
 
     @property
     def exterior(self):
-        return (getattr(self.context, 'exterior', None)
-                or self.context['coordinates'][0])
+        return (
+            getattr(self.context, 'exterior', None)
+            or self.context['coordinates'][0]
+        )
 
     @property
     def interiors(self):
@@ -41,9 +42,12 @@ class Polygon(object):
 
 def PolygonPath(polygon):
     """Constructs a compound matplotlib path from a Shapely or GeoJSON-like
-    geometric object"""
+    geometric object
+    """
     this = Polygon(polygon)
-    assert this.geom_type == 'Polygon'
+    if this.geom_type != 'Polygon':
+        msg = 'Not a Polygon: {}'.format(this.geom_type)
+        raise ValueError(msg)
 
     def coding(ob):
         # The codes will be all "LINETO" commands, except for "MOVETO"s at the
@@ -55,10 +59,11 @@ def PolygonPath(polygon):
 
     vertices = concatenate(
         [asarray(this.exterior.coords)[:, :2]]
-        + [asarray(r.coords)[:, :2] for r in this.interiors])
+        + [asarray(r.coords)[:, :2] for r in this.interiors]
+    )
     codes = concatenate(
-        [coding(this.exterior)]
-        + [coding(r) for r in this.interiors])
+        [coding(this.exterior)] + [coding(r) for r in this.interiors]
+    )
     return Path(vertices, codes)
 
 

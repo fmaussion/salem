@@ -1,5 +1,6 @@
 try:
-    from importlib.metadata import version, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError, version
+
     try:
         __version__ = version(__name__.split('.', maxsplit=1)[0])
     except PackageNotFoundError:
@@ -8,9 +9,12 @@ try:
     finally:
         del version, PackageNotFoundError
 except ModuleNotFoundError:
-    from pkg_resources import get_distribution, DistributionNotFound
+    from pkg_resources import DistributionNotFound, get_distribution
+
     try:
-        __version__ = get_distribution(__name__.split('.', maxsplit=1)[0]).version
+        __version__ = get_distribution(
+            __name__.split('.', maxsplit=1)[0]
+        ).version
     except DistributionNotFound:
         # package is not installed
         pass

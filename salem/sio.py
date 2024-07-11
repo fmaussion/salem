@@ -1,31 +1,46 @@
-"""
-Input output functions (but mostly input)
-"""
-from __future__ import division
+"""Input output functions (but mostly input)."""
 
-import os
-from glob import glob
+from __future__ import annotations
+
+import contextlib
 import pickle
 from datetime import datetime
 from functools import partial
-import warnings
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable
 
-import numpy as np
-import netCDF4
 import cftime
-
-from salem.utils import memory, cached_shapefile_path
-from salem import gis, utils, wgs84, wrftools, proj_to_cartopy
-
+import netCDF4
+import numpy as np
 import xarray as xr
 from xarray.backends.netCDF4_ import NetCDF4DataStore
 from xarray.core import dtypes
+
+from salem import gis, utils, wgs84, wrftools
+from salem.gis import check_crs, proj_to_cartopy
+from salem.utils import (
+    cached_shapefile_path,
+    deprecated_arg,
+    import_if_exists,
+    memory,
+)
+
+if TYPE_CHECKING:
+    import threading
+
+    import pandas as pd
+    from matplotlib import axes
+    from numpy._typing import NDArray
+
+    from salem.graphics import Map
+
 try:
-    from xarray.backends.locks import (NETCDFC_LOCK, HDF5_LOCK, combine_locks)
-    NETCDF4_PYTHON_LOCK = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
+    from xarray.backends.locks import HDF5_LOCK, NETCDFC_LOCK, combine_locks
+
+    netcdf4_python_lock = combine_locks([NETCDFC_LOCK, HDF5_LOCK])
 except ImportError:
     # xarray < v0.11
-    from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
+    from xarray.backends.api import _default_lock as netcdf4_python_lock
 try:
     from xarray.core.pycompat import basestring
 except ImportError:
@@ -33,11 +48,25 @@ except ImportError:
     basestring = str
 
 # Locals
-from salem import transform_proj
+from salem.gis import transform_proj
+
+has_cartopy = import_if_exists('cartopy')
+if has_cartopy:
+    from cartopy import crs
+has_geopandas = import_if_exists('geopandas')
+if has_geopandas:
+    from geopandas import GeoDataFrame, read_file
+
+tolerance_by_proj_id = {
+    1: 1e-3,
+    2: 5e-3,
+    3: 1e-3,
+    6: 1e-3,
+}
 
 
-def read_shapefile(fpath, cached=False):
-    """Reads a shapefile using geopandas.
+def read_shapefile(fpath: Path, *, cached: bool = False) -> GeoDataFrame:
+    """Read a shapefile using geopandas.
 
     For convenience, it adds four columns to the dataframe:
     [min_x, max_x, min_y, max_y]
@@ -46,60 +75,58 @@ def read_shapefile(fpath, cached=False):
     caching utility (cached=True). This will save a pickle of the shapefile
     in the cache directory.
     """
-
-    import geopandas as gpd
-
-    _, ext = os.path.splitext(fpath)
-
-    if ext.lower() in ['.shp', '.p']:
+    if not has_geopandas:
+        msg = 'read_shapefile requires geopandas to be installed'
+        raise RuntimeError(msg)
+    if fpath.suffix.lower() in ['.shp', '.p']:
         if cached:
             cpath = cached_shapefile_path(fpath)
             # unpickle if cached, read and pickle if not
-            if os.path.exists(cpath):
-                with open(cpath, 'rb') as f:
-                    out = pickle.load(f)
-            else:
-                out = read_shapefile(fpath, cached=False)
-                with open(cpath, 'wb') as f:
-                    pickle.dump(out, f)
-        else:
-            out = gpd.read_file(fpath)
-            out['min_x'] = [g.bounds[0] for g in out.geometry]
-            out['max_x'] = [g.bounds[2] for g in out.geometry]
-            out['min_y'] = [g.bounds[1] for g in out.geometry]
-            out['max_y'] = [g.bounds[3] for g in out.geometry]
-    else:
-        raise ValueError('File extension not recognised: {}'.format(ext))
-
-    return out
+            if cpath.exists():
+                with cpath.open('rb') as f:
+                    return pickle.load(f)
+            out = read_shapefile(fpath, cached=False)
+            with cpath.open('wb') as f:
+                pickle.dump(out, f)
+            return out
+        out = read_file(fpath)
+        out['min_x'] = [g.bounds[0] for g in out.geometry]
+        out['max_x'] = [g.bounds[2] for g in out.geometry]
+        out['min_y'] = [g.bounds[1] for g in out.geometry]
+        out['max_y'] = [g.bounds[3] for g in out.geometry]
+        return out
+    msg = f'File extension not recognised: {fpath.suffix}'
+    raise ValueError(msg)
 
 
 @memory.cache(ignore=['grid'])
-def _memory_shapefile_to_grid(shape_cpath, grid=None,
-                              nxny=None, pixel_ref=None, x0y0=None, dxdy=None,
-                              proj=None):
-    """Quick solution using joblib in order to not transform many times the
-    same shape (useful for maps).
+def _memory_shapefile_to_grid(
+    shape_cpath: Path, grid: gis.Grid, **kwargs
+) -> gis.Grid:
+    """Quick solution to not transform many times the same shape (useful for maps).
 
-    Since grid is a complex object, joblib seems to have trouble with it.
+    Using joblib. Since grid is a complex object, joblib seems to have trouble with it.
     So joblib is checking its cache according to the grid params while the job
     is done with grid.
     """
-
     shape = read_shapefile(shape_cpath, cached=True)
     e = grid.extent_in_crs(crs=shape.crs)
-    p = np.nonzero(~((shape['min_x'].to_numpy() > e[1]) |
-                     (shape['max_x'].to_numpy() < e[0]) |
-                     (shape['min_y'].to_numpy() > e[3]) |
-                     (shape['max_y'].to_numpy() < e[2])))
+    p = np.nonzero(
+        ~(
+            (shape['min_x'].to_numpy() > e[1])
+            | (shape['max_x'].to_numpy() < e[0])
+            | (shape['min_y'].to_numpy() > e[3])
+            | (shape['max_y'].to_numpy() < e[2])
+        )
+    )
     shape = shape.iloc[p]
-    shape = gis.transform_geopandas(shape, to_crs=grid, inplace=True)
-    return shape
+    return gis.transform_geopandas(shape, to_crs=grid, inplace=True)
 
 
-def read_shapefile_to_grid(fpath, grid):
-    """Same as read_shapefile but directly transformed to a grid.
+def read_shapefile_to_grid(fpath: Path, grid: gis.Grid) -> gis.Grid:
+    """Read a shapefile and transform to salem.Grid object.
 
+    Same as read_shapefile but directly transformed to a grid.
     The whole thing is cached so that the second call will
     will be much faster.
 
@@ -107,32 +134,37 @@ def read_shapefile_to_grid(fpath, grid):
     ----------
     fpath: path to the file
     grid: the arrival grid
-    """
 
+    Returns
+    -------
+    a salem.Grid object
+
+    """
     # ensure it is a cached pickle (copy code smell)
     shape_cpath = cached_shapefile_path(fpath)
-    if not os.path.exists(shape_cpath):
+    if not shape_cpath.exists():
         out = read_shapefile(fpath, cached=False)
-        with open(shape_cpath, 'wb') as f:
+        with shape_cpath.open('wb') as f:
             pickle.dump(out, f)
 
-    return _memory_shapefile_to_grid(shape_cpath, grid=grid,
-                                     **grid.to_dict())
+    return _memory_shapefile_to_grid(shape_cpath, grid=grid, **grid.to_dict())
 
 
 # TODO: remove this once we sure that we have all WRF files right
 tmp_check_wrf = True
 
 
-def _wrf_grid_from_dataset(ds):
+def _wrf_grid_from_dataset(ds: xr.Dataset) -> gis.Grid:
     """Get the WRF projection out of the file."""
     pargs = {}
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR and other TU Berlin files
         dx = ds.GRID_DX if hasattr(ds, 'GRID_DX') else ds.DX
         dy = ds.GRID_DY if hasattr(ds, 'GRID_DY') else ds.DY
-        if ds.PROJ_NAME in ['Lambert Conformal Conic',
-                            'WRF Lambert Conformal']:
+        if ds.PROJ_NAME in [
+            'Lambert Conformal Conic',
+            'WRF Lambert Conformal',
+        ]:
             proj_id = 1
             pargs['lat_1'] = ds.PROJ_STANDARD_PAR1
             pargs['lat_2'] = ds.PROJ_STANDARD_PAR2
@@ -141,7 +173,7 @@ def _wrf_grid_from_dataset(ds):
             pargs['center_lon'] = ds.PROJ_CENTRAL_LON
         elif ds.PROJ_NAME in ['lat-lon']:
             proj_id = 6
-        elif "mercator" in ds.PROJ_NAME.lower():
+        elif 'mercator' in ds.PROJ_NAME.lower():
             proj_id = 3
             pargs['lat_ts'] = ds.TRUELAT1
             pargs['center_lon'] = ds.CEN_LON
@@ -160,36 +192,40 @@ def _wrf_grid_from_dataset(ds):
         pargs['center_lon'] = ds.CEN_LON
         proj_id = ds.MAP_PROJ
 
-    if proj_id == 1:
+    wrf_projection_key = {
+        'Lambert Conformal': 1,
+        'Polar Stereographic': 2,
+        'Mercator': 3,
+        'Lat-long': 6,
+    }
+    if proj_id == wrf_projection_key['Lambert Conformal']:
         # Lambert
-        p4 = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
-             '+lat_0={lat_0} +lon_0={lon_0} ' \
-             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
-        p4 = p4.format(**pargs)
-    elif proj_id == 2:
+        p4 = (
+            f"+proj=lcc +lat_1={pargs['lat_1']} +lat_2={pargs['lat_2']} "
+            f"+lat_0={pargs['lat_0']} +lon_0={pargs['lon_0']} "
+            "+x_0=0 +y_0=0 +a=6370000 +b=6370000"
+        )
+    elif proj_id == wrf_projection_key['Polar Stereographic']:
         # Polar stereo
-        p4 = '+proj=stere +lat_ts={lat_1} +lon_0={lon_0} +lat_0=90.0' \
-             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
-        p4 = p4.format(**pargs)
-    elif proj_id == 3:
+        p4 = (
+            f"+proj=stere +lat_ts={pargs['lat_1']} +lon_0={pargs['lon_0']} +lat_0=90.0 "
+            f"+x_0=0 +y_0=0 +a=6370000 +b=6370000"
+        )
+    elif proj_id == wrf_projection_key['Mercator']:
         # Mercator
-        p4 = '+proj=merc +lat_ts={lat_1} ' \
-             '+lon_0={center_lon} ' \
-             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
-        p4 = p4.format(**pargs)
-    elif proj_id == 6:
+        p4 = (
+            f"+proj=merc +lat_ts={pargs['lat_1']} "
+            f"+lon_0={pargs['center_lon']} "
+            "+x_0=0 +y_0=0 +a=6370000 +b=6370000"
+        )
+    elif proj_id == wrf_projection_key['Lat-long']:
         # Lat-long
-        p4 = '+proj=eqc ' \
-             '+lon_0={lon_0} ' \
-             '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
-        p4 = p4.format(**pargs)
+        p4 = f'+proj=eqc +lon_0={pargs['lon_0']} +x_0=0 +y_0=0 +a=6370000 +b=6370000'
     else:
-        raise NotImplementedError('WRF proj not implemented yet: '
-                                  '{}'.format(proj_id))
+        msg = f'WRF proj not understood: {proj_id}'
+        raise NotImplementedError(msg)
 
     proj = gis.check_crs(p4)
-    if proj is None:
-        raise RuntimeError('WRF proj not understood: {}'.format(p4))
 
     # Here we have to accept xarray and netCDF4 datasets
     try:
@@ -201,13 +237,13 @@ def _wrf_grid_from_dataset(ds):
         ny = ds.sizes['south_north']
     if hasattr(ds, 'PROJ_ENVI_STRING'):
         # HAR
-        x0 = ds['west_east'][0]
-        y0 = ds['south_north'][0]
+        x0 = float(ds['west_east'][0])
+        y0 = float(ds['south_north'][0])
     else:
         # Normal WRF file
         e, n = gis.transform_proj(wgs84, proj, cen_lon, cen_lat)
-        x0 = -(nx-1) / 2. * dx + e  # DL corner
-        y0 = -(ny-1) / 2. * dy + n  # DL corner
+        x0 = -(nx - 1) / 2.0 * dx + e  # DL corner
+        y0 = -(ny - 1) / 2.0 * dy + n  # DL corner
     grid = gis.Grid(nxny=(nx, ny), x0y0=(x0, y0), dxdy=(dx, dy), proj=proj)
 
     if tmp_check_wrf:
@@ -225,38 +261,43 @@ def _wrf_grid_from_dataset(ds):
             reflon = ds.variables['lon']
             reflat = ds.variables['lat']
         else:
-            raise RuntimeError("couldn't test for correct WRF lon-lat")
+            msg = "couldn't test for correct WRF lon-lat"
+            raise RuntimeError(msg)
 
         if len(reflon.shape) == 3:
             reflon = reflon[0, :, :]
             reflat = reflat[0, :, :]
         mylon, mylat = grid.ll_coordinates
 
-        atol = 5e-3 if proj_id == 2 else 1e-3
+        atol = tolerance_by_proj_id[proj_id]
         check = np.isclose(reflon, mylon, atol=atol)
         if not np.all(check):
             n_pix = np.sum(~check)
             maxe = np.max(np.abs(reflon - mylon))
             if maxe < (360 - atol):
-                warnings.warn('For {} grid points, the expected accuracy ({}) '
-                              'of our lons did not match those of the WRF '
-                              'file. Max error: {}'.format(n_pix, atol, maxe))
+                msg = """
+                    For {n_pix} grid points, the expected accuracy ({atol}) of our lons
+                    did not match those of the WRF file. Max error: {maxe}
+                    )""".format(n_pix=n_pix, atol=atol, maxe=maxe)
+                deprecated_arg(msg)
         check = np.isclose(reflat, mylat, atol=atol)
         if not np.all(check):
             n_pix = np.sum(~check)
             maxe = np.max(np.abs(reflat - mylat))
-            warnings.warn('For {} grid points, the expected accuracy ({}) '
-                          'of our lats did not match those of the WRF file. '
-                          'Max error: {}'.format(n_pix, atol, maxe))
+            msg = """
+                For {n_pix} grid points, the expected accuracy ({atol}) of our lats
+                did not match those of the WRF file. Max error: {maxe}
+                )""".format(n_pix=n_pix, atol=atol, maxe=maxe)
+            deprecated_arg(msg)
 
     return grid
 
 
-def _lonlat_grid_from_dataset(ds):
+def _lonlat_grid_from_dataset(ds: xr.Dataset) -> gis.Grid | None:
     """Seek for longitude and latitude coordinates."""
-
     # Do we have some standard names as variable?
-    vns = ds.variables.keys()
+    keys_view = ds.variables.keys()
+    vns = [str(k) for k in keys_view]
     xc = utils.str_in_list(vns, utils.valid_names['x_dim'])
     yc = utils.str_in_list(vns, utils.valid_names['y_dim'])
 
@@ -278,37 +319,42 @@ def _lonlat_grid_from_dataset(ds):
     lat = ds.variables[y][:]
 
     # double check for dubious variables
-    if not utils.str_in_list([x], utils.valid_names['lon_var']) or \
-            not utils.str_in_list([y], utils.valid_names['lat_var']):
-        # name not usual. see if at least the range follows some conv
-        if (np.max(np.abs(lon)) > 360.1) or (np.max(np.abs(lat)) > 90.1):
-            return None
+    # name not usual. see if at least the range follows some conv
+    if (
+        not utils.str_in_list([x], utils.valid_names['lon_var'])
+        or not utils.str_in_list([y], utils.valid_names['lat_var'])
+    ) and ((np.max(np.abs(lon)) > 360.1) or (np.max(np.abs(lat)) > 90.1)):
+        return None
 
     # Make the grid
-    dx = lon[1]-lon[0]
-    dy = lat[1]-lat[0]
-    args = dict(nxny=(lon.shape[0], lat.shape[0]), proj=wgs84, dxdy=(dx, dy),
-                x0y0=(lon[0], lat[0]))
+    dx = lon[1] - lon[0]
+    dy = lat[1] - lat[0]
+    args = {
+        'nxny': (lon.shape[0], lat.shape[0]),
+        'proj': wgs84,
+        'dxdy': (dx, dy),
+        'x0y0': (lon[0], lat[0]),
+    }
     return gis.Grid(**args)
 
 
-def _salem_grid_from_dataset(ds):
+def _salem_grid_from_dataset(ds: xr.Dataset) -> gis.Grid | None:
     """Seek for coordinates that Salem might have created.
 
     Current convention: x_coord, y_coord, pyproj_srs as attribute
     """
-
     # Projection
     try:
-        proj = ds.pyproj_srs
+        proj = str(ds.pyproj_srs)
     except AttributeError:
         proj = None
-    proj = gis.check_crs(proj)
     if proj is None:
         return None
+    proj = gis.check_crs(proj)
 
     # Do we have some standard names as variable?
-    vns = ds.variables.keys()
+    keys_view = ds.variables.keys()
+    vns = [str(k) for k in keys_view]
     xc = utils.str_in_list(vns, utils.valid_names['x_dim'])
     yc = utils.str_in_list(vns, utils.valid_names['y_dim'])
 
@@ -330,14 +376,18 @@ def _salem_grid_from_dataset(ds):
     y = ds.variables[y][:]
 
     # Make the grid
-    dx = x[1]-x[0]
-    dy = y[1]-y[0]
-    args = dict(nxny=(x.shape[0], y.shape[0]), proj=proj, dxdy=(dx, dy),
-                x0y0=(x[0], y[0]))
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+    args = {
+        'nxny': (x.shape[0], y.shape[0]),
+        'proj': proj,
+        'dxdy': (dx, dy),
+        'x0y0': (x[0], y[0]),
+    }
     return gis.Grid(**args)
 
 
-def grid_from_dataset(ds):
+def grid_from_dataset(ds: xr.Dataset) -> gis.Grid | None:
     """Find out if the dataset contains enough info for Salem to understand.
 
     ``ds`` can be an xarray dataset or a NetCDF dataset, or anything
@@ -345,7 +395,6 @@ def grid_from_dataset(ds):
 
     Returns a :py:class:`~salem.Grid` if successful, ``None`` otherwise
     """
-
     # try if it is a salem file
     out = _salem_grid_from_dataset(ds)
     if out is not None:
@@ -360,15 +409,17 @@ def grid_from_dataset(ds):
     return _lonlat_grid_from_dataset(ds)
 
 
-def netcdf_time(ncobj, monthbegin=False):
+def netcdf_time(
+    ncobj: netCDF4.Dataset, *, monthbegin: bool = False
+) -> pd.DatetimeIndex | None:
     """Check if the netcdf file contains a time that Salem understands."""
-
     import pandas as pd
 
     time = None
     try:
-        vt = utils.str_in_list(ncobj.variables.keys(),
-                               utils.valid_names['time_var'])[0]
+        keys_view = ncobj.variables.keys()
+        vns = [str(k) for k in keys_view]
+        vt = utils.str_in_list(vns, utils.valid_names['time_var'])[0]
     except IndexError:
         # no time variable
         return None
@@ -384,51 +435,62 @@ def netcdf_time(ncobj, monthbegin=False):
         except AttributeError:
             stimes = ncobj.variables['Times'][:]
         for t in stimes:
-            time.append(pd.to_datetime(t.tobytes().decode(),
-                                       errors='raise',
-                                       format='%Y-%m-%d_%H:%M:%S'))
+            time.append(
+                pd.to_datetime(
+                    t.tobytes().decode(),
+                    errors='raise',
+                    format='%Y-%m-%d_%H:%M:%S',
+                )
+            )
     elif vt is not None:
         # CF time
         var = ncobj.variables[vt]
         try:
             # We want python times because pandas doesn't understand
             # CFtime
-            time = cftime.num2date(var[:], var.units,
-                                   only_use_cftime_datetimes=False,
-                                   only_use_python_datetimes=True)
+            time = cftime.num2date(
+                var[:],
+                var.units,
+                only_use_cftime_datetimes=False,
+                only_use_python_datetimes=True,
+            )
         except TypeError:
             # Old versions of cftime did return python times when possible
             time = cftime.num2date(var[:], var.units)
 
         if monthbegin:
             # sometimes monthly data is centered in the month (stupid)
-            time = [datetime(t.year, t.month, 1) for t in time]
+            time = [
+                datetime(t.year, t.month, 1, tzinfo=t.tzinfo) for t in time
+            ]
 
-    return time
+    if time is None:
+        return None
+    return pd.DatetimeIndex(time)
 
 
-class _XarrayAccessorBase(object):
+class _XarrayAccessorBase:
     """Common logic for for both data structures (DataArray and Dataset).
 
     http://xarray.pydata.org/en/stable/internals.html#extending-xarray
     """
 
-    def __init__(self, xarray_obj):
-
+    def __init__(self, xarray_obj: xr.Dataset | xr.DataArray) -> None:
         self._obj = xarray_obj
 
         if isinstance(xarray_obj, xr.DataArray):
             xarray_obj = xarray_obj.to_dataset(name='var')
-            try:  # maybe there was already some georef
+            # maybe there was already some georef
+            with contextlib.suppress(Exception):
                 xarray_obj.attrs['pyproj_srs'] = xarray_obj['var'].pyproj_srs
-            except:
-                pass
 
         self.grid = grid_from_dataset(xarray_obj)
         if self.grid is None:
-            raise RuntimeError('dataset Grid not understood.')
+            msg = 'dataset Grid not understood.'
+            raise RuntimeError(msg)
 
-        dn = xarray_obj.sizes.keys()
+        keys_view = xarray_obj.sizes.keys()
+        dn = [str(k) for k in keys_view]
         self.x_dim = utils.str_in_list(dn, utils.valid_names['x_dim'])[0]
         self.y_dim = utils.str_in_list(dn, utils.valid_names['y_dim'])[0]
         dim = utils.str_in_list(dn, utils.valid_names['t_dim'])
@@ -436,16 +498,25 @@ class _XarrayAccessorBase(object):
         dim = utils.str_in_list(dn, utils.valid_names['z_dim'])
         self.z_dim = dim[0] if dim else None
 
-    def subset(self, margin=0, ds=None, **kwargs):
-        """subset(self, margin=0, shape=None, geometry=None, grid=None,
-                  corners=None, crs=wgs84, roi=None)
+    def subset(
+        self,
+        margin: int = 0,
+        ds: xr.Dataset | xr.DataArray | None = None,
+        **kwargs,
+    ) -> xr.Dataset | xr.DataArray:
+        """Get a subset of the dataset.
 
-        Get a subset of the dataset.
+        subset(self, margin=0, shape=None, geometry=None, grid=None,
+                  corners=None, crs=wgs84, roi=None)
 
         Accepts all keywords of :py:func:`~Grid.roi`
 
         Parameters
         ----------
+        margin : int
+            add a margin to the region to subset (can be negative!). Can
+            be used a single keyword, too: set_subset(margin=-5) will remove
+            five pixels from each boundary of the dataset.
         ds : Dataset or DataArray
             form the ROI from the extent of the Dataset or DataArray
         shape : str
@@ -461,12 +532,8 @@ class _XarrayAccessorBase(object):
             coordinate reference system of the geometry and corners
         roi : ndarray
             a mask for the region of interest to subset the dataset onto
-        margin : int
-            add a margin to the region to subset (can be negative!). Can
-            be used a single keyword, too: set_subset(margin=-5) will remove
-            five pixels from each boundary of the dataset.
-        """
 
+        """
         if ds is not None:
             grid = ds.salem.grid
             kwargs.setdefault('grid', grid)
@@ -480,16 +547,24 @@ class _XarrayAccessorBase(object):
         sub_x = [np.min(ids[1]) - margin, np.max(ids[1]) + margin]
         sub_y = [np.min(ids[0]) - margin, np.max(ids[0]) + margin]
 
-        out_ds = self._obj[{self.x_dim: slice(sub_x[0], sub_x[1]+1),
-                            self.y_dim: slice(sub_y[0], sub_y[1]+1)}
-                           ]
-        return out_ds
+        return self._obj[
+            {
+                self.x_dim: slice(sub_x[0], sub_x[1] + 1),
+                self.y_dim: slice(sub_y[0], sub_y[1] + 1),
+            }
+        ]
 
-    def roi(self, ds=None, **kwargs):
-        """roi(self, shape=None, geometry=None, grid=None, corners=None,
+    def roi(
+        self,
+        ds: xr.Dataset | xr.DataArray | None = None,
+        grid: gis.Grid | None = None,
+        other: float | np.ndarray | xr.Dataset | xr.DataArray | None = None,
+        **kwargs,
+    ) -> xr.Dataset | xr.DataArray:
+        """Make a region of interest (ROI) for the dataset.
+
+        roi(self, shape=None, geometry=None, grid=None, corners=None,
                crs=wgs84, roi=None, all_touched=False, other=None)
-
-        Make a region of interest (ROI) for the dataset.
 
         All grid points outside the ROI will be masked out.
 
@@ -518,6 +593,7 @@ class _XarrayAccessorBase(object):
             Value to use for locations in this object where cond is False. By
             default, these locations filled with NA.
             As in http://xarray.pydata.org/en/stable/generated/xarray.DataArray.where.html
+
         """
         other = kwargs.pop('other', dtypes.NA)
         if ds is not None:
@@ -544,47 +620,60 @@ class _XarrayAccessorBase(object):
                 out.variables[v].attrs['pyproj_srs'] = self.grid.proj.srs
         return out
 
-    def get_map(self, **kwargs):
+    def get_map(self, **kwargs) -> Map:
         """Make a salem.Map out of the dataset.
 
         All keywords are passed to :py:class:salem.Map
         """
-
         from salem.graphics import Map
+
         return Map(self.grid, **kwargs)
 
-    def _quick_map(self, obj, ax=None, interp='nearest', **kwargs):
+    def _quick_map(
+        self,
+        obj: xr.DataArray,
+        ax: axes.Axes | None = None,
+        interp: str = 'nearest',
+        **kwargs,
+    ) -> Map:
         """Make a plot of a data array."""
-
         # some metadata?
-        title = obj.name or ''
-        if obj._title_for_slice():
-            title += ' (' + obj._title_for_slice() + ')'
-        cb = obj.attrs['units'] if 'units' in obj.attrs else ''
+        title = str(obj.name) or ''
+        title_add = obj._title_for_slice()
+        if title_add:
+            title += ' ({})'.format(str(title_add))
+        cb = obj.attrs.get('units', '')
 
         smap = self.get_map(**kwargs)
         smap.set_data(obj.values, interp=interp)
         smap.visualize(ax=ax, title=title, cbar_title=cb)
         return smap
 
-    def cartopy(self):
+    def cartopy(self) -> crs.Projection:
         """Get a cartopy.crs.Projection for this dataset."""
         return proj_to_cartopy(self.grid.proj)
 
-    def _apply_transform(self, transform, grid, other, return_lut=False):
-        """Common transform mixin"""
-
+    def _apply_transform(
+        self,
+        transform: Callable,
+        grid: gis.Grid,
+        other: xr.Dataset | xr.DataArray,
+        *,
+        return_lut: bool = False,
+    ) -> xr.Dataset | xr.DataArray:
+        """Apply common transform mixin."""
         was_dataarray = False
         if not isinstance(other, xr.Dataset):
             try:
                 other = other.to_dataset(name=other.name)
                 was_dataarray = True
-            except AttributeError:
+            except AttributeError as att_err:
                 # must be a ndarray
                 if return_lut:
                     rdata, lut = transform(other, grid=grid, return_lut=True)
                 else:
                     rdata = transform(other, grid=grid)
+                    lut = None
                 # let's guess
                 sh = rdata.shape
                 nd = len(sh)
@@ -598,7 +687,8 @@ class _XarrayAccessorBase(object):
                         newdim = self.z_dim
                     dims = (newdim, self.y_dim, self.x_dim)
                 else:
-                    raise NotImplementedError('more than 3 dims not ok yet.')
+                    msg = 'more than 3 dims not ok yet.'
+                    raise NotImplementedError(msg) from att_err
 
                 coords = {}
                 for d in dims:
@@ -609,8 +699,7 @@ class _XarrayAccessorBase(object):
                 out.attrs['pyproj_srs'] = self.grid.proj.srs
                 if return_lut:
                     return out, lut
-                else:
-                    return out
+                return out
 
         # go
         out = xr.Dataset()
@@ -638,8 +727,9 @@ class _XarrayAccessorBase(object):
             coords[self.x_dim] = self._obj[self.x_dim]
             coords[self.y_dim] = self._obj[self.y_dim]
 
-            rdata = xr.DataArray(rdata, coords=coords, attrs=var.attrs,
-                                 dims=dims)
+            rdata = xr.DataArray(
+                rdata, coords=coords, attrs=var.attrs, dims=dims
+            )
             rdata.attrs['pyproj_srs'] = self.grid.proj.srs
             out[v] = rdata
 
@@ -650,10 +740,15 @@ class _XarrayAccessorBase(object):
 
         if return_lut:
             return out, lut
-        else:
-            return out
+        return out
 
-    def transform(self, other, grid=None, interp='nearest', ks=3):
+    def transform(
+        self,
+        other: xr.Dataset | xr.DataArray | np.ndarray,
+        grid: gis.Grid | None = None,
+        interp: str = 'nearest',
+        ks: int = 3,
+    ) -> xr.Dataset | xr.DataArray:
         """Reprojects an other Dataset or DataArray onto self.
 
         The returned object has the same data structure as ``other`` (i.e.
@@ -674,15 +769,21 @@ class _XarrayAccessorBase(object):
         Returns
         -------
         a dataset or a dataarray
-        """
 
+        """
         transform = partial(self.grid.map_gridded_data, interp=interp, ks=ks)
         return self._apply_transform(transform, grid, other)
 
-    def lookup_transform(self, other, grid=None, method=np.mean, lut=None,
-                         return_lut=False):
-        """Reprojects an other Dataset or DataArray onto self using the
-        forward tranform lookup.
+    def lookup_transform(
+        self,
+        other: xr.Dataset | xr.DataArray | np.ndarray,
+        grid: gis.Grid | None = None,
+        method: Callable = np.mean,
+        lut: NDArray[Any] | None = None,
+        *,
+        return_lut: bool = False,
+    ) -> xr.Dataset | xr.DataArray:
+        """Project another Dataset or DataArray onto self via forward transform lookup.
 
         See : :py:meth:`Grid.lookup_transform`
 
@@ -707,21 +808,27 @@ class _XarrayAccessorBase(object):
         -------
         a dataset or a dataarray
         If ``return_lut==True``, also return the lookup table
-        """
 
+        """
+        if grid is None:
+            grid = check_crs(self.grid)
         transform = partial(self.grid.lookup_transform, method=method, lut=lut)
-        return self._apply_transform(transform, grid, other,
-                                     return_lut=return_lut)
+        return self._apply_transform(
+            transform, grid, other, return_lut=return_lut
+        )
 
 
 @xr.register_dataarray_accessor('salem')
 class DataArrayAccessor(_XarrayAccessorBase):
+    """Salems xarray accessor for DataArrays."""
 
-    def quick_map(self, ax=None, interp='nearest', **kwargs):
+    def quick_map(
+        self, ax: axes.Axes | None = None, interp: str = 'nearest', **kwargs
+    ) -> Map:
         """Make a plot of the DataArray."""
         return self._quick_map(self._obj, ax=ax, interp=interp, **kwargs)
 
-    def deacc(self, as_rate=True):
+    def deacc(self, *, as_rate: bool = True) -> xr.DataArray:
         """De-accumulates the variable (i.e. compute the variable's rate).
 
         The returned variable has one element less over the time dimension.
@@ -733,26 +840,37 @@ class DataArrayAccessor(_XarrayAccessorBase):
         as_rate: bool
           set to false if you don't want units per hour,
           but units per given data timestep
-        """
 
+        """
         out = self._obj[{self.t_dim: slice(1, len(self._obj[self.t_dim]))}]
-        diff = self._obj[{self.t_dim: slice(0, len(self._obj[self.t_dim])-1)}]
-        out.values = out.values - diff.values
-        out.attrs['description'] = out.attrs['description'].replace('ACCUMULATED ', '')
+        diff = self._obj[
+            {self.t_dim: slice(0, len(self._obj[self.t_dim]) - 1)}
+        ]
+        out.values = out.to_numpy() - diff.to_numpy()
+        out.attrs['description'] = out.attrs['description'].replace(
+            'ACCUMULATED ', ''
+        )
 
         if as_rate:
-            dth = self._obj.time[1].values - self._obj.time[0].values
+            dth = self._obj.time[1].to_numpy() - self._obj.time[0].to_numpy()
             dth = dth.astype('timedelta64[h]').astype(float)
-            out.values = out.values / dth
+            out.values = out.to_numpy() / dth
             out.attrs['units'] += ' h-1'
         else:
             out.attrs['units'] += ' step-1'
 
         return out
 
-    def interpz(self, zcoord, levels, dim_name='', fill_value=np.nan,
-                use_multiprocessing=True):
-        """Interpolates the array along the vertical dimension
+    def interpz(
+        self,
+        zcoord: xr.DataArray,
+        levels: list[float],
+        dim_name: str = '',
+        fill_value: float = np.nan,
+        *,
+        use_multiprocessing: bool = True,
+    ) -> xr.DataArray:
+        """Interpolate the array along the vertical dimension.
 
         Parameters
         ----------
@@ -771,14 +889,19 @@ class DataArrayAccessor(_XarrayAccessorBase):
         Returns
         -------
         a new DataArray with the interpolated data
+
         """
-
         if self.z_dim is None:
-            raise RuntimeError('zdimension not recognized')
+            msg = 'zdimension not recognized'
+            raise RuntimeError(msg)
 
-        data = wrftools.interp3d(self._obj.values, zcoord.values,
-                                 np.atleast_1d(levels), fill_value=fill_value,
-                                 use_multiprocessing=use_multiprocessing)
+        data = wrftools.interp3d(
+            self._obj.values,
+            zcoord.values,
+            np.atleast_1d(levels),
+            fill_value=fill_value,
+            use_multiprocessing=use_multiprocessing,
+        )
 
         dims = list(self._obj.dims)
         zd = np.nonzero([self.z_dim == d for d in dims])[0][0]
@@ -795,14 +918,28 @@ class DataArrayAccessor(_XarrayAccessorBase):
 
 @xr.register_dataset_accessor('salem')
 class DatasetAccessor(_XarrayAccessorBase):
+    """Salems xarray accessor for Datasets."""
 
-    def quick_map(self, varname, ax=None, interp='nearest', **kwargs):
+    def quick_map(
+        self,
+        varname: str,
+        ax: axes.Axes | None = None,
+        interp: str = 'nearest',
+        **kwargs,
+    ) -> Map:
         """Make a plot of a variable of the DataSet."""
-        return self._quick_map(self._obj[varname], ax=ax, interp=interp,
-                               **kwargs)
+        return self._quick_map(
+            self._obj[varname], ax=ax, interp=interp, **kwargs
+        )
 
-    def transform_and_add(self, other, grid=None, interp='nearest', ks=3,
-                          name=None):
+    def transform_and_add(
+        self,
+        other: xr.Dataset | xr.DataArray | np.ndarray,
+        name: str | dict[str, str] | None = None,
+        grid: gis.Grid | None = None,
+        interp: str = 'nearest',
+        ks: int = 3,
+    ) -> xr.Dataset | xr.DataArray:
         """Reprojects an other Dataset and adds it's content to the current one.
 
         Parameters
@@ -821,25 +958,33 @@ class DatasetAccessor(_XarrayAccessorBase):
             conflict). Set to a str to to rename the variable (if unique) or
             set to a dict for mapping the old names to the new names for
             datasets.
-        """
 
+        """
         out = self.transform(other, grid=grid, interp=interp, ks=ks)
 
         if isinstance(out, xr.DataArray):
             new_name = name or out.name
             if new_name is None:
-                raise ValueError('You need to set name')
+                msg = 'You need to set name'
+                raise ValueError(msg)
             self._obj[new_name] = out
-        else:
+        elif isinstance(out, xr.Dataset):
             for v in out.data_vars:
                 try:
                     new_name = name[v]
                 except (KeyError, TypeError):
                     new_name = v
                 self._obj[new_name] = out[v]
+        return self._obj
 
-    def wrf_zlevel(self, varname, levels=None, fill_value=np.nan,
-                   use_multiprocessing=True):
+    def wrf_zlevel(
+        self,
+        varname: str,
+        levels: list[float] | NDArray[Any] | None = None,
+        fill_value: float = np.nan,
+        *,
+        use_multiprocessing: bool = True,
+    ) -> xr.Dataset:
         """Interpolates to a specified height above sea level.
 
         Parameters
@@ -857,28 +1002,57 @@ class DatasetAccessor(_XarrayAccessorBase):
         Returns
         -------
         an interpolated DataArray
+
         """
         if levels is None:
-            levels = np.array([10, 20, 30, 50, 75, 100, 200, 300, 500, 750,
-                               1000, 2000, 3000, 5000, 7500, 10000])
+            levels = np.array(
+                [
+                    10,
+                    20,
+                    30,
+                    50,
+                    75,
+                    100,
+                    200,
+                    300,
+                    500,
+                    750,
+                    1000,
+                    2000,
+                    3000,
+                    5000,
+                    7500,
+                    10000,
+                ]
+            )
 
         zcoord = self._obj['Z']
-        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='z',
-                                               fill_value=fill_value,
-                                               use_multiprocessing=use_multiprocessing)
+        out = self._obj[varname].salem.interpz(
+            zcoord,
+            levels,
+            dim_name='z',
+            fill_value=fill_value,
+            use_multiprocessing=use_multiprocessing,
+        )
         out['z'].attrs['description'] = 'height above sea level'
         out['z'].attrs['units'] = 'm'
         return out
 
-    def wrf_plevel(self, varname, levels=None, fill_value=np.nan,
-                   use_multiprocessing=True):
+    def wrf_plevel(
+        self,
+        varname: str,
+        levels: list[float] | NDArray[Any] | None = None,
+        fill_value: float = np.nan,
+        *,
+        use_multiprocessing: bool = True,
+    ) -> xr.Dataset:
         """Interpolates to a specified pressure level (hPa).
 
         Parameters
         ----------
         varname: str
           the name of the variable to interpolate
-        levels: 1d array
+        levels: 1d array, optional
           levels at which to interpolate (default: some levels I thought of)
         fill_value : np.nan or 'extrapolate', optional
           how to handle levels below the topography. Default is to mark them
@@ -889,21 +1063,46 @@ class DatasetAccessor(_XarrayAccessorBase):
         Returns
         -------
         an interpolated DataArray
+
         """
         if levels is None:
-            levels = np.array([1000, 975, 950, 925, 900, 850, 800, 750, 700,
-                               650, 600, 550, 500, 450, 400, 300, 200, 100])
+            levels = np.array(
+                [
+                    1000,
+                    975,
+                    950,
+                    925,
+                    900,
+                    850,
+                    800,
+                    750,
+                    700,
+                    650,
+                    600,
+                    550,
+                    500,
+                    450,
+                    400,
+                    300,
+                    200,
+                    100,
+                ]
+            )
 
         zcoord = self._obj['PRESSURE']
-        out = self._obj[varname].salem.interpz(zcoord, levels, dim_name='p',
-                                               fill_value=fill_value,
-                                               use_multiprocessing=use_multiprocessing)
+        out = self._obj[varname].salem.interpz(
+            zcoord,
+            levels,
+            dim_name='p',
+            fill_value=fill_value,
+            use_multiprocessing=use_multiprocessing,
+        )
         out['p'].attrs['description'] = 'pressure'
         out['p'].attrs['units'] = 'hPa'
         return out
 
 
-def open_xr_dataset(file):
+def open_xr_dataset(file: Path | str) -> xr.Dataset:
     """Thin wrapper around xarray's open_dataset.
 
     This is needed because variables often have not enough georef attrs
@@ -913,18 +1112,25 @@ def open_xr_dataset(file):
     Returns
     -------
     an xarray Dataset
-    """
 
+    """
     # if geotiff, use Salem
-    p, ext = os.path.splitext(file)
-    if (ext.lower() == '.tif') or (ext.lower() == '.tiff'):
+    if isinstance(file, str):
+        file = Path(file)
+    ext = file.suffix.lower()
+    if ext in ('.tif', '.tiff'):
         from salem import GeoTiff
+
         geo = GeoTiff(file)
         # TODO: currently everything is loaded in memory (baaad)
-        da = xr.DataArray(geo.get_vardata(),
-                          coords={'x': geo.grid.center_grid.x_coord,
-                                  'y': geo.grid.center_grid.y_coord},
-                          dims=['y', 'x'])
+        da = xr.DataArray(
+            geo.get_vardata(),
+            coords={
+                'x': geo.grid.center_grid.x_coord,
+                'y': geo.grid.center_grid.y_coord,
+            },
+            dims=['y', 'x'],
+        )
         ds = xr.Dataset()
         ds.attrs['pyproj_srs'] = geo.grid.proj.srs
         ds['data'] = da
@@ -950,8 +1156,10 @@ def open_xr_dataset(file):
     return ds
 
 
-def open_wrf_dataset(file, **kwargs):
-    """Wrapper around xarray's open_dataset to make WRF files a bit better.
+def open_wrf_dataset(file: Path | str, **kwargs) -> xr.Dataset:
+    """Use Salem to open a wrf dataset.
+
+    Thin wrapper around xarray's open_dataset to make WRF files a bit better.
 
     This is needed because variables often have not enough georef attrs
     to be understood alone, and datasets tend to loose their attrs with
@@ -967,8 +1175,8 @@ def open_wrf_dataset(file, **kwargs):
     Returns
     -------
     an xarray Dataset
-    """
 
+    """
     nc = netCDF4.Dataset(file)
     nc.set_auto_mask(False)
 
@@ -987,12 +1195,12 @@ def open_wrf_dataset(file, **kwargs):
     ds = xr.open_dataset(NetCDF4DataStore(nc), **kwargs)
 
     # remove time dimension to lon lat
-    for vn in ['XLONG', 'XLAT']:
-        try:
+    try:
+        for vn in ['XLONG', 'XLAT']:
             v = ds[vn].isel(Time=0)
             ds[vn] = xr.DataArray(v.values, dims=['south_north', 'west_east'])
-        except (ValueError, KeyError):
-            pass
+    except (ValueError, KeyError):
+        pass
 
     # Convert time (if necessary)
     if 'Time' in ds.dims:
@@ -1001,7 +1209,7 @@ def open_wrf_dataset(file, **kwargs):
             ds['Time'] = time
         ds = ds.rename({'Time': 'time'})
     tr = {'Time': 'time', 'XLAT': 'lat', 'XLONG': 'lon', 'XTIME': 'xtime'}
-    tr = {k: tr[k] for k in tr.keys() if k in ds.variables}
+    tr = {k: tr[k] for k in tr if k in ds.variables}
     ds = ds.rename(tr)
 
     # drop ugly vars
@@ -1024,24 +1232,40 @@ def open_wrf_dataset(file, **kwargs):
     return ds
 
 
-def is_rotated_proj_working():
+def is_rotated_proj_working() -> np.bool:
+    """Check if the pyproj version is working with rotated projections.
 
+    Returns
+    -------
+        The check result.
+
+    """
     import pyproj
-    srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
-           '+to_meter=0.0174532925199433 +o_lon_p=0.0 +o_lat_p=80.5 '
-           '+lon_0=357.5 +no_defs')
+
+    srs = (
+        '+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+        '+to_meter=0.0174532925199433 +o_lon_p=0.0 +o_lat_p=80.5 '
+        '+lon_0=357.5 +no_defs'
+    )
 
     p1 = pyproj.Proj(srs)
     p2 = wgs84
 
-    return np.isclose(transform_proj(p1, p2, -20, -9),
-                      [-22.243473889042903, -0.06328365194179102],
-                      atol=1e-5).all()
+    return np.isclose(
+        transform_proj(p1, p2, np.array(-20), np.array(-9)),
+        [-22.243473889042903, -0.06328365194179102],
+        atol=1e-5,
+    ).all()
 
 
-def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
-                       central_rotated_longitude=0., **kwargs):
-    """Wrapper to Met Office Unified Model files (experimental)
+def open_metum_dataset(
+    file: Path | str,
+    pole_longitude: float | None = None,
+    pole_latitude: float | None = None,
+    central_rotated_longitude: float = 0.0,
+    **kwargs,
+) -> xr.Dataset:
+    """Wrapper to Met Office Unified Model files (experimental).
 
     This is needed because these files are a little messy.
 
@@ -1064,12 +1288,15 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     Returns
     -------
     an xarray Dataset
-    """
 
+    """
     if not is_rotated_proj_working():
-        raise RuntimeError('open_metum_dataset currently does not '
-                           'work with certain PROJ versions: '
-                           'https://github.com/pyproj4/pyproj/issues/424')
+        msg = (
+            'open_metum_dataset currently does not '
+            'work with certain PROJ versions: '
+            'https://github.com/pyproj4/pyproj/issues/424'
+        )
+        raise RuntimeError(msg)
 
     # open with xarray
     ds = xr.open_dataset(file, **kwargs)
@@ -1091,17 +1318,22 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
         pole_latitude = ds.attrs.get(n_lat, None)
         # then as variable attribute
         if pole_longitude is None or pole_latitude is None:
-            for k, v in ds.variables.items():
+            for v in ds.variables.values():
                 if n_lon in v.attrs:
                     pole_longitude = v.attrs[n_lon]
                 if n_lat in v.attrs:
                     pole_latitude = v.attrs[n_lat]
                 if pole_longitude is not None and pole_latitude is not None:
                     break
+    if pole_longitude is None or pole_latitude is None:
+        msg = 'Could not determine pole longitude and/or latitude'
+        raise RuntimeError(msg)
 
-    srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
-           '+to_meter=0.0174532925199433 '
-           '+o_lon_p={o_lon_p} +o_lat_p={o_lat_p} +lon_0={lon_0} +no_defs')
+    srs = (
+        '+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
+        '+to_meter=0.0174532925199433 '
+        '+o_lon_p={o_lon_p} +o_lat_p={o_lat_p} +lon_0={lon_0} +no_defs'
+    )
     params = {
         'o_lon_p': central_rotated_longitude,
         'o_lat_p': pole_latitude,
@@ -1117,8 +1349,14 @@ def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
     return ds
 
 
-def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
-                        preprocess=None):
+def open_mf_wrf_dataset(
+    paths: list[Path] | Path | str,
+    chunks: int | dict[str, float] | None = None,
+    compat: str = 'no_conflicts',
+    preprocess: Callable | None = None,
+    *,
+    lock: bool | threading.Lock = False,
+) -> xr.Dataset:
     """Open multiple WRF files as a single WRF dataset.
 
     Requires dask to be installed. Note that if your files are sliced by time,
@@ -1130,9 +1368,8 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
 
     Parameters
     ----------
-    paths : str or sequence
-        Either a string glob in the form `path/to/my/files/*.nc` or an
-        explicit list of files to open.
+    paths :
+        Either a list of Path object or a Path object.
     chunks : int or dict, optional
         Dictionary with keys given by dimension names and values given by chunk
         sizes. In general, these should divide the dimensions of each dataset.
@@ -1163,18 +1400,27 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
     Returns
     -------
     xarray.Dataset
+
     """
-
-    if isinstance(paths, basestring):
-        paths = sorted(glob(paths))
     if not paths:
-        raise IOError('no files to open')
+        msg = 'no files to open'
+        raise OSError(msg)
 
-    if lock is None:
-        lock = NETCDF4_PYTHON_LOCK
+    if isinstance(paths, Path):
+        paths = str(paths)
+    if isinstance(paths, str):
+        # NOTE: this only works on posix systems
+        split = paths.split('/')
+        glob = split.pop(-1)
+        path = '/'.join(split)
+        paths = sorted(Path(path).glob(glob))
+
+    used_lock = lock if lock else netcdf4_python_lock
     try:
-        datasets = [open_wrf_dataset(p, chunks=chunks or {}, lock=lock)
-                    for p in paths]
+        datasets = [
+            open_wrf_dataset(p, chunks=chunks or {}, lock=used_lock)
+            for p in paths
+        ]
     except TypeError as err:
         if 'lock' not in str(err):
             raise
@@ -1183,7 +1429,7 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
 
     orig_datasets = datasets
 
-    def ds_closer():
+    def ds_closer() -> None:
         for ods in orig_datasets:
             ods.close()
 
@@ -1191,12 +1437,17 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
         datasets = [preprocess(ds) for ds in datasets]
 
     try:
-        combined = xr.combine_nested(datasets, combine_attrs='drop_conflicts',
-                                     concat_dim='time', compat=compat)
+        combined = xr.combine_nested(
+            datasets,
+            combine_attrs='drop_conflicts',
+            concat_dim='time',
+            compat=compat,
+        )
     except ValueError:
         # Older xarray
-        combined = xr.combine_nested(datasets, concat_dim='time',
-                                     compat=compat)
+        combined = xr.combine_nested(
+            datasets, concat_dim='time', compat=compat
+        )
     except AttributeError:
         # Even older
         combined = xr.auto_combine(datasets, concat_dim='time', compat=compat)
@@ -1206,6 +1457,7 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
         combined.set_close(ds_closer)
     except AttributeError:
         from xarray.backends.api import _MultiFileCloser
+
         mfc = _MultiFileCloser([ods._file_obj for ods in orig_datasets])
         combined._file_obj = mfc
 

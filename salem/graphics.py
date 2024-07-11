@@ -1,53 +1,74 @@
-"""
-Color handling and maps.
-"""
-from __future__ import division
+"""Color handling and maps."""
 
 # Builtins
-import warnings
-import os
-from os import path
+from __future__ import annotations
+
+import contextlib
 import copy
-# External libs
+import warnings
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
+
 import numpy as np
+
+# External libs
+from matplotlib.colors import Normalize
 
 try:
     from skimage.transform import resize as imresize
+
     has_skimage = True
 except ImportError:
     has_skimage = False
 
-import pandas as pd
-
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import pandas as pd
+import xarray as xr
+from matplotlib.collections import LineCollection, PatchCollection
 from matplotlib.colors import LinearSegmentedColormap
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.collections import PatchCollection, LineCollection
-from shapely.geometry import MultiPoint, LineString, Polygon
-from salem.descartes import PolygonPatch
 from matplotlib.transforms import Transform as MPLTranform
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from shapely.geometry import LineString, MultiPoint, Polygon
 
-from salem import utils, gis, sio, Grid, wgs84, sample_data_dir, GeoTiff
+from salem import GeoTiff, Grid, gis, sample_data_dir, sio, utils, wgs84
+from salem.descartes import PolygonPatch
 
-shapefiles = dict()
-shapefiles['world_borders'] = path.join(sample_data_dir, 'shapes',
-                                        'world_borders', 'world_borders.shp')
-shapefiles['oceans'] = path.join(sample_data_dir, 'shapes', 'oceans',
-                                 'ne_50m_ocean.shp')
-shapefiles['rivers'] = path.join(sample_data_dir, 'shapes', 'rivers',
-                                 'ne_50m_rivers_lake_centerlines.shp')
-shapefiles['lakes'] = path.join(sample_data_dir, 'shapes', 'lakes',
-                                'ne_50m_lakes.shp')
+if TYPE_CHECKING:
+    import pyproj
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
+    from matplotlib.colorbar import ColorbarBase
+    from numpy.typing import NDArray
+
+shapefiles = {}
+shapefiles['world_borders'] = (
+    sample_data_dir / 'shapes' / 'world_borders' / 'world_borders.shp'
+)
+shapefiles['oceans'] = (
+    sample_data_dir / 'shapes' / 'oceans' / 'ne_50m_ocean.shp'
+)
+shapefiles['rivers'] = (
+    sample_data_dir
+    / 'shapes'
+    / 'rivers'
+    / 'ne_50m_rivers_lake_centerlines.shp'
+)
+shapefiles['lakes'] = sample_data_dir / 'shapes' / 'lakes' / 'ne_50m_lakes.shp'
 
 # Be sure we have the directory
-if not os.path.exists(shapefiles['world_borders']):
+if not (sample_data_dir / 'shapes' / 'world_borders').exists():
     from salem.utils import get_demo_file
+
     _ = get_demo_file('world_borders.shp')
 
 
+ExtendChoices = Literal['neither', 'both', 'min', 'max'] | None
+InterpChoices = Literal['nearest', 'linear', 'spline']
+
+
 class ExtendedNorm(mpl.colors.BoundaryNorm):
-    """ A better BoundaryNorm with an ``extend'' keyword.
+    """A better BoundaryNorm with an ``extend'' keyword.
 
     TODO: remove this when PR is accepted
 
@@ -55,22 +76,21 @@ class ExtendedNorm(mpl.colors.BoundaryNorm):
          https://github.com/matplotlib/matplotlib/pull/5034
     """
 
-    def __init__(self, boundaries, ncolors, extend='neither'):
-
+    def __init__(self, boundaries, ncolors, extend='neither') -> None:
         _b = np.atleast_1d(boundaries).astype(float)
         mpl.colors.BoundaryNorm.__init__(self, _b, ncolors, clip=False)
 
         # 'neither' | 'both' | 'min' | 'max'
         if extend == 'both':
-            _b = np.append(_b, _b[-1]+1)
-            _b = np.insert(_b, 0, _b[0]-1)
+            _b = np.append(_b, _b[-1] + 1)
+            _b = np.insert(_b, 0, _b[0] - 1)
         elif extend == 'min':
-            _b = np.insert(_b, 0, _b[0]-1)
+            _b = np.insert(_b, 0, _b[0] - 1)
         elif extend == 'max':
-            _b = np.append(_b, _b[-1]+1)
+            _b = np.append(_b, _b[-1] + 1)
         self._b = _b
         self._N = len(self._b)
-        if self._N - 1 == self.Ncmap:
+        if self.Ncmap == self._N - 1:
             self._interp = False
         else:
             self._interp = True
@@ -93,14 +113,13 @@ class ExtendedNorm(mpl.colors.BoundaryNorm):
         return ret
 
 
-def get_cmap(cmap='viridis'):
+def get_cmap(cmap: str = 'viridis') -> mpl.colors.Colormap:
     """Get a colormap from mpl, and also those defined by Salem.
 
     Currently we have: topo, dem, nrwc
 
     see https://github.com/fmaussion/salem-sample-data/tree/master/colormaps
     """
-
     try:
         return plt.get_cmap(cmap)
     except ValueError:
@@ -108,7 +127,7 @@ def get_cmap(cmap='viridis'):
         return LinearSegmentedColormap.from_list(cmap, cl, N=256)
 
 
-class DataLevels(object):
+class DataLevels:
     """Assigns the right color to your data.
 
     Simple tool that ensures the full compatibility of the plot
@@ -118,20 +137,21 @@ class DataLevels(object):
 
     def __init__(
         self,
-        data=None,
-        levels=None,
-        nlevels=None,
-        vmin=None,
-        vmax=None,
-        extend=None,
-        cmap=None,
-        norm=None,
-    ):
+        data: NDArray[Any] | None = None,
+        levels: NDArray[Any] | None = None,
+        nlevels: int | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        extend: ExtendChoices = None,
+        cmap: str | None = None,
+        norm: Normalize | None = None,
+    ) -> None:
         """Instanciate.
 
         Parameters
         ----------
         see the set_* functions
+
         """
         self.set_data(data)
         self.set_levels(levels)
@@ -142,64 +162,63 @@ class DataLevels(object):
         self.set_cmap(cmap)
         self.set_norm(norm)
 
-    def update(self, d):
-        """
-        Update the properties of :class:`DataLevels` from the dictionary *d*.
-        """
-
+    def update(self, d: dict) -> None:
+        """Update the properties of :class:`DataLevels` from the dictionary *d*."""
         for k, v in d.items():
             func = getattr(self, 'set_' + k, None)
             if func is None or not callable(func):
-                raise AttributeError('Unknown property %s' % k)
+                msg = 'Unknown property {}'.format(k)
+                raise AttributeError(msg)
             func(v)
 
-    def set_data(self, data=None):
+    def set_data(self, data: NDArray[Any] | None = None) -> None:
         """Any kind of data array (also masked)."""
         if data is not None:
             self.data = np.ma.masked_invalid(np.atleast_1d(data), copy=False)
         else:
-            self.data = np.ma.asarray([0., 1.])
+            self.data = np.ma.asarray([0.0, 1.0])
 
-    def set_levels(self, levels=None):
+    def set_levels(self, levels: NDArray[Any] | None = None) -> None:
         """Levels you define. Must be monotically increasing."""
         self._levels = levels
 
-    def set_nlevels(self, nlevels=None):
+    def set_nlevels(self, nlevels: int | None = None) -> None:
         """Automatic N levels. Ignored if set_levels has been set."""
         self._nlevels = nlevels
 
-    def set_vmin(self, val=None):
+    def set_vmin(self, val: float | None = None) -> None:
         """Mininum level value. Ignored if set_levels has been set."""
         self._vmin = val
 
-    def set_vmax(self, val=None):
+    def set_vmax(self, val: float | None = None) -> None:
         """Maximum level value. Ignored if set_levels has been set."""
         self._vmax = val
 
-    def set_cmap(self, cm=None):
+    def set_cmap(self, cm: str | None = None) -> None:
         """Set a colormap."""
         self.cmap = get_cmap(cm or 'viridis')
 
-    def set_norm(self, norm=None):
+    def set_norm(self, norm: Normalize | None = None) -> None:
         """Set a normalization function. Related parameters will be ignored if set.
 
-        (e.g., vmin and vmax will be ignored if using LogNorm)"""
+        (e.g., vmin and vmax will be ignored if using LogNorm)
+        """
         self._norm = norm
 
-    def set_extend(self, extend=None):
-        """Colorbar extensions: 'neither' | 'both' | 'min' | 'max'"""
+    def set_extend(self, extend: ExtendChoices = None) -> None:
+        """Set colorbar extensions: 'neither' | 'both' | 'min' | 'max'."""
         self._extend = extend
 
     def set_plot_params(
         self,
-        levels=None,
-        nlevels=None,
-        vmin=None,
-        vmax=None,
-        extend=None,
-        cmap=None,
-        norm=None,
-    ):
+        levels: NDArray[Any] | None = None,
+        nlevels: int | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        extend: ExtendChoices = None,
+        cmap: str | None = None,
+        norm: Normalize | None = None,
+    ) -> None:
         """Shortcut to all parameters related to the plot.
 
         As a side effect, running set_plot_params() without arguments will
@@ -215,7 +234,7 @@ class DataLevels(object):
         self.set_norm(norm)
 
     @property
-    def levels(self):
+    def levels(self) -> NDArray[Any]:
         """Clever getter."""
         levels = self._levels
         nlevels = self._nlevels
@@ -223,41 +242,38 @@ class DataLevels(object):
             self.set_vmin(levels[0])
             self.set_vmax(levels[-1])
             return levels
-        else:
-            if nlevels is None:
-                if self.extend in ['max', 'min']:
-                    nlevels = self.cmap.N - 1
-                elif self.extend in ['both']:
-                    nlevels = self.cmap.N - 2
-                else:
-                    nlevels = self.cmap.N
-            if self.vmax == self.vmin:
-                return np.linspace(self.vmin, self.vmax+1, nlevels)
-            return np.linspace(self.vmin, self.vmax, nlevels)
+        if nlevels is None:
+            if self.extend in ['max', 'min']:
+                nlevels = self.cmap.N - 1
+            elif self.extend in ['both']:
+                nlevels = self.cmap.N - 2
+            else:
+                nlevels = self.cmap.N
+        if self.vmax == self.vmin:
+            return np.linspace(self.vmin, self.vmax + 1, nlevels)
+        return np.linspace(self.vmin, self.vmax, nlevels)
 
     @property
-    def nlevels(self):
+    def nlevels(self) -> int:
         """Clever getter."""
         return len(self.levels)
 
     @property
-    def vmin(self):
+    def vmin(self) -> float:
         """Clever getter."""
         if self._vmin is None:
             return np.min(self.data)
-        else:
-            return self._vmin
+        return self._vmin
 
     @property
-    def vmax(self):
+    def vmax(self) -> float:
         """Clever getter."""
         if self._vmax is None:
             return np.max(self.data)
-        else:
-            return self._vmax
+        return self._vmax
 
     @property
-    def extend(self):
+    def extend(self) -> str:
         """Clever getter."""
         if self._extend is None:
             # If the user didnt set it, we decide
@@ -271,65 +287,77 @@ class DataLevels(object):
             else:
                 out = 'neither'
             return out
-        else:
-            return self._extend
+        return self._extend
 
     @property
-    def norm(self):
+    def norm(self) -> Normalize:
         """Clever getter."""
-        l = self.levels
-        e = self.extend
+        lev = self.levels
+        ext = self.extend
         if self._norm is None:
             # Warnings
-            if e not in ["both", "min"] and (np.min(l) > np.min(self.data)):
-                warnings.warn("Minimum data out of bounds.", RuntimeWarning)
-            if e not in ["both", "max"] and (np.max(l) < np.max(self.data)):
-                warnings.warn("Maximum data out of bounds.", RuntimeWarning)
+            if ext not in ['both', 'min'] and (
+                np.min(lev) > np.min(self.data)
+            ):
+                warnings.warn(
+                    'Minimum data out of bounds.', RuntimeWarning, stacklevel=1
+                )
+            if ext not in ['both', 'max'] and (
+                np.max(lev) < np.max(self.data)
+            ):
+                warnings.warn(
+                    'Maximum data out of bounds.', RuntimeWarning, stacklevel=1
+                )
             try:
                 # Added in mpl 3.3.0
-                return mpl.colors.BoundaryNorm(l, self.cmap.N, extend=e)
+                return mpl.colors.BoundaryNorm(lev, self.cmap.N, extend=ext)
             except TypeError:
-                return ExtendedNorm(l, self.cmap.N, extend=e)
+                return ExtendedNorm(lev, self.cmap.N, extend=ext)
         else:
             return self._norm
 
-    def to_rgb(self):
+    def to_rgb(self) -> NDArray[Any]:
         """Transform the data to RGB triples."""
-
         if np.all(self.data.mask):
             # unfortunately the functions  below can't handle this one
-            return np.zeros(self.data.shape + (4, ))
+            return np.zeros((*self.data.shape, 4))
 
         return self.cmap(self.norm(self.data))
 
-    def get_colorbarbase_kwargs(self):
+    def get_colorbarbase_kwargs(self) -> dict:
         """If you need to make a colorbar based on a given DataLevel state."""
-
         # This is a discutable choice: with more than 60 colors (could be
         # less), we assume a continuous colorbar.
         if self.nlevels < 60 or self._norm is not None:
             norm = self.norm
         else:
             norm = mpl.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
-        return dict(extend=self.extend, cmap=self.cmap, norm=norm)
+        return {'extend': self.extend, 'cmap': self.cmap, 'norm': norm}
 
-    def colorbarbase(self, cax, **kwargs):
-        """Returns a ColorbarBase to add to the cax axis. All keywords are
-        passed to matplotlib.colorbar.ColorbarBase
+    def colorbarbase(self, cax: Axes, **kwargs) -> ColorbarBase:
+        """Return a ColorbarBase to add to the cax axis.
+
+        All keywords are passed to matplotlib.colorbar.ColorbarBase
         """
-
         # This is a discutable choice: with more than 60 colors (could be
         # less), we assume a continuous colorbar.
         if self.nlevels < 60 or self._norm is not None:
             norm = self.norm
         else:
             norm = mpl.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
-        return mpl.colorbar.ColorbarBase(cax, extend=self.extend,
-                                         cmap=self.cmap, norm=norm, **kwargs)
+        return mpl.colorbar.ColorbarBase(
+            cax, extend=self.extend, cmap=self.cmap, norm=norm, **kwargs
+        )
 
-    def append_colorbar(self, ax, position='right', size='5%', pad=0.5,
-                        **kwargs):
-        """Appends a colorbar to existing axes
+    def append_colorbar(
+        self,
+        ax: Axes,
+        position: str = 'right',
+        size: float = 0.05,
+        pad: float = 0.5,
+        **kwargs,
+    ) -> ColorbarBase:
+        """Append a colorbar to existing axes.
 
         It uses matplotlib's make_axes_locatable toolkit.
 
@@ -340,15 +368,15 @@ class DataLevels(object):
         size: the size of the colorbar (e.g. in % of the ax)
         pad: pad between axes given in inches or tuple-like of floats,
              (horizontal padding, vertical padding)
-        """
 
+        """
         orientation = 'horizontal'
         if position in ['left', 'right']:
             orientation = 'vertical'
         cax = make_axes_locatable(ax).append_axes(position, size=size, pad=pad)
         return self.colorbarbase(cax, orientation=orientation, **kwargs)
 
-    def plot(self, ax):
+    def plot(self, ax: Axes) -> Artist:
         """Add a kind of plot of the data to an axis.
 
         More useful for child classes.
@@ -357,11 +385,18 @@ class DataLevels(object):
         """
         data = np.atleast_2d(self.data)
         toplot = self.cmap(self.norm(data))
-        primitive = ax.imshow(toplot, interpolation='none', origin='lower')
-        return primitive
+        return ax.imshow(toplot, interpolation='none', origin='lower')
 
-    def visualize(self, ax=None, title=None, orientation='vertical',
-                  add_values=False, addcbar=True, cbar_title=''):
+    def visualize(
+        self,
+        ax: Axes | None = None,
+        title: str | None = None,
+        orientation: str = 'vertical',
+        cbar_title: str = '',
+        *,
+        add_values: bool = False,
+        addcbar: bool = True,
+    ) -> Artist:
         """Quick plot, useful for debugging.
 
         Parameters
@@ -372,8 +407,8 @@ class DataLevels(object):
         add_values: add the data values as text in the pixels (for testing)
 
         Returns a dict containing the primitives of the various plot calls
-        """
 
+        """
         # Do we make our own fig?
         if ax is None:
             ax = plt.gca()
@@ -385,20 +420,28 @@ class DataLevels(object):
         addcbar = (self.vmin != self.vmax) and addcbar
         if addcbar:
             if orientation == 'horizontal':
-                self.append_colorbar(ax, "top", size=0.2, pad=0.5,
-                                     label=cbar_title)
+                self.append_colorbar(
+                    ax, 'top', size=0.2, pad=0.5, label=cbar_title
+                )
             else:
-                self.append_colorbar(ax, "right", size="5%", pad=0.2,
-                                     label=cbar_title)
+                self.append_colorbar(
+                    ax, 'right', size=0.05, pad=0.2, label=cbar_title
+                )
 
         # Mini add-on
         if add_values:
             data = np.atleast_2d(self.data)
-            x, y = np.meshgrid(np.arange(data.shape[1]),
-                               np.arange(data.shape[0]))
+            x, y = np.meshgrid(
+                np.arange(data.shape[1]), np.arange(data.shape[0])
+            )
             for v, i, j in zip(data.flatten(), x.flatten(), y.flatten()):
-                ax.text(i, j, v, horizontalalignment='center',
-                        verticalalignment='center')
+                ax.text(
+                    i,
+                    j,
+                    v,
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                )
 
         # Details
         if title is not None:
@@ -425,8 +468,16 @@ class Map(DataLevels):
     regional maps.
     """
 
-    def __init__(self, grid, nx=500, ny=None, factor=None,
-                 countries=True, **kwargs):
+    def __init__(
+        self,
+        grid: Grid,
+        nx: int | None = 500,
+        ny: int | None = None,
+        factor: float | None = None,
+        *,
+        countries: bool = True,
+        **kwargs,
+    ) -> None:
         """Make a new map.
 
         Parameters
@@ -445,8 +496,8 @@ class Map(DataLevels):
           it later with a call to set_shapefile)
         kwargs: **
           all keywords accepted by DataLevels
-        """
 
+        """
         if factor is not None:
             nx = None
             ny = None
@@ -466,67 +517,80 @@ class Map(DataLevels):
         self._contourf_data = None
         self._contour_data = None
 
-    def _check_data(self, data=None, crs=None, interp='nearest',
-                    overplot=False):
+    def _check_data(
+        self,
+        data: xr.DataArray | NDArray[Any],
+        crs: pyproj.Proj | Grid | str | xr.DataArray | None = None,
+        interp: InterpChoices = 'nearest',
+        *,
+        overplot: bool = False,
+    ) -> xr.DataArray | NDArray[Any]:
         """Interpolates the data to the map grid."""
-
-        if crs is None:
+        if crs is None and isinstance(data, xr.DataArray):
             # try xarray
             # TODO: note that this might slow down the plotting a bit
             # if the data already matches the grid...
-            try:
+            with contextlib.suppress(Exception):
                 crs = data.salem.grid
-            except:
-                pass
 
         data = np.ma.fix_invalid(np.squeeze(data))
         shp = data.shape
         if len(shp) != 2:
-            raise ValueError('Data should be 2D.')
+            msg = 'Data should be 2D.'
+            raise ValueError(msg)
 
         if crs is None:
             # Reform case, but with a sanity check
-            if not np.isclose(shp[0] / shp[1], self.grid.ny / self.grid.nx,
-                              atol=1e-2):
-                raise ValueError('Dimensions of data do not match the map.')
+            if not np.isclose(
+                shp[0] / shp[1], self.grid.ny / self.grid.nx, atol=1e-2
+            ):
+                msg = 'Dimensions of data do not match the map.'
+                raise ValueError(msg)
 
             # need to resize if not same
             if not ((shp[0] == self.grid.ny) and (shp[1] == self.grid.nx)):
-
                 # We convert to float for img resizing
                 if data.dtype not in [np.float32, np.float64]:
                     data = data.astype(np.float64)
 
-                if interp.lower() == 'nearest':
-                    interp = 0
-                elif interp.lower() == 'linear':
-                    interp = 1
-                elif interp.lower() == 'spline':
-                    interp = 3
+                interp_dict = {'nearest': 0, 'linear': 1, 'spline': 3}
+                interpolation = interp_dict[interp]
+
                 if not has_skimage:
-                    raise ImportError('Needs scikit-image to be installed.')
+                    msg = 'Needs scikit-image to be installed.'
+                    raise ImportError(msg)
+                from skimage.transform import resize as imresize
+
                 with warnings.catch_warnings():
-                    mess = "invalid value encountered in reduce"
-                    warnings.filterwarnings("ignore", message=mess)
-                    mess = "All-NaN slice encountered"
-                    warnings.filterwarnings("ignore", message=mess)
-                    mess = ("Possible precision loss when converting from "
-                            "int64 to float64")
-                    warnings.filterwarnings("ignore", message=mess)
-                    mess = "Passing `np.nan` to mean no clipping in np.clip"
-                    warnings.filterwarnings("ignore", message=mess)
+                    msg = 'invalid value encountered in reduce'
+                    warnings.filterwarnings('ignore', message=msg)
+                    msg = 'All-NaN slice encountered'
+                    warnings.filterwarnings('ignore', message=msg)
+                    msg = (
+                        'Possible precision loss when converting from '
+                        'int64 to float64'
+                    )
+                    warnings.filterwarnings('ignore', message=msg)
+                    msg = 'Passing `np.nan` to mean no clipping in np.clip'
+                    warnings.filterwarnings('ignore', message=msg)
                     nans = data.filled(np.nan)
                     try:
-                        data = imresize(nans,
-                                        (self.grid.ny, self.grid.nx),
-                                        order=interp, mode='edge',
-                                        anti_aliasing=True)
+                        data = imresize(
+                            nans,
+                            (self.grid.ny, self.grid.nx),
+                            order=interpolation,
+                            mode='edge',
+                            anti_aliasing=True,
+                        )
                     except RuntimeError:
                         # For some order anti_aliasing doesnt work with 'edge'
-                        data = imresize(nans,
-                                        (self.grid.ny, self.grid.nx),
-                                        order=interp, mode='edge',
-                                        anti_aliasing=False)
+                        data = imresize(
+                            nans,
+                            (self.grid.ny, self.grid.nx),
+                            order=interpolation,
+                            mode='edge',
+                            anti_aliasing=False,
+                        )
 
             return data
 
@@ -534,18 +598,28 @@ class Map(DataLevels):
         if isinstance(crs, Grid):
             # Remap
             if overplot:
-                data = self.grid.map_gridded_data(data, crs, interp=interp,
-                                                  out=self.data)
+                data = self.grid.map_gridded_data(
+                    data, crs, interp=interp, out=self.data
+                )
             else:
                 data = self.grid.map_gridded_data(data, crs, interp=interp)
         else:
-            raise ValueError('crs should be a grid, not a proj')
+            msg = 'crs should be a grid, not a proj'
+            raise TypeError(msg)
 
         return data
 
-    def set_data(self, data=None, crs=None, interp='nearest',
-                 overplot=False):
-        """Adds data to the plot. The data has to be georeferenced, i.e. by
+    def set_data(
+        self,
+        data: NDArray[Any] | xr.DataArray | None = None,
+        crs: str | pyproj.Proj | Grid | None = None,
+        interp: InterpChoices = 'nearest',
+        *,
+        overplot: bool = False,
+    ) -> None:
+        """Add data to the plot.
+
+        The data has to be georeferenced, i.e. by
         setting crs (if omitted the data is assumed to be defined on the
         map's grid)
 
@@ -556,40 +630,53 @@ class Map(DataLevels):
         interp: 'nearest' (default) or 'linear', the interpolation algorithm
         overplot: add the data to an existing plot (useful for mosaics for
         example)
-        """
 
+        """
         # Check input
         if data is None:
             self.data = np.ma.zeros((self.grid.ny, self.grid.nx))
             self.data.mask = self.data + 1
             return
-        data = self._check_data(data=data, crs=crs, interp=interp,
-                                overplot=overplot)
+        data = self._check_data(
+            data=data, crs=crs, interp=interp, overplot=overplot
+        )
         DataLevels.set_data(self, data)
 
-    def set_contourf(self, data=None, crs=None, interp='nearest', **kwargs):
-        """Adds data to contourfill on the map.
+    def set_contourf(
+        self,
+        data: NDArray[Any] | xr.DataArray | None = None,
+        crs: pyproj.Proj | Grid | str | None = None,
+        interp: InterpChoices = 'nearest',
+        **kwargs,
+    ) -> None:
+        """Add data to contourfill on the map.
 
         Parameters
         ----------
-        mask: bool array (2d)
         crs: the data coordinate reference system
         interp: 'nearest' (default) or 'linear', the interpolation algorithm
         kwargs: anything accepted by contourf
-        """
 
+        """
         # Check input
         if data is None:
             self._contourf_data = None
             return
 
-        self._contourf_data = self._check_data(data=data, crs=crs,
-                                               interp=interp)
+        self._contourf_data = self._check_data(
+            data=data, crs=crs, interp=interp
+        )
         kwargs.setdefault('zorder', 1.4)
         self._contourf_kw = kwargs
 
-    def set_contour(self, data=None, crs=None, interp='nearest', **kwargs):
-        """Adds data to contour on the map.
+    def set_contour(
+        self,
+        data: NDArray[Any] | xr.DataArray | None = None,
+        crs: pyproj.Proj | Grid | str | None = None,
+        interp: InterpChoices = 'nearest',
+        **kwargs,
+    ) -> None:
+        """Add data to contour on the map.
 
         Parameters
         ----------
@@ -597,20 +684,28 @@ class Map(DataLevels):
         crs: the data coordinate reference system
         interp: 'nearest' (default) or 'linear', the interpolation algorithm
         kwargs: anything accepted by contour
-        """
 
+        """
         # Check input
         if data is None:
             self._contour_data = None
             return
 
-        self._contour_data = self._check_data(data=data, crs=crs,
-                                              interp=interp)
+        self._contour_data = self._check_data(
+            data=data, crs=crs, interp=interp
+        )
         kwargs.setdefault('zorder', 1.4)
         self._contour_kw = kwargs
 
-    def set_geometry(self, geometry=None, crs=wgs84, text=None,
-                     text_delta=(0.01, 0.01), text_kwargs=dict(), **kwargs):
+    def set_geometry(
+        self,
+        geometry=None,
+        crs=wgs84,
+        text=None,
+        text_delta=(0.01, 0.01),
+        text_kwargs=dict(),
+        **kwargs,
+    ) -> None:
         """Adds any Shapely geometry to the map.
 
         If called without arguments, it removes all previous geometries.
@@ -633,15 +728,15 @@ class Map(DataLevels):
               facecolor, linestyle, linewidth, alpha...
 
         """
-
         # Reset?
         if geometry is None:
             self._geometries = []
             return
 
         # Transform
-        geom = gis.transform_geometry(geometry, crs=crs,
-                                      to_crs=self.grid.center_grid)
+        geom = gis.transform_geometry(
+            geometry, crs=crs, to_crs=self.grid.center_grid
+        )
 
         # Text
         if text is not None:
@@ -649,8 +744,7 @@ class Map(DataLevels):
             x = x[0] + text_delta[0] * self.grid.nx
             sign = self.grid.dy / np.abs(self.grid.dy)
             y = y[0] + text_delta[1] * self.grid.ny * sign
-            self.set_text(x, y, text, crs=self.grid.center_grid,
-                          **text_kwargs)
+            self.set_text(x, y, text, crs=self.grid.center_grid, **text_kwargs)
 
         # Save
         if 'Multi' in geom.geom_type:
@@ -673,7 +767,6 @@ class Map(DataLevels):
 
         Keyword arguments will be passed to mpl's text() function.
         """
-
         # Reset?
         if x is None:
             self._text = []
@@ -685,8 +778,16 @@ class Map(DataLevels):
         x, y = self.grid.center_grid.transform(x, y, crs=crs)
         self._text.append((x, y, text, kwargs))
 
-    def set_shapefile(self, shape=None, countries=False, oceans=False,
-                      rivers=False, lakes=False, **kwargs):
+    def set_shapefile(
+        self,
+        shape: Path | str | None = None,
+        *,
+        countries: bool = False,
+        oceans: bool = False,
+        rivers: bool = False,
+        lakes: bool = False,
+        **kwargs,
+    ) -> None:
         """Add a shapefile to the plot.
 
         Salem is shipped with a few default settings for country borders,
@@ -706,8 +807,8 @@ class Map(DataLevels):
             linewidths, colors, linestyles, ...
         For Polygons::
             alpha, edgecolor, facecolor, fill, linestyle, linewidth, color, ...
-        """
 
+        """
         # See if the user wanted defaults settings
         if oceans:
             kwargs.setdefault('facecolor', (0.36862745, 0.64313725, 0.8))
@@ -731,7 +832,7 @@ class Map(DataLevels):
         # Reset?
         if shape is None:
             self._collections = []
-            return
+            return None
 
         # Transform
         if isinstance(shape, pd.DataFrame):
@@ -739,7 +840,7 @@ class Map(DataLevels):
         else:
             shape = sio.read_shapefile_to_grid(shape, grid=self.grid)
         if len(shape) == 0:
-            return
+            return None
 
         # Different collection for each type
         geomtype = shape.iloc[0].geometry.geom_type
@@ -747,49 +848,68 @@ class Map(DataLevels):
             patches = []
             for g in shape.geometry:
                 if 'Multi' in g.geom_type:
-                    for gg in g.geoms:
-                        patches.append(PolygonPatch(gg))
+                    patches = [PolygonPatch(gg) for gg in g.geoms]
                 else:
-                    patches.append(PolygonPatch(g))
+                    patches = [PolygonPatch(g)]
             kwargs.setdefault('facecolor', 'none')
             if 'color' in kwargs:
                 kwargs.setdefault('edgecolor', kwargs['color'])
                 del kwargs['color']
             self._collections.append(PatchCollection(patches, **kwargs))
-        elif 'LineString' in geomtype:
+            return None
+        if 'LineString' in geomtype:
             lines = []
             for g in shape.geometry:
                 if 'Multi' in g.geom_type:
-                    for gg in g.geoms:
-                        lines.append(np.array(gg.coords))
+                    lines = [np.array(gg.coords) for gg in g.geoms]
                 else:
-                    lines.append(np.array(g.coords))
+                    lines = [np.array(g.coords)]
             self._collections.append(LineCollection(lines, **kwargs))
-        else:
-            raise NotImplementedError(geomtype)
+            return None
+        raise NotImplementedError(geomtype)
 
     def _find_interval(self, max_nticks):
         """Quick n dirty function to find a suitable lonlat interval."""
-        candidates = [0.001, 0.002, 0.005,
-                      0.01, 0.02, 0.05,
-                      0.1, 0.2, 0.5,
-                      1, 2, 5, 10, 20]
+        candidates = [
+            0.001,
+            0.002,
+            0.005,
+            0.01,
+            0.02,
+            0.05,
+            0.1,
+            0.2,
+            0.5,
+            1,
+            2,
+            5,
+            10,
+            20,
+        ]
         xx, yy = self.grid.pixcorner_ll_coordinates
         for inter in candidates:
             _xx = xx / inter
             _yy = yy / inter
             mm_x = [np.ceil(np.min(_xx)), np.floor(np.max(_xx))]
             mm_y = [np.ceil(np.min(_yy)), np.floor(np.max(_yy))]
-            nx = mm_x[1]-mm_x[0]+1
-            ny = mm_y[1]-mm_y[0]+1
+            nx = mm_x[1] - mm_x[0] + 1
+            ny = mm_y[1] - mm_y[0] + 1
             if np.max([nx, ny]) <= max_nticks:
                 break
         return inter
 
-    def set_lonlat_contours(self, interval=None, xinterval=None,
-                            yinterval=None, add_tick_labels=True,
-                            add_xtick_labels=True, add_ytick_labels=True,
-                            max_nticks=8, **kwargs):
+    def set_lonlat_contours(
+        self,
+        interval: float | None = None,
+        xinterval: float | None = None,
+        yinterval: float | None = None,
+        *,
+        add_tick_labels: bool = True,
+        add_xtick_labels: bool = True,
+        add_ytick_labels: bool = True,
+        max_nticks: int = 8,
+        **kwargs,
+    ) -> None:
         """Add longitude and latitude contours to the map.
 
         Calling it with interval=0 will remove all contours.
@@ -813,8 +933,8 @@ class Map(DataLevels):
             Ignore if ``interval`` is set to a value
         kwargs : {}
             any keyword accepted by contour()
-        """
 
+        """
         # Defaults
         if interval is None:
             interval = self._find_interval(max_nticks)
@@ -835,10 +955,12 @@ class Map(DataLevels):
             _yy = yy / yinterval
             mm_x = [np.ceil(np.min(_xx)), np.floor(np.max(_xx))]
             mm_y = [np.ceil(np.min(_yy)), np.floor(np.max(_yy))]
-            self.xtick_levs = (mm_x[0] + np.arange(mm_x[1]-mm_x[0]+1)) * \
-                              xinterval
-            self.ytick_levs = (mm_y[0] + np.arange(mm_y[1]-mm_y[0]+1)) * \
-                              yinterval
+            self.xtick_levs = (
+                mm_x[0] + np.arange(mm_x[1] - mm_x[0] + 1)
+            ) * xinterval
+            self.ytick_levs = (
+                mm_y[0] + np.arange(mm_y[1] - mm_y[0] + 1)
+            ) * yinterval
 
         # Decide on float format
         d = np.array(['4', '3', '2', '1', '0'])
@@ -852,7 +974,7 @@ class Map(DataLevels):
         if add_tick_labels:
             if add_xtick_labels:
                 _xx = xx[0 if self.origin == 'lower' else -1, :]
-                _xi = np.arange(self.grid.nx+1)
+                _xi = np.arange(self.grid.nx + 1)
                 for xl in self.xtick_levs:
                     if (xl > _xx[-1]) or (xl < _xx[0]):
                         continue
@@ -864,7 +986,7 @@ class Map(DataLevels):
                     self.xtick_val.append(label)
             if add_ytick_labels:
                 _yy = np.sort(yy[:, 0])
-                _yi = np.arange(self.grid.ny+1)
+                _yi = np.arange(self.grid.ny + 1)
                 if self.origin == 'upper':
                     _yi = _yi[::-1]
                 for yl in self.ytick_levs:
@@ -884,9 +1006,10 @@ class Map(DataLevels):
         kwargs.setdefault('zorder', 1.5)
         self.ll_contour_kw = kwargs
 
-    def _shading_base(self, slope=None, relief_factor=0.7):
+    def _shading_base(
+        self, slope: NDArray[Any] | None = None, relief_factor: float = 0.7
+    ) -> None:
         """Compute the shading factor out of the slope."""
-
         # reset?
         if slope is None:
             self.slope = None
@@ -896,7 +1019,7 @@ class Map(DataLevels):
         p = np.nonzero(slope > 0)
         if len(p[0]) > 0:
             temp = np.clip(slope[p] / (2 * np.std(slope)), -1, 1)
-            slope[p] = 0.4 * np.sin(0.5*np.pi*temp)
+            slope[p] = 0.4 * np.sin(0.5 * np.pi * temp)
         self.relief_factor = relief_factor
         self.slope = slope
 
@@ -913,28 +1036,33 @@ class Map(DataLevels):
         Returns
         -------
         the topography if needed (bonus)
-        """
 
+        """
         if topo is None:
             self._shading_base()
-            return
+            return None
 
         kwargs.setdefault('interp', 'spline')
 
         if isinstance(topo, str):
-            _, ext = os.path.splitext(topo)
-            if ext.lower() == '.tif':
+            topo = Path(topo)
+        if isinstance(topo, Path):
+            ext = topo.suffix.lower()
+            if ext == '.tif':
                 g = GeoTiff(topo)
                 # Spare memory
                 ex = self.grid.extent_in_crs(crs=wgs84)  # l, r, b, t
-                g.set_subset(corners=((ex[0], ex[2]), (ex[1], ex[3])),
-                             crs=wgs84, margin=10)
+                g.set_subset(
+                    corners=((ex[0], ex[2]), (ex[1], ex[3])),
+                    crs=wgs84,
+                    margin=10,
+                )
                 z = g.get_vardata()
                 z[z < -999] = 0
                 z = self.grid.map_gridded_data(z, g.grid, **kwargs)
             else:
-                raise ValueError('File extension not recognised: {}'
-                                 .format(ext))
+                msg = f'File extension not recognised: {ext}'
+                raise ValueError(msg)
         else:
             z = self._check_data(topo, crs=crs, **kwargs)
 
@@ -951,9 +1079,14 @@ class Map(DataLevels):
         self._shading_base(dx - dy, relief_factor=relief_factor)
         return z
 
-    def set_rgb(self, img=None, crs=None, interp='nearest',
-                natural_earth=None):
-        """Manually force to a rgb img
+    def set_rgb(
+        self,
+        img: NDArray[Any] | None = None,
+        crs: pyproj.Proj | Grid | str | None = None,
+        interp: InterpChoices = 'nearest',
+        natural_earth: str | None = None,
+    ) -> None:
+        """Manually force to a rgb img.
 
         Parameters
         ----------
@@ -966,18 +1099,23 @@ class Map(DataLevels):
         natural_earth : str
            'lr', 'mr' or 'hr' (low res, medium or high res)
            natural earth background img
-        """
 
+        """
         if natural_earth is not None:
             from matplotlib.image import imread
+
             with warnings.catch_warnings():
                 # DecompressionBombWarning
-                warnings.simplefilter("ignore")
+                warnings.simplefilter('ignore')
                 img = imread(utils.get_natural_earth_file(natural_earth))
             ny, nx = img.shape[0], img.shape[1]
-            dx, dy = 360. / nx, 180. / ny
-            grid = Grid(nxny=(nx, ny), dxdy=(dx, -dy), x0y0=(-180., 90.),
-                        pixel_ref='corner').center_grid
+            dx, dy = 360.0 / nx, 180.0 / ny
+            grid = Grid(
+                nxny=(nx, ny),
+                dxdy=(dx, -dy),
+                x0y0=(-180.0, 90.0),
+                pixel_ref='corner',
+            ).center_grid
             return self.set_rgb(img, grid, interp='linear')
 
         if (len(img.shape) != 3) or (img.shape[-1] not in [3, 4]):
@@ -989,9 +1127,17 @@ class Map(DataLevels):
             out.append(self._check_data(img[..., i], crs=crs, interp=interp))
         self._rgb = np.dstack(out)
 
-    def set_scale_bar(self, location=None, length=None, maxlen=0.25,
-                      add_bbox=False, bbox_dx=1.2, bbox_dy=1.2,
-                      bbox_kwargs=None, **kwargs):
+    def set_scale_bar(
+        self,
+        location=None,
+        length=None,
+        maxlen=0.25,
+        add_bbox=False,
+        bbox_dx=1.2,
+        bbox_dy=1.2,
+        bbox_kwargs=None,
+        **kwargs,
+    ):
         """Add a legend bar showing the scale to the plot.
 
         Parameters
@@ -1019,8 +1165,8 @@ class Map(DataLevels):
             any kwarg accepted by ``set_geometry``. Defaults are put on
             ``color``, ``linewidth``, ``text``, ``text_kwargs``... But you can
             do whatever you want
-        """
 
+        """
         x0, x1, y0, y1 = self.grid.extent
 
         # Find a sensible length for the scale
@@ -1028,24 +1174,27 @@ class Map(DataLevels):
             length = utils.nice_scale(x1 - x0, maxlen=maxlen)
 
         if location is None:
-            location = (0.96 - length/2/(x1 - x0), 0.04)
+            location = (0.96 - length / 2 / (x1 - x0), 0.04)
 
         # scalebar center location in proj coordinates
         sbcx, sbcy = x0 + (x1 - x0) * location[0], y0 + (y1 - y0) * location[1]
 
         # coordinates for the scalebar
-        line = LineString(([sbcx - length/2, sbcy], [sbcx + length/2, sbcy]))
+        line = LineString(
+            ([sbcx - length / 2, sbcy], [sbcx + length / 2, sbcy])
+        )
         # Of the bounding box
-        bbox = [[sbcx - length / 2 * bbox_dx, sbcy - length / 4 * bbox_dy],
-                [sbcx - length / 2 * bbox_dx, sbcy + length / 4 * bbox_dy],
-                [sbcx + length / 2 * bbox_dx, sbcy + length / 4 * bbox_dy],
-                [sbcx + length / 2 * bbox_dx, sbcy - length / 4 * bbox_dy],
-                ]
+        bbox = [
+            [sbcx - length / 2 * bbox_dx, sbcy - length / 4 * bbox_dy],
+            [sbcx - length / 2 * bbox_dx, sbcy + length / 4 * bbox_dy],
+            [sbcx + length / 2 * bbox_dx, sbcy + length / 4 * bbox_dy],
+            [sbcx + length / 2 * bbox_dx, sbcy - length / 4 * bbox_dy],
+        ]
 
         # Units
         if gis.proj_is_latlong(self.grid.proj):
             units = 'deg'
-        elif length >= 1000.:
+        elif length >= 1000.0:
             length /= 1000
             units = 'km'
         else:
@@ -1055,7 +1204,7 @@ class Map(DataLevels):
             length = int(length)
         # Defaults
         kwargs.setdefault('color', 'k')
-        kwargs.setdefault('text', '{} '.format(length) + units)
+        kwargs.setdefault('text', f'{length} ' + units)
         kwargs.setdefault('text_delta', (0.0, 0.015))
         kwargs.setdefault('linewidth', 3)
         kwargs.setdefault('zorder', 99)
@@ -1074,43 +1223,39 @@ class Map(DataLevels):
             self.set_geometry(poly, crs=self.grid.proj, **bbox_kwargs)
         self.set_geometry(line, crs=self.grid.proj, **kwargs)
 
-    def transform(self, crs=wgs84, ax=None):
-        """Get a matplotlib transform object for a given reference system
+    def transform(
+        self, crs: pyproj.Proj | Grid | str = wgs84, ax: Axes | None = None
+    ) -> MPLTranform:
+        """Get a matplotlib transform object for a given reference system.
 
         Parameters
         ----------
         crs : coordinate reference system
             a Grid or a Proj, basically. If a grid is given, the grid's proj
             will be used.
+        ax : matplotlib.axes.Axes
+            the axis to use for the transformation
 
         Returns
         -------
         a matplotlib.transforms.Transform instance
+
         """
-        try:
+        if isinstance(crs, (xr.DataArray, xr.Dataset)):
             crs = crs.salem.grid
-        except:
-            pass
-        try:
+        if isinstance(crs, Grid):
             crs = crs.proj
-        except:
-            pass
-        return _SalemTransform(target_grid=self.grid,
-                               source_crs=crs, ax=ax)
+        return _SalemTransform(target_grid=self.grid, source_crs=crs, ax=ax)
 
-    def to_rgb(self):
+    def to_rgb(self) -> NDArray[Any]:
         """Transform the data to a RGB image and add topographical shading."""
-
-        if self._rgb is None:
-            toplot = DataLevels.to_rgb(self)
-        else:
-            toplot = self._rgb
+        toplot = DataLevels.to_rgb(self) if self._rgb is None else self._rgb
 
         # Shading
         if self.slope is not None:
             # remove alphas?
             try:
-                pno = np.where(toplot[:, :, 3] == 0.)
+                pno = np.where(toplot[:, :, 3] == 0.0)
                 for i in [0, 1, 2]:
                     toplot[pno[0], pno[1], i] = 1
                 toplot[:, :, 3] = 1
@@ -1134,15 +1279,16 @@ class Map(DataLevels):
 
         Returns a dict containing the primitives of the various plot calls
         """
-
-        out = {'imshow': None,
-               'contour': [],
-               'contourf': [],
-               }
+        out = {
+            'imshow': None,
+            'contour': [],
+            'contourf': [],
+        }
 
         # Image is the easiest
-        out['imshow'] = ax.imshow(self.to_rgb(), interpolation='none',
-                                  origin=self.origin)
+        out['imshow'] = ax.imshow(
+            self.to_rgb(), interpolation='none', origin=self.origin
+        )
         ax.autoscale(enable=False)
 
         # Contour
@@ -1162,13 +1308,19 @@ class Map(DataLevels):
         # Lon lat contours
         lon, lat = self.grid.pixcorner_ll_coordinates
         if len(self.xtick_levs) > 0:
-            ax.contour(lon, levels=self.xtick_levs,
-                       extent=(-0.5, self.grid.nx-0.5, -0.5, self.grid.ny),
-                       **self.ll_contour_kw)
+            ax.contour(
+                lon,
+                levels=self.xtick_levs,
+                extent=(-0.5, self.grid.nx - 0.5, -0.5, self.grid.ny),
+                **self.ll_contour_kw,
+            )
         if len(self.ytick_levs) > 0:
-            ax.contour(lat, levels=self.ytick_levs,
-                       extent=(-0.5, self.grid.nx, -0.5, self.grid.ny-0.5),
-                       **self.ll_contour_kw)
+            ax.contour(
+                lat,
+                levels=self.ytick_levs,
+                extent=(-0.5, self.grid.nx, -0.5, self.grid.ny - 0.5),
+                **self.ll_contour_kw,
+            )
 
         # Geometries
         for g, kwargs in self._geometries:
@@ -1207,8 +1359,8 @@ class Map(DataLevels):
 
         # Ticks
         if (len(self.xtick_pos) > 0) or (len(self.ytick_pos) > 0):
-            ax.xaxis.set_ticks(np.array(self.xtick_pos)-0.5)
-            ax.yaxis.set_ticks(np.array(self.ytick_pos)-0.5)
+            ax.xaxis.set_ticks(np.array(self.xtick_pos) - 0.5)
+            ax.yaxis.set_ticks(np.array(self.ytick_pos) - 0.5)
             ax.set_xticklabels(self.xtick_val)
             ax.set_yticklabels(self.ytick_val)
             ax.xaxis.set_zorder(5)
@@ -1221,8 +1373,7 @@ class Map(DataLevels):
 
 
 def plot_polygon(ax, poly, edgecolor='black', **kwargs):
-    """ Plot a single Polygon geometry """
-
+    """Plot a single Polygon geometry"""
     a = np.asarray(poly.exterior.coords)
     # without Descartes, we could make a Patch of exterior
     ax.add_patch(PolygonPatch(poly, **kwargs))
@@ -1233,9 +1384,7 @@ def plot_polygon(ax, poly, edgecolor='black', **kwargs):
 
 
 class _SalemTransform(MPLTranform):
-    """
-    A transform class for mpl axes using Grids.
-    """
+    """A transform class for mpl axes using Grids."""
 
     input_dims = 2
     output_dims = 2
@@ -1243,13 +1392,14 @@ class _SalemTransform(MPLTranform):
     has_inverse = False
 
     def __init__(self, target_grid=None, source_crs=None, ax=None):
-        """ Instanciate.
+        """Instanciate.
 
         Parameters
         ----------
         target_grid : salem.Grid
             typically, the map grid
         source_grid
+
         """
         self.source_crs = source_crs
         self.target_grid = target_grid

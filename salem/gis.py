@@ -1,40 +1,62 @@
-"""
-Projections and grids
-"""
+"""Projections and grids."""
+
 # Python 2 stuff
-from __future__ import division
+from __future__ import annotations
 
 # Builtins
+import contextlib
 import copy
 import warnings
 from functools import partial
-from packaging.version import Version
+from typing import TYPE_CHECKING, Any, Callable
+
+import numpy as np
 
 # External libs
 import pyproj
-import numpy as np
-from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
-
-try:
-    from osgeo import osr
-    osr.UseExceptions()
-    has_gdal = True
-except ImportError:
-    has_gdal = False
+import xarray as xr
+from packaging.version import Version
+from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
 
 # Locals
 from salem import lazy_property, wgs84
+from salem.utils import deprecated_arg, import_if_exists
+
+has_cartopy = import_if_exists('cartopy')
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import geopandas as gpd
+    from numpy._typing import NDArray
+    from pyproj.transformer import AreaOfInterest
+    from shapely.geometry.base import BaseGeometry
+
+    if has_cartopy:
+        import cartopy.crs as ccrs
+
+has_gdal = import_if_exists('osgeo')
+if has_gdal:
+    from osgeo import osr
+
+    osr.UseExceptions()
+
 
 try:
     crs_type = pyproj.crs.CRS
 except AttributeError:
-    class Dummy():
+
+    class Dummy:
         pass
+
     crs_type = Dummy
 
 
-def check_crs(crs, raise_on_error=False):
-    """Checks if the crs represents a valid grid, projection or ESPG string.
+def check_crs(
+    crs: pyproj.Proj | Grid | str | xr.DataArray,
+    *,
+    raise_on_error: bool = False,
+) -> pyproj.Proj | Grid | None:
+    """Check if the crs represents a valid grid, projection or ESPG string.
 
     Examples
     --------
@@ -48,20 +70,19 @@ def check_crs(crs, raise_on_error=False):
     Returns
     -------
     A valid crs if possible, otherwise None
-    """
 
-    try:
-        crs = crs.salem.grid  # try xarray
-    except:
-        pass
+    """
+    if isinstance(crs, (xr.DataArray, xr.Dataset)):
+        with contextlib.suppress(Exception):
+            crs = crs.salem.grid  # try xarray
 
     err1, err2 = None, None
 
-    if isinstance(crs, pyproj.Proj) or isinstance(crs, Grid):
+    if isinstance(crs, (pyproj.Proj, Grid)):
         out = crs
     elif isinstance(crs, crs_type):
         out = pyproj.Proj(crs.to_wkt(), preserve_units=True)
-    elif isinstance(crs, dict) or isinstance(crs, str):
+    elif isinstance(crs, (dict, str)):
         if isinstance(crs, str):
             # quick fix for https://github.com/pyproj4/pyproj/issues/345
             crs = crs.replace(' ', '').replace('+', ' +')
@@ -83,12 +104,14 @@ def check_crs(crs, raise_on_error=False):
         out = None
 
     if raise_on_error and out is None:
-        msg = ('salem could not properly parse the provided coordinate '
-               'reference system (crs). This could be due to errors in your '
-               'data, in PyProj, or with salem itself. If this occurs '
-               'unexpectedly, report an issue to https://github.com/fmaussion/'
-               'salem/issues. Full log: \n'
-               'crs: {} ; \n'.format(crs))
+        msg = (
+            'salem could not properly parse the provided coordinate '
+            'reference system (crs). This could be due to errors in your '
+            'data, in PyProj, or with salem itself. If this occurs '
+            'unexpectedly, report an issue to https://github.com/fmaussion/'
+            'salem/issues. Full log: \n'
+            f'crs: {crs} ; \n'
+        )
         if err1 is not None:
             msg += 'Output of `pyproj.Proj(crs, preserve_units=True)`: {} ; \n'
             msg = msg.format(err1)
@@ -100,7 +123,7 @@ def check_crs(crs, raise_on_error=False):
     return out
 
 
-class Grid(object):
+class Grid:
     """A structured grid on a map projection.
 
     Central class in the library, taking over user concerns about the
@@ -136,7 +159,6 @@ class Grid(object):
 
     Attributes
     ----------
-
     proj
     nx
     ny
@@ -157,12 +179,22 @@ class Grid(object):
     center_grid
     corner_grid
     extent
+
     """
 
-    def __init__(self, proj=wgs84, nxny=None, dxdy=None, x0y0=None,
-                 pixel_ref='center',
-                 corner=None, ul_corner=None, ll_corner=None):
-        """
+    def __init__(
+        self,
+        proj: pyproj.Proj | Grid | None = wgs84,
+        nxny: tuple[int, int] | None = None,
+        dxdy: tuple[float, float] | None = None,
+        x0y0: tuple[float, float] | None = None,
+        pixel_ref: str = 'center',
+        corner: tuple[float, float] | None = None,
+        ul_corner: tuple[float, float] | None = None,
+        ll_corner: tuple[float, float] | None = None,
+    ) -> None:
+        """Initialize a Grid object.
+
         Parameters
         ----------
         proj : pyproj.Proj instance
@@ -214,70 +246,82 @@ class Grid(object):
                [ 0.5,  0.5,  0.5]])
         >>> g.corner_grid == g.center_grid  # the two reprs are equivalent
         True
-        """
 
+        """
         # Check for coordinate system
         proj = check_crs(proj)
         if proj is None:
-            raise ValueError('proj must be of type pyproj.Proj')
+            msg = 'proj should not be None'
+            raise TypeError(msg)
+
         self._proj = proj
 
-        # deprecations
         if corner is not None:
-            warnings.warn('The `corner` kwarg is deprecated: '
-                          'use `x0y0` instead.', DeprecationWarning)
+            deprecated_arg(
+                'The `corner` kwarg is deprecated: use `x0y0` instead.'
+            )
             x0y0 = corner
         if ul_corner is not None:
-            warnings.warn('The `ul_corner` kwarg is deprecated: '
-                          'use `x0y0` instead.', DeprecationWarning)
-            if dxdy[1] > 0.:
-                raise ValueError('dxdy and input params not compatible')
+            deprecated_arg(
+                'The `ul_corner` kwarg is deprecated: use `x0y0` instead.'
+            )
+            if dxdy is not None and dxdy[1] > 0.0:
+                msg = 'dxdy and input params not compatible'
+                raise ValueError(msg)
             x0y0 = ul_corner
         if ll_corner is not None:
-            warnings.warn('The `ll_corner` kwarg is deprecated: '
-                          'use `x0y0` instead.', DeprecationWarning)
-            if dxdy[1] < 0.:
-                raise ValueError('dxdy and input params not compatible')
+            deprecated_arg(
+                'The `ll_corner` kwarg is deprecated: use `x0y0` instead.'
+            )
+            if dxdy is not None and dxdy[1] < 0.0:
+                msg = 'dxdy and input params not compatible'
+                raise ValueError(msg)
             x0y0 = ll_corner
 
         # Check for shortcut
-        if dxdy[1] < 0.:
+        if dxdy is not None and dxdy[1] < 0.0:
             ul_corner = x0y0
         else:
             ll_corner = x0y0
 
         # Initialise the rest
-        self._check_input(nxny=nxny, dxdy=dxdy,
-                          ul_corner=ul_corner,
-                          ll_corner=ll_corner,
-                          pixel_ref=pixel_ref)
+        self._check_input(
+            nxny=nxny,
+            dxdy=dxdy,
+            ul_corner=ul_corner,
+            ll_corner=ll_corner,
+            pixel_ref=pixel_ref,
+        )
 
-    def _check_input(self, **kwargs):
+    def _check_input(self, **kwargs) -> None:
         """See which parameter combination we have and set everything."""
-
         combi_a = ['nxny', 'dxdy', 'ul_corner']
         combi_b = ['nxny', 'dxdy', 'll_corner']
         if all(kwargs[k] is not None for k in combi_a):
             nx, ny = kwargs['nxny']
             dx, dy = kwargs['dxdy']
             x0, y0 = kwargs['ul_corner']
-            if (dx <= 0.) or (dy >= 0.):
-                raise ValueError('dxdy and input params not compatible')
+            if (dx <= 0.0) or (dy >= 0.0):
+                msg = 'dxdy and input params not compatible'
+                raise ValueError(msg)
             origin = 'upper-left'
         elif all(kwargs[k] is not None for k in combi_b):
             nx, ny = kwargs['nxny']
             dx, dy = kwargs['dxdy']
             x0, y0 = kwargs['ll_corner']
-            if (dx <= 0.) or (dy <= 0.):
-                raise ValueError('dxdy and input params not compatible')
+            if (dx <= 0.0) or (dy <= 0.0):
+                msg = 'dxdy and input params not compatible'
+                raise ValueError(msg)
             origin = 'lower-left'
         else:
-            raise ValueError('Input params not compatible')
+            msg = 'Input params not compatible'
+            raise ValueError(msg)
 
         self._nx = int(nx)
         self._ny = int(ny)
         if (self._nx <= 0) or (self._ny <= 0):
-            raise ValueError('nxny not valid')
+            msg = 'nxny not valid'
+            raise ValueError(msg)
         self._dx = float(dx)
         self._dy = float(dy)
         self._x0 = float(x0)
@@ -287,10 +331,13 @@ class Grid(object):
         # Check for pixel ref
         self._pixel_ref = kwargs['pixel_ref'].lower()
         if self._pixel_ref not in ['corner', 'center']:
-            raise ValueError('pixel_ref not recognized')
+            msg = 'pixel_ref not recognized'
+            raise ValueError(msg)
 
-    def __eq__(self, other):
-        """Two grids are considered equal when their defining coordinates
+    def __eq__(self, other: Grid) -> bool:
+        """Check equality with another grid.
+
+        Two grids are considered equal when their defining coordinates
         and projection are equal.
 
         Note: equality also means floating point equality, with all the
@@ -298,17 +345,23 @@ class Grid(object):
 
         (independent of the grid's cornered or centered representation.)
         """
-
         # Attributes defining the instance
         ckeys = ['x0', 'y0', 'nx', 'ny', 'dx', 'dy', 'origin']
 
-        a = dict((k, getattr(self.corner_grid, k)) for k in ckeys)
-        b = dict((k, getattr(other.corner_grid, k)) for k in ckeys)
+        a = {k: getattr(self.corner_grid, k) for k in ckeys}
+        b = {k: getattr(other.corner_grid, k) for k in ckeys}
         p1 = self.corner_grid.proj
         p2 = other.corner_grid.proj
         return (a == b) and proj_is_same(p1, p2)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Print a string representation of the grid.
+
+        Returns
+        -------
+            a string
+
+        """
         srs = '+'.join(sorted(self.proj.srs.split('+'))).strip()
         summary = ['<salem.Grid>']
         summary += ['  proj: ' + srs]
@@ -320,201 +373,193 @@ class Grid(object):
         return '\n'.join(summary) + '\n'
 
     @property
-    def proj(self):
+    def proj(self) -> pyproj.Proj:
         """``pyproj.Proj`` instance defining the grid's map projection."""
         return self._proj
 
     @property
-    def nx(self):
-        """number of grid points in the x direction."""
+    def nx(self) -> int:
+        """Number of grid points in the x direction."""
         return self._nx
 
     @property
-    def ny(self):
-        """number of grid points in the y direction."""
+    def ny(self) -> int:
+        """Number of grid points in the y direction."""
         return self._ny
 
     @property
-    def dx(self):
-        """x grid spacing (always positive)."""
+    def dx(self) -> float:
+        """X grid spacing (always positive)."""
         return self._dx
 
     @property
-    def dy(self):
-        """y grid spacing (positive if ll_corner, negative if ul_corner)."""
+    def dy(self) -> float:
+        """Y grid spacing (positive if ll_corner, negative if ul_corner)."""
         return self._dy
 
     @property
-    def x0(self):
+    def x0(self) -> float:
         """X reference point in projection coordinates."""
         return self._x0
 
     @property
-    def y0(self):
+    def y0(self) -> float:
         """Y reference point in projection coordinates."""
         return self._y0
 
     @property
-    def origin(self):
+    def origin(self) -> str:
         """``'upper-left'`` or ``'lower-left'``."""
         return self._origin
 
     @property
-    def pixel_ref(self):
-        """if coordinates are at the ``'center'`` or ``'corner'`` of the grid.
-        """
+    def pixel_ref(self) -> str:
+        """If coordinates are at the ``'center'`` or ``'corner'`` of the grid."""
         return self._pixel_ref
 
     @lazy_property
-    def center_grid(self):
-        """``salem.Grid`` instance representing the grid in center coordinates.
-        """
-
+    def center_grid(self) -> Grid:
+        """``salem.Grid`` instance representing the grid in center coordinates."""
         if self.pixel_ref == 'center':
             return self
-        else:
-            # shift the grid
-            x0y0 = ((self.x0 + self.dx / 2.), (self.y0 + self.dy / 2.))
-            args = dict(nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
-                        proj=self.proj, pixel_ref='center', x0y0=x0y0)
-            return Grid(**args)
+        # shift the grid
+        x0y0 = ((self.x0 + self.dx / 2.0), (self.y0 + self.dy / 2.0))
+        args = {
+            'nxny': (self.nx, self.ny),
+            'dxdy': (self.dx, self.dy),
+            'proj': self.proj,
+            'pixel_ref': 'center',
+            'x0y0': x0y0,
+        }
+        return Grid(**args)
 
     @lazy_property
-    def corner_grid(self):
-        """``salem.Grid`` instance representing the grid in corner coordinates.
-        """
-
+    def corner_grid(self) -> Grid:
+        """``salem.Grid`` instance representing the grid in corner coordinates."""
         if self.pixel_ref == 'corner':
             return self
-        else:
-            # shift the grid
-            x0y0 = ((self.x0 - self.dx / 2.), (self.y0 - self.dy / 2.))
-            args = dict(nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
-                        proj=self.proj, pixel_ref='corner', x0y0=x0y0)
-            return Grid(**args)
+        # shift the grid
+        x0y0 = ((self.x0 - self.dx / 2.0), (self.y0 - self.dy / 2.0))
+        args = {
+            'nxny': (self.nx, self.ny),
+            'dxdy': (self.dx, self.dy),
+            'proj': self.proj,
+            'pixel_ref': 'corner',
+            'x0y0': x0y0,
+        }
+        return Grid(**args)
 
     @property
-    def ij_coordinates(self):
+    def ij_coordinates(self) -> tuple[NDArray[Any], ...]:
         """Tuple of i, j coordinates of the grid points.
 
         (dependent of the grid's cornered or centered representation.)
         """
-
         x = np.arange(self.nx)
         y = np.arange(self.ny)
         return np.meshgrid(x, y)
 
     @property
-    def x_coord(self):
-        """x coordinates of the grid points (1D, no mesh)"""
-
+    def x_coord(self) -> NDArray[Any]:
+        """X coordinates of the grid points (1D, no mesh)."""
         return self.x0 + np.arange(self.nx) * self.dx
 
     @property
-    def y_coord(self):
-        """y coordinates of the grid points (1D, no mesh)"""
-
+    def y_coord(self) -> NDArray[Any]:
+        """Y coordinates of the grid points (1D, no mesh)."""
         return self.y0 + np.arange(self.ny) * self.dy
 
     @property
-    def xy_coordinates(self):
+    def xy_coordinates(self) -> tuple[NDArray[Any], ...]:
         """Tuple of x, y coordinates of the grid points.
 
         (dependent of the grid's cornered or centered representation.)
         """
-
         return np.meshgrid(self.x_coord, self.y_coord)
 
     @lazy_property
-    def ll_coordinates(self):
+    def ll_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
         """Tuple of longitudes, latitudes of the grid points.
 
         (dependent of the grid's cornered or centered representation.)
         """
-
         x, y = self.xy_coordinates
         proj_out = check_crs('EPSG:4326')
 
         return transform_proj(self.proj, proj_out, x, y)
 
     @property
-    def xstagg_xy_coordinates(self):
+    def xstagg_xy_coordinates(self) -> tuple[NDArray[Any], ...]:
         """Tuple of x, y coordinates of the X staggered grid.
 
         (independent of the grid's cornered or centered representation.)
         """
-
-        x_s = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
+        x_s = self.corner_grid.x0 + np.arange(self.nx + 1) * self.dx
         y = self.center_grid.y0 + np.arange(self.ny) * self.dy
         return np.meshgrid(x_s, y)
 
     @property
-    def ystagg_xy_coordinates(self):
+    def ystagg_xy_coordinates(self) -> tuple[NDArray[Any], ...]:
         """Tuple of x, y coordinates of the Y staggered grid.
 
         (independent of the grid's cornered or centered representation.)
         """
-
         x = self.center_grid.x0 + np.arange(self.nx) * self.dx
-        y_s = self.corner_grid.y0 + np.arange(self.ny+1) * self.dy
+        y_s = self.corner_grid.y0 + np.arange(self.ny + 1) * self.dy
         return np.meshgrid(x, y_s)
 
     @lazy_property
-    def xstagg_ll_coordinates(self):
+    def xstagg_ll_coordinates(self) -> tuple[NDArray[Any], ...]:
         """Tuple of longitudes, latitudes of the X staggered grid.
 
         (independent of the grid's cornered or centered representation.)
         """
-
         x, y = self.xstagg_xy_coordinates
         proj_out = check_crs('EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
-    def ystagg_ll_coordinates(self):
+    def ystagg_ll_coordinates(self) -> tuple[NDArray[Any], ...]:
         """Tuple of longitudes, latitudes of the Y staggered grid.
 
         (independent of the grid's cornered or centered representation.)
         """
-
         x, y = self.ystagg_xy_coordinates
         proj_out = check_crs('EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
-    def pixcorner_ll_coordinates(self):
-        """Tuple of longitudes, latitudes (dims: ny+1, nx+1) at the corners of
-        the grid.
+    def pixcorner_ll_coordinates(self) -> tuple[NDArray[Any], ...]:
+        """Tuple of lons, lats (dims: ny+1, nx+1) at the corners of the grid.
 
         Useful for graphics.Map essentially
 
         (independant of the grid's cornered or centered representation.)
         """
-
-        x = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
-        y = self.corner_grid.y0 + np.arange(self.ny+1) * self.dy
+        x = self.corner_grid.x0 + np.arange(self.nx + 1) * self.dx
+        y = self.corner_grid.y0 + np.arange(self.ny + 1) * self.dy
         x, y = np.meshgrid(x, y)
         proj_out = check_crs('EPSG:4326')
         return transform_proj(self.proj, proj_out, x, y)
 
     @lazy_property
-    def extent(self):
-        """[left, right, bottom, top] boundaries of the grid in the grid's
-        projection.
+    def extent(self) -> list[float]:
+        """[left, right, bottom, top] boundaries of the grid in the grid's projection.
 
         The boundaries are the pixels leftmost, rightmost, lowermost and
         uppermost corners, meaning that they are independent from the grid's
         representation.
         """
-
         x = np.array([0, self.nx]) * self.dx + self.corner_grid.x0
         ypoint = [0, self.ny] if self.origin == 'lower-left' else [self.ny, 0]
         y = np.array(ypoint) * self.dy + self.corner_grid.y0
 
         return [x[0], x[1], y[0], y[1]]
 
-    def almost_equal(self, other, rtol=1e-05, atol=1e-08):
-        """A less strict comparison between grids.
+    def almost_equal(
+        self, other: Grid, rtol: float = 1e-05, atol: float = 1e-08
+    ) -> bool:
+        """Compare with another grid (less strictly).
 
         Two grids are considered equal when their defining coordinates
         and projection are equal.
@@ -523,7 +568,6 @@ class Grid(object):
 
         (independent of the grid's cornered or centered representation.)
         """
-
         # float attributes defining the instance
         fkeys = ['x0', 'y0', 'dx', 'dy']
         # unambiguous attributes
@@ -531,9 +575,12 @@ class Grid(object):
 
         ok = True
         for k in fkeys:
-            ok = ok and np.isclose(getattr(self.corner_grid, k),
-                                   getattr(other.corner_grid, k),
-                                   rtol=rtol, atol=atol)
+            ok = ok and np.isclose(
+                getattr(self.corner_grid, k),
+                getattr(other.corner_grid, k),
+                rtol=rtol,
+                atol=atol,
+            )
         for k in ckeys:
             _ok = getattr(self.corner_grid, k) == getattr(other.corner_grid, k)
             ok = ok and _ok
@@ -541,7 +588,7 @@ class Grid(object):
         p2 = other.corner_grid.proj
         return ok and proj_is_same(p1, p2)
 
-    def extent_in_crs(self, crs=wgs84):
+    def extent_in_crs(self, crs: pyproj.Proj = wgs84) -> list[float]:
         """Get the extent of the grid in a desired crs.
 
         Parameters
@@ -552,15 +599,17 @@ class Grid(object):
         Returns
         -------
         [left, right, bottom, top] boundaries of the grid.
-        """
 
+        """
         # this is not so trivial
         # for optimisation we will transform the boundaries only
         poly = self.extent_as_polygon(crs=crs)
         _i, _j = poly.exterior.xy
         return [np.min(_i), np.max(_i), np.min(_j), np.max(_j)]
 
-    def extent_as_polygon(self, crs=wgs84):
+    def extent_as_polygon(
+        self, crs: pyproj.Proj | Grid | None = wgs84
+    ) -> BaseGeometry:
         """Get the extent of the grid in a shapely.Polygon and desired crs.
 
         Parameters
@@ -571,23 +620,34 @@ class Grid(object):
         Returns
         -------
         [left, right, bottom, top] boundaries of the grid.
+
         """
         from shapely.geometry import Polygon
 
         # this is not so trivial
         # for optimisation we will transform the boundaries only
-        _i = np.hstack([np.arange(self.nx+1),
-                        np.ones(self.ny+1)*self.nx,
-                        np.arange(self.nx+1)[::-1],
-                        np.zeros(self.ny+1)]).flatten()
-        _j = np.hstack([np.zeros(self.nx+1),
-                        np.arange(self.ny+1),
-                        np.ones(self.nx+1)*self.ny,
-                        np.arange(self.ny+1)[::-1]]).flatten()
+        _i = np.hstack(
+            [
+                np.arange(self.nx + 1),
+                np.ones(self.ny + 1) * self.nx,
+                np.arange(self.nx + 1)[::-1],
+                np.zeros(self.ny + 1),
+            ]
+        ).flatten()
+        _j = np.hstack(
+            [
+                np.zeros(self.nx + 1),
+                np.arange(self.ny + 1),
+                np.ones(self.nx + 1) * self.ny,
+                np.arange(self.ny + 1)[::-1],
+            ]
+        ).flatten()
         _i, _j = self.corner_grid.ij_to_crs(_i, _j, crs=crs)
         return Polygon(zip(_i, _j))
 
-    def regrid(self, nx=None, ny=None, factor=1):
+    def regrid(
+        self, nx: int | None = None, ny: int | None = None, factor: float = 1
+    ) -> Grid:
         """Make a copy of the grid with an updated spatial resolution.
 
         The keyword parameters are mutually exclusive, because the x/y ratio
@@ -597,7 +657,7 @@ class Grid(object):
         ----------
         nx : int
             the new number of x pixels
-        nx : int
+        ny : int
             the new number of y pixels
         factor : int
             multiplication factor (factor=3 will generate a grid with
@@ -606,29 +666,44 @@ class Grid(object):
         Returns
         -------
         a new Grid object.
-        """
 
+        """
+        if nx is not None and ny is not None and factor:
+            msg = 'You cannot specify both `nx/ny` and `factor`'
+            raise ValueError(msg)
         if nx is not None:
             factor = nx / self.nx
         if ny is not None:
             factor = ny / self.ny
 
-        nx = self.nx * factor
-        ny = self.ny * factor
+        nnx = self.nx * factor
+        nny = self.ny * factor
         dx = self.dx / factor
         dy = self.dy / factor
 
         x0 = self.corner_grid.x0
         y0 = self.corner_grid.y0
-        args = dict(nxny=(nx, ny), dxdy=(dx, dy), x0y0=(x0, y0),
-                    proj=self.proj, pixel_ref='corner')
+        args = {
+            'nxny': (nnx, nny),
+            'dxdy': (dx, dy),
+            'x0y0': (x0, y0),
+            'proj': self.proj,
+            'pixel_ref': 'corner',
+        }
         g = Grid(**args)
         if self.pixel_ref == 'center':
             g = g.center_grid
         return g
 
-    def ij_to_crs(self, i, j, crs=None, nearest=False):
-        """Converts local i, j to cartesian coordinates in a specified crs
+    def ij_to_crs(
+        self,
+        i: NDArray[Any],
+        j: NDArray[Any],
+        crs: pyproj.Proj | None = None,
+        *,
+        nearest: bool = False,
+    ) -> tuple[NDArray[Any], NDArray[Any]]:
+        """Convert local i, j to cartesian coordinates in a specified crs.
 
         Parameters
         ----------
@@ -644,8 +719,8 @@ class Grid(object):
         Returns
         -------
         (x, y) coordinates of the points in the specified crs.
-        """
 
+        """
         # Default
         if crs is None:
             crs = self.proj
@@ -664,10 +739,24 @@ class Grid(object):
             ret = transform_proj(self.proj, _crs, x, y)
         elif isinstance(_crs, Grid):
             ret = _crs.transform(x, y, crs=self.proj, nearest=nearest)
+        else:
+            msg = 'crs must be a pyproj.Proj or salem.Grid, not {}'.format(
+                type(crs)
+            )
+            raise TypeError(msg)
         return ret
 
-    def transform(self, x, y, z=None, crs=wgs84, nearest=False, maskout=False):
-        """Converts any coordinates into the local grid.
+    def transform(
+        self,
+        x: NDArray[Any],
+        y: NDArray[Any],
+        z: NDArray[Any] | None = None,
+        crs: pyproj.Proj | Grid | str | None = wgs84,
+        *,
+        nearest: bool = False,
+        maskout: bool = False,
+    ) -> tuple[NDArray[Any], NDArray[Any]]:
+        """Convert any coordinates into the local grid.
 
         Parameters
         ----------
@@ -691,10 +780,13 @@ class Grid(object):
         Returns
         -------
         (i, j) coordinates of the points in the local grid.
-        """
 
+        """
         x, y = np.ma.array(x), np.ma.array(y)
 
+        if crs is None:
+            msg = 'crs must be a pyproj.Proj or salem.Grid, not None'
+            raise ValueError(msg)
         # First to local proj
         _crs = check_crs(crs, raise_on_error=True)
         if isinstance(_crs, pyproj.Proj):
@@ -715,18 +807,22 @@ class Grid(object):
         # Mask?
         if maskout:
             if self.pixel_ref == 'center':
-                mask = ~((x >= -0.5) & (x < self.nx-0.5) &
-                         (y >= -0.5) & (y < self.ny-0.5))
+                dist = -0.5
+                mask = ~(
+                    (x >= dist)
+                    & (x < self.nx + dist)
+                    & (y >= dist)
+                    & (y < self.ny + dist)
+                )
             else:
-                mask = ~((x >= 0) & (x < self.nx) &
-                         (y >= 0) & (y < self.ny))
+                mask = ~((x >= 0) & (x < self.nx) & (y >= 0) & (y < self.ny))
             x = np.ma.array(x, mask=mask)
             y = np.ma.array(y, mask=mask)
 
         return x, y
 
-    def grid_lookup(self, other):
-        """Performs forward transformation of any other grid into self.
+    def grid_lookup(self, other: Grid) -> dict[tuple[int, int], NDArray[Any]]:
+        """Perform forward transformation of any other grid into self.
 
         The principle of forward transform is to obtain, for each grid point of
         ``self`` , all the indices of ``other`` that are located into the
@@ -745,26 +841,28 @@ class Grid(object):
         a dict: each key (j, i) contains an array of shape (n, 2) where n is
         the number of ``other`` 's grid points found within the grid point
         (j, i)
-        """
 
+        """
         # Input checks
-        other = check_crs(other)
-        if not isinstance(other, Grid):
-            raise ValueError('`other` should be a Grid instance')
+        _other = check_crs(other)
+        if not isinstance(_other, Grid):
+            msg = '`other` should be a Grid instance'
+            raise TypeError(msg)
 
         # Transform the other grid into the local grid (forward transform)
         # Work in center grid cause that's what we need
-        i, j = other.center_grid.ij_coordinates
+        i, j = _other.center_grid.ij_coordinates
         i, j = i.flatten(), j.flatten()
-        oi, oj = self.center_grid.transform(i, j, crs=other.center_grid,
-                                            nearest=True, maskout=True)
+        oi, oj = self.center_grid.transform(
+            i, j, crs=_other.center_grid, nearest=True, maskout=True
+        )
         # keep only valid values
         oi, oj, i, j = oi[~oi.mask], oj[~oi.mask], i[~oi.mask], j[~oi.mask]
 
         out_inds = oi.flatten() + self.nx * oj.flatten()
 
         # find the links
-        ris = np.digitize(out_inds, bins=np.arange(self.nx*self.ny+1))
+        ris = np.digitize(out_inds, bins=np.arange(self.nx * self.ny + 1))
 
         # some optim based on the fact that ris has many duplicates
         sort_idx = np.argsort(ris)
@@ -772,15 +870,22 @@ class Grid(object):
         unq_idx = np.split(sort_idx, np.cumsum(unq_count))
 
         # lets go
-        out = dict()
+        out = {}
         for idx, ri in zip(unq_idx, unq_items):
-            ij = divmod(ri-1, self.nx)
+            ij = divmod(ri - 1, self.nx)
             out[ij] = np.stack((j[idx], i[idx]), axis=1)
         return out
 
-    def lookup_transform(self, data, grid=None, method=np.mean, lut=None,
-                         return_lut=False):
-        """Performs the forward transformation of gridded data into self.
+    def lookup_transform(
+        self,
+        data: NDArray[Any],
+        grid: Grid | None = None,
+        method: Callable = np.mean,
+        lut: NDArray[Any] | None = None,
+        *,
+        return_lut: bool = False,
+    ) -> NDArray[Any]:
+        """Perform the forward transformation of gridded data into self.
 
         This method is suitable when the data grid is of higher resolution
         than ``self``. ``lookup_transform`` performs aggregation of data
@@ -811,23 +916,26 @@ class Grid(object):
         -------
         An aggregated ndarray of the data, in ``self`` coordinates.
         If ``return_lut==True``, also return the lookup table
-        """
 
+        """
         # Input checks
         if grid is None:
             grid = check_crs(data)  # xarray
         if not isinstance(grid, Grid):
-            raise ValueError('grid should be a Grid instance')
-        if hasattr(data, 'values'):
-            data = data.values  # xarray
+            msg = 'grid should be a Grid instance'
+            raise TypeError(msg)
+        if isinstance(data, (xr.DataArray, xr.Dataset)):
+            data = data.to_numpy()  # xarray
 
         # dimensional check
         in_shape = data.shape
         ndims = len(in_shape)
         if (ndims < 2) or (ndims > 4):
-            raise ValueError('data dimension not accepted')
+            msg = 'Expected 2D, 3D or 4D data but got {}D'.format(ndims)
+            raise ValueError(msg)
         if (in_shape[-1] != grid.nx) or (in_shape[-2] != grid.ny):
-            raise ValueError('data dimension not compatible')
+            msg = 'data dimension not compatible'
+            raise ValueError(msg)
 
         if lut is None:
             lut = self.grid_lookup(grid)
@@ -842,7 +950,7 @@ class Grid(object):
             dtype=float if data.dtype.kind == 'i' else data.dtype,
         )
 
-        def _2d_trafo(ind, outd):
+        def _2d_trafo(ind: NDArray[Any], outd: NDArray[Any]) -> NDArray[Any]:
             for ji, l in lut.items():
                 outd[ji] = method(ind[l[:, 0], l[:, 1]])
             return outd
@@ -867,11 +975,16 @@ class Grid(object):
 
         if return_lut:
             return out_data, lut
-        else:
-            return out_data
+        return out_data
 
-    def map_gridded_data(self, data, grid=None, interp='nearest',
-                         ks=3, out=None):
+    def map_gridded_data(
+        self,
+        data: NDArray[Any],
+        grid: Grid | str | None = None,
+        interp: str = 'nearest',
+        ks: int = 3,
+        out: NDArray[Any] | None = None,
+    ) -> NDArray[Any]:
         """Reprojects any structured data onto the local grid.
 
         The z and time dimensions of the data (if provided) are conserved, but
@@ -902,27 +1015,24 @@ class Grid(object):
         Returns
         -------
         A projected ndarray of the data, in ``self`` coordinates.
-        """
 
-        if grid is None:
-            try:
+        """
+        if grid is None and isinstance(data, (xr.DataArray, xr.Dataset)):
+            with contextlib.suppress(AttributeError):
                 grid = data.salem.grid  # try xarray
-            except AttributeError:
-                pass
 
         # Input checks
         if not isinstance(grid, Grid):
-            raise ValueError('grid should be a Grid instance')
+            msg = 'grid should be a Grid instance'
+            raise TypeError(msg)
 
-        try:  # in case someone gave an xarray dataarray
-            data = data.values
-        except AttributeError:
-            pass
+        if isinstance(data, (xr.DataArray, xr.Dataset)):
+            with contextlib.suppress(AttributeError):
+                data = data.to_numpy()
 
-        try:  # in case someone gave a masked array (won't work with scipy)
+        # in case someone gave a masked array (won't work with scipy)
+        with contextlib.suppress(AttributeError):
             data = data.filled(np.nan)
-        except AttributeError:
-            pass
 
         if data.dtype == np.float32:
             # New in scipy - issue with float32
@@ -931,9 +1041,11 @@ class Grid(object):
         in_shape = data.shape
         ndims = len(in_shape)
         if (ndims < 2) or (ndims > 4):
-            raise ValueError('data dimension not accepted')
+            msg = 'Expected 2D, 3D or 4D data but got {}D'.format(ndims)
+            raise ValueError(msg)
         if (in_shape[-1] != grid.nx) or (in_shape[-2] != grid.ny):
-            raise ValueError('data dimension not compatible')
+            msg = 'data dimension not compatible'
+            raise ValueError(msg)
 
         interp = interp.lower()
 
@@ -945,10 +1057,12 @@ class Grid(object):
         # Work in center grid cause that's what we need
         # TODO: this stage could be optimized when many variables need transfo
         i, j = self.center_grid.ij_coordinates
-        oi, oj = grid.center_grid.transform(i, j, crs=self.center_grid,
-                                            nearest=use_nn, maskout=False)
-        pv = np.nonzero((oi >= 0) & (oi < grid.nx) &
-                        (oj >= 0) & (oj < grid.ny))
+        oi, oj = grid.center_grid.transform(
+            i, j, crs=self.center_grid, nearest=use_nn, maskout=False
+        )
+        pv = np.nonzero(
+            (oi >= 0) & (oi < grid.nx) & (oj >= 0) & (oj < grid.ny)
+        )
 
         # Prepare the output
         if out is not None:
@@ -974,7 +1088,8 @@ class Grid(object):
         if interp == 'nearest':
             if out is not None:
                 if ndims > 2:
-                    raise ValueError('Need 2D for now.')
+                    msg = 'Need 2D for now but got {}D'.format(ndims)
+                    raise ValueError(msg)
                 vok = np.isfinite(data[oj, oi])
                 out_data[j[vok], i[vok]] = data[oj[vok], oi[vok]]
             else:
@@ -991,8 +1106,9 @@ class Grid(object):
                     out_data[j, i] = f((oj, oi))
             if ndims == 3:
                 for dimi, cdata in enumerate(data):
-                    f = RegularGridInterpolator(points, cdata,
-                                                bounds_error=False)
+                    f = RegularGridInterpolator(
+                        points, cdata, bounds_error=False
+                    )
                     if out is not None:
                         tmp = f((oj, oi))
                         vok = np.isfinite(tmp)
@@ -1002,8 +1118,9 @@ class Grid(object):
             if ndims == 4:
                 for dimj, cdata in enumerate(data):
                     for dimi, ccdata in enumerate(cdata):
-                        f = RegularGridInterpolator(points, ccdata,
-                                                    bounds_error=False)
+                        f = RegularGridInterpolator(
+                            points, ccdata, bounds_error=False
+                        )
                         if out is not None:
                             tmp = f((oj, oi))
                             vok = np.isfinite(tmp)
@@ -1040,20 +1157,27 @@ class Grid(object):
                         else:
                             out_data[dimj, dimi, j, i] = f(oj, oi, grid=False)
         else:
-            msg = 'interpolation not understood: {}'.format(interp)
+            msg = f'interpolation not understood: {interp}'
             raise ValueError(msg)
 
         # we have to catch a warning for an unexplained reason
         with warnings.catch_warnings():
-            mess = "invalid value encountered in isfinite"
-            warnings.filterwarnings("ignore", message=mess)
-            out_data = np.ma.masked_invalid(out_data)
-        return out_data
+            mess = 'invalid value encountered in isfinite'
+            warnings.filterwarnings('ignore', message=mess)
+            return np.ma.masked_invalid(out_data)
 
-    def region_of_interest(self, shape=None, geometry=None, grid=None,
-                           corners=None, crs=wgs84, roi=None,
-                           all_touched=False):
-        """Computes a region of interest (ROI).
+    def region_of_interest(
+        self,
+        shape: Path | None = None,
+        geometry: BaseGeometry | None = None,
+        grid: Grid | None = None,
+        corners: tuple[float, float] | None = None,
+        crs: pyproj.Proj | Grid | str | xr.DataArray | None = wgs84,
+        roi: np.ndarray | None = None,
+        *,
+        all_touched: bool = False,
+    ) -> np.ndarray:
+        """Compute a region of interest (ROI).
 
         A ROI is simply a mask of the same size as the grid.
 
@@ -1077,8 +1201,8 @@ class Grid(object):
             pass-through argument for rasterio.features.rasterize, indicating
             that all grid cells which are  clipped by the shapefile defining
             the region of interest should be included (default=False)
-        """
 
+        """
         # Initial mask
         if roi is not None:
             mask = np.array(roi, dtype=np.int16)
@@ -1087,29 +1211,35 @@ class Grid(object):
 
         # Collect keyword arguments, overriding anything the user
         # inadvertently added
-        rasterize_kws = dict(out=mask, all_touched=all_touched)
+        rasterize_kws = {'out': mask, 'all_touched': all_touched}
 
         # Several cases
         if shape is not None:
             import pandas as pd
+
             inplace = False
             if not isinstance(shape, pd.DataFrame):
                 from salem.sio import read_shapefile
+
                 shape = read_shapefile(shape)
                 inplace = True
             # corner grid is needed for rasterio
-            shape = transform_geopandas(shape, to_crs=self.corner_grid,
-                                        inplace=inplace)
+            gps_shape = transform_geopandas(
+                shape, to_crs=self.corner_grid, inplace=inplace
+            )
             import rasterio
             from rasterio.features import rasterize
+
             with rasterio.Env():
-                mask = rasterize(shape.geometry, **rasterize_kws)
+                mask = rasterize(gps_shape.geometry, **rasterize_kws)
         if geometry is not None:
             import rasterio
             from rasterio.features import rasterize
+
             # corner grid is needed for rasterio
-            geom = transform_geometry(geometry, crs=crs,
-                                      to_crs=self.corner_grid)
+            geom = transform_geometry(
+                geometry, crs=crs, to_crs=self.corner_grid
+            )
             with rasterio.Env():
                 mask = rasterize(np.atleast_1d(geom), **rasterize_kws)
         if grid is not None:
@@ -1120,12 +1250,14 @@ class Grid(object):
             xy0, xy1 = corners
             x0, y0 = cgrid.transform(*xy0, crs=crs, nearest=True)
             x1, y1 = cgrid.transform(*xy1, crs=crs, nearest=True)
-            mask[np.min([y0, y1]):np.max([y0, y1]) + 1,
-                 np.min([x0, x1]):np.max([x0, x1]) + 1] = 1
+            mask[
+                np.min([y0, y1]) : np.max([y0, y1]) + 1,
+                np.min([x0, x1]) : np.max([x0, x1]) + 1,
+            ] = 1
 
         return mask
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """Serialize this grid to a dictionary.
 
         Returns
@@ -1135,14 +1267,19 @@ class Grid(object):
         See Also
         --------
         from_dict : create a Grid from a dict
-        """
-        return dict(proj=self.proj.srs, x0y0=(self.x0, self.y0),
-                    nxny=(self.nx, self.ny), dxdy=(self.dx, self.dy),
-                    pixel_ref=self.pixel_ref)
 
-    @classmethod
-    def from_dict(self, d):
-        """Create a Grid from a dictionary
+        """
+        return {
+            'proj': self.proj.srs,
+            'x0y0': (self.x0, self.y0),
+            'nxny': (self.nx, self.ny),
+            'dxdy': (self.dx, self.dy),
+            'pixel_ref': self.pixel_ref,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> Grid:
+        """Create a Grid from a dictionary.
 
         Parameters
         ----------
@@ -1156,10 +1293,11 @@ class Grid(object):
         See Also
         --------
         to_dict : create a dict from a Grid
+
         """
         return Grid(**d)
 
-    def to_json(self, fpath):
+    def to_json(self, fpath: Path) -> None:
         """Serialize this grid to a json file.
 
         Parameters
@@ -1170,14 +1308,16 @@ class Grid(object):
         See Also
         --------
         from_json : read a json file
+
         """
         import json
-        with open(fpath, 'w') as fp:
+
+        with fpath.open('w') as fp:
             json.dump(self.to_dict(), fp)
 
-    @classmethod
-    def from_json(self, fpath):
-        """Create a Grid from a json file
+    @staticmethod
+    def from_json(fpath: Path) -> Grid:
+        """Create a Grid from a json file.
 
         Parameters
         ----------
@@ -1191,28 +1331,37 @@ class Grid(object):
         See Also
         --------
         to_json : create a json file
+
         """
         import json
-        with open(fpath, 'r') as fp:
+
+        with fpath.open() as fp:
             d = json.load(fp)
         return Grid.from_dict(d)
 
-    def to_dataset(self):
-        """Creates an empty dataset based on the Grid's geolocalisation.
+    def to_dataset(self) -> xr.Dataset:
+        """Create an empty dataset based on the Grid's geolocalisation.
 
         Returns
         -------
         An xarray.Dataset object ready to be filled with data
+
         """
         import xarray as xr
-        ds = xr.Dataset(coords={'x': (['x', ], self.center_grid.x_coord),
-                                'y': (['y', ], self.center_grid.y_coord)}
-                        )
+
+        ds = xr.Dataset(
+            coords={
+                'x': (['x'], self.center_grid.x_coord),
+                'y': (['y'], self.center_grid.y_coord),
+            }
+        )
         ds.attrs['pyproj_srs'] = self.proj.srs
         return ds
 
-    def to_geometry(self, to_crs=None):
-        """Makes a geometrical representation of the grid (e.g. for drawing).
+    def to_geometry(
+        self, to_crs: pyproj.Proj | Grid | None = None
+    ) -> BaseGeometry:
+        """Make a geometrical representation of the grid (e.g. for drawing).
 
         This can come also handy when doing shape-to-raster operations.
 
@@ -1222,15 +1371,17 @@ class Grid(object):
         Returns
         -------
         a geopandas.GeoDataFrame
+
         """
         from geopandas import GeoDataFrame
         from shapely.geometry import Polygon
+
         out = GeoDataFrame()
         geoms = []
         ii = []
         jj = []
-        xx = self.corner_grid.x0 + np.arange(self.nx+1) * self.dx
-        yy = self.corner_grid.y0 + np.arange(self.ny+1) * self.dy
+        xx = self.corner_grid.x0 + np.arange(self.nx + 1) * self.dx
+        yy = self.corner_grid.y0 + np.arange(self.ny + 1) * self.dy
         for j, (y0, y1) in enumerate(zip(yy[:-1], yy[1:])):
             for i, (x0, x1) in enumerate(zip(xx[:-1], xx[1:])):
                 coords = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
@@ -1246,8 +1397,8 @@ class Grid(object):
         return out
 
 
-def proj_is_same(p1, p2):
-    """Checks is two pyproj projections are equal.
+def proj_is_same(p1: pyproj.Proj, p2: pyproj.Proj) -> bool:
+    """Check is two pyproj projections are equal.
 
     See https://github.com/jswhit/pyproj/issues/15#issuecomment-208862786
 
@@ -1257,38 +1408,61 @@ def proj_is_same(p1, p2):
         first projection
     p2 : pyproj.Proj
         second projection
+
     """
     if has_gdal:
         # this is more robust, but gdal is a pain
+        from osgeo import osr
+
         s1 = osr.SpatialReference()
         s1.ImportFromProj4(p1.srs)
         s2 = osr.SpatialReference()
         s2.ImportFromProj4(p2.srs)
         return s1.IsSame(s2) == 1  # IsSame returns 1 or 0
-    else:
-        # at least we can try to sort it
-        p1 = '+'.join(sorted(p1.srs.split('+')))
-        p2 = '+'.join(sorted(p2.srs.split('+')))
-        return p1 == p2
+    # at least we can try to sort it
+    p1_str = '+'.join(sorted(p1.srs.split('+')))
+    p2_str = '+'.join(sorted(p2.srs.split('+')))
+    return p1_str == p2_str
 
 
-def _transform_internal(p1, p2, x, y, **kwargs):
+def _transform_internal(
+    p1: pyproj.Proj,
+    p2: pyproj.Proj,
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    always_xy: bool = False,
+    area_of_interest: AreaOfInterest | None = None,
+    **kwargs: bool,
+) -> tuple[Any, Any]:
     if hasattr(pyproj, 'Transformer'):
-        trf = pyproj.Transformer.from_proj(p1, p2, **kwargs)
+        trf = pyproj.Transformer.from_proj(
+            p1, p2, always_xy=always_xy, area_of_interest=area_of_interest
+        )
         with warnings.catch_warnings():
             # https://github.com/pyproj4/pyproj/issues/1415
-            warnings.filterwarnings("ignore", category=DeprecationWarning,
-                                    message=".*ndim > 0 to a scalar.*")
+            warnings.filterwarnings(
+                'ignore',
+                category=DeprecationWarning,
+                message='.*ndim > 0 to a scalar.*',
+            )
             return trf.transform(x, y)
     else:
         return pyproj.transform(p1, p2, x, y, **kwargs)
 
 
-def transform_proj(p1, p2, x, y, nocopy=False):
-    """Wrapper around the pyproj.transform function.
+def transform_proj(
+    p1: pyproj.Proj,
+    p2: pyproj.Proj,
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    nocopy: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Transform points between two coordinate systems.
 
-    Transform points between two coordinate systems defined by the Proj
-    instances p1 and p2.
+    Wrapper around the pyproj.transform function.
+    The coordinate systems are defined by the Proj instances p1 and p2.
 
     When two projections are equal, this function avoids quite a bunch of
     useless calculations. See https://github.com/jswhit/pyproj/issues/15
@@ -1305,8 +1479,8 @@ def transform_proj(p1, p2, x, y, nocopy=False):
         northings
     nocopy : bool
         in case the two projections are equal, you can use nocopy if you wish
-    """
 
+    """
     try:
         # This always makes a copy, even if projections are equivalent
         return _transform_internal(p1, p2, x, y, always_xy=True)
@@ -1314,13 +1488,16 @@ def transform_proj(p1, p2, x, y, nocopy=False):
         if proj_is_same(p1, p2):
             if nocopy:
                 return x, y
-            else:
-                return copy.deepcopy(x), copy.deepcopy(y)
+            return copy.deepcopy(x), copy.deepcopy(y)
 
         return _transform_internal(p1, p2, x, y)
 
 
-def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
+def transform_geometry(
+    geom: BaseGeometry,
+    crs: pyproj.Proj | Grid = wgs84,
+    to_crs: pyproj.Proj | Grid = wgs84,
+) -> BaseGeometry:
     """Reprojects a shapely geometry.
 
     Parameters
@@ -1335,8 +1512,8 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
     Returns
     -------
     A reprojected geometry
-    """
 
+    """
     from_crs = check_crs(crs)
     to_crs = check_crs(to_crs)
 
@@ -1347,13 +1524,20 @@ def transform_geometry(geom, crs=wgs84, to_crs=wgs84):
     elif isinstance(from_crs, Grid):
         project = partial(from_crs.ij_to_crs, crs=to_crs)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     from shapely.ops import transform
+
     return transform(project, geom)
 
 
-def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
+def transform_geopandas(
+    gdf: gpd.GeoDataFrame,
+    from_crs: pyproj.Proj | Grid | None = None,
+    to_crs: pyproj.Proj | Grid = wgs84,
+    *,
+    inplace: bool = False,
+) -> gpd.GeoDataFrame:
     """Reprojects a geopandas dataframe.
 
     Parameters
@@ -1370,20 +1554,18 @@ def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
     Returns
     -------
     A projected dataframe
-    """
-    from shapely.ops import transform
-    import geopandas as gpd
 
-    if from_crs is None:
-        from_crs = check_crs(gdf.crs)
-    else:
-        from_crs = check_crs(from_crs)
+    """
+    import geopandas as gpd
+    from shapely.ops import transform
+
+    if gdf.crs is None and from_crs is None:
+        msg = 'You need to set from_crs or gdf needs a crs'
+        raise ValueError(msg)
+    from_crs = check_crs(gdf.crs) if from_crs is None else check_crs(from_crs)
     to_crs = check_crs(to_crs)
 
-    if inplace:
-        out = gdf
-    else:
-        out = gdf.copy()
+    out = gdf if inplace else gdf.copy()
 
     if isinstance(to_crs, pyproj.Proj) and isinstance(from_crs, pyproj.Proj):
         project = partial(transform_proj, from_crs, to_crs)
@@ -1392,22 +1574,22 @@ def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
     elif isinstance(from_crs, Grid):
         project = partial(from_crs.ij_to_crs, crs=to_crs)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     # Do the job and set the new attributes
     result = out.geometry.apply(lambda geom: transform(project, geom))
     result.__class__ = gpd.GeoSeries
     if isinstance(to_crs, pyproj.Proj):
-        to_crs = to_crs.srs
+        to_crs_str = to_crs.srs
     elif isinstance(to_crs, Grid):
-        to_crs = None
+        to_crs_str = None
     out['geometry'] = result
     try:
-        out.set_crs(to_crs, allow_override=True, inplace=True)
+        out.set_crs(to_crs_str, allow_override=True, inplace=True)
     except ValueError:
         # Older versions of geopandas
-        out.crs = to_crs
-        out.geometry.crs = to_crs
+        out.crs = to_crs_str
+        out.geometry.crs = to_crs_str
     out['min_x'] = [g.bounds[0] for g in out.geometry]
     out['max_x'] = [g.bounds[2] for g in out.geometry]
     out['min_y'] = [g.bounds[1] for g in out.geometry]
@@ -1415,17 +1597,16 @@ def transform_geopandas(gdf, from_crs=None, to_crs=wgs84, inplace=False):
     return out
 
 
-def proj_is_latlong(proj):
+def proj_is_latlong(proj: pyproj.Proj) -> bool:
     """Shortcut function because of deprecation."""
-
     try:
-        return proj.is_latlong()
+        return 'longlat' in proj.definition_string()
     except AttributeError:
         return proj.crs.is_geographic
 
 
-def proj_to_cartopy(proj):
-    """Converts a pyproj.Proj to a cartopy.crs.Projection
+def proj_to_cartopy(proj: pyproj.Proj | Grid) -> ccrs.Projection:
+    """Convert a pyproj.Proj to a cartopy.crs.Projection.
 
     Parameters
     ----------
@@ -1437,65 +1618,71 @@ def proj_to_cartopy(proj):
     a cartopy.crs.Projection object
 
     """
-
-    import cartopy
+    if not has_cartopy:
+        msg = 'cartopy is not installed'
+        raise ImportError(msg)
     import cartopy.crs as ccrs
 
-    proj = check_crs(proj)
+    cproj = check_crs(proj)
 
-    if proj_is_latlong(proj):
+    if proj_is_latlong(cproj):
         return ccrs.PlateCarree()
 
-    srs = proj.srs
+    srs = cproj.srs
     if has_gdal:
         # this is more robust, as srs could be anything (espg, etc.)
+        from osgeo import osr
+
         s1 = osr.SpatialReference()
-        s1.ImportFromProj4(proj.srs)
+        s1.ImportFromProj4(cproj.srs)
         if s1.ExportToProj4():
             srs = s1.ExportToProj4()
 
-    km_proj = {'lon_0': 'central_longitude',
-               'lat_0': 'central_latitude',
-               'x_0': 'false_easting',
-               'y_0': 'false_northing',
-               'lat_ts': 'latitude_true_scale',
-               'o_lon_p': 'central_rotated_longitude',
-               'o_lat_p': 'pole_latitude',
-               'k': 'scale_factor',
-               'zone': 'zone',
-               }
-    km_globe = {'a': 'semimajor_axis',
-                'b': 'semiminor_axis',
-                }
-    km_std = {'lat_1': 'lat_1',
-              'lat_2': 'lat_2',
-              }
-    kw_proj = dict()
-    kw_globe = dict()
-    kw_std = dict()
-    for s in srs.split('+'):
-        s = s.split('=')
+    km_proj = {
+        'lon_0': 'central_longitude',
+        'lat_0': 'central_latitude',
+        'x_0': 'false_easting',
+        'y_0': 'false_northing',
+        'lat_ts': 'latitude_true_scale',
+        'o_lon_p': 'central_rotated_longitude',
+        'o_lat_p': 'pole_latitude',
+        'k': 'scale_factor',
+        'zone': 'zone',
+    }
+    km_globe = {
+        'a': 'semimajor_axis',
+        'b': 'semiminor_axis',
+    }
+    km_std = {
+        'lat_1': 'lat_1',
+        'lat_2': 'lat_2',
+    }
+    kw_proj = {}
+    kw_globe = {}
+    kw_std = {}
+    cl = None
+    v = None
+    for i in srs.split('+'):
+        s = i.split('=')
         if len(s) != 2:
             continue
         k = s[0].strip()
         v = s[1].strip()
-        try:
+        with contextlib.suppress(Exception):
             v = float(v)
-        except:
-            pass
         if k == 'proj':
             if v == 'tmerc':
                 cl = ccrs.TransverseMercator
                 kw_proj['approx'] = True
-            if v == 'lcc':
+            elif v == 'lcc':
                 cl = ccrs.LambertConformal
-            if v == 'merc':
+            elif v == 'merc':
                 cl = ccrs.Mercator
-            if v == 'utm':
+            elif v == 'utm':
                 cl = ccrs.UTM
-            if v == 'stere':
+            elif v == 'stere':
                 cl = ccrs.Stereographic
-            if v == 'ob_tran':
+            elif v == 'ob_tran':
                 cl = ccrs.RotatedPole
         if k in km_proj:
             if k == 'zone':
@@ -1506,6 +1693,11 @@ def proj_to_cartopy(proj):
         if k in km_std:
             kw_std[km_std[k]] = v
 
+    if cl is None:
+        msg = 'Could not determine the projection type. {} not known.'.format(
+            v
+        )
+        raise ValueError(msg)
     globe = None
     if kw_globe:
         globe = ccrs.Globe(ellipse='sphere', **kw_globe)
@@ -1516,8 +1708,11 @@ def proj_to_cartopy(proj):
     if cl.__name__ == 'Mercator':
         kw_proj.pop('false_easting', None)
         kw_proj.pop('false_northing', None)
-        if Version(cartopy.__version__) < Version('0.15'):
-            kw_proj.pop('latitude_true_scale', None)
+        if has_cartopy:
+            import cartopy
+
+            if Version(cartopy.__version__) < Version('0.15'):
+                kw_proj.pop('latitude_true_scale', None)
     elif cl.__name__ == 'Stereographic':
         kw_proj.pop('scale_factor', None)
         if 'latitude_true_scale' in kw_proj:
@@ -1538,8 +1733,15 @@ def proj_to_cartopy(proj):
     return cl(globe=globe, **kw_proj)
 
 
-def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
-                  origin='lower-left', transverse=True):
+def mercator_grid(
+    center_ll: tuple[float, float],
+    extent: tuple[float, float],
+    ny: int = 600,
+    nx: int | None = None,
+    origin: str = 'lower-left',
+    *,
+    transverse: bool = True,
+) -> Grid:
     """Local (transverse) mercator map centered on a specified point.
 
     Parameters
@@ -1558,45 +1760,64 @@ def mercator_grid(center_ll=None, extent=None, ny=600, nx=None,
     transverse : bool
         wether to use a transverse or regular mercator. Default should have
         been false, but for backwards compatibility reasons we keep it to True
-    """
 
+    """
+    # if nx is not None and ny is not None:
+    #     msg = 'You cannot specify both nx and ny'
+    #     raise ValueError(msg)
     # Make a local proj
     pname = 'tmerc' if transverse else 'merc'
     lon, lat = center_ll
-    proj_params = dict(proj=pname, lat_0=0., lon_0=lon,
-                       k=0.9996, x_0=0, y_0=0, datum='WGS84')
+    proj_params = {
+        'proj': pname,
+        'lat_0': 0.0,
+        'lon_0': lon,
+        'k': 0.9996,
+        'x_0': 0,
+        'y_0': 0,
+        'datum': 'WGS84',
+    }
     projloc = pyproj.Proj(proj_params)
 
     # Define a spatial resolution
     xx = extent[0]
     yy = extent[1]
     if nx is None:
-        nx = ny * xx / yy
+        nnx = np.rint(ny * xx / yy)
+        nny = np.rint(ny)
     else:
-        ny = nx * yy / xx
+        nnx = np.rint(nx)
+        nny = np.rint(nx * yy / xx)
 
-    nx = np.rint(nx)
-    ny = np.rint(ny)
-
-    e, n = transform_proj(wgs84, projloc, lon, lat)
+    e, n = transform_proj(wgs84, projloc, np.array(lon), np.array(lat))
 
     if origin == 'upper-left':
-        corner = (-xx / 2. + e, yy / 2. + n)
-        dxdy = (xx / nx, - yy / ny)
+        corner = (float(-xx / 2.0 + e), float(yy / 2.0 + n))
+        dxdy = (xx / nnx, -yy / nny)
     else:
-        corner = (-xx / 2. + e, -yy / 2. + n)
-        dxdy = (xx / nx, yy / ny)
+        corner = (float(-xx / 2.0 + e), float(-yy / 2.0 + n))
+        dxdy = (xx / nnx, yy / nny)
 
-    return Grid(proj=projloc, x0y0=corner, nxny=(nx, ny), dxdy=dxdy,
-                pixel_ref='corner')
+    return Grid(
+        proj=projloc,
+        x0y0=corner,
+        nxny=(nnx, nny),
+        dxdy=dxdy,
+        pixel_ref='corner',
+    )
 
 
-def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1):
+def googlestatic_mercator_grid(
+    center_ll: tuple[float, float],
+    nx: int = 640,
+    ny: int = 640,
+    zoom: int = 12,
+    scale: int = 1,
+) -> Grid:
     """Mercator map centered on a specified point (google API conventions).
 
     Mostly useful for google maps.
     """
-
     # Number of pixels in an image with a zoom level of 0.
     google_pix = 256 * scale
     # The equatorial radius of the Earth assuming WGS-84 ellipsoid.
@@ -1615,10 +1836,10 @@ def googlestatic_mercator_grid(center_ll=None, nx=640, ny=640, zoom=12, scale=1)
     xx = nx * mpix
     yy = ny * mpix
 
-    e, n = transform_proj(wgs84, projloc, lon, lat)
-    corner = (-xx / 2. + e, yy / 2. + n)
-    dxdy = (xx / nx, - yy / ny)
+    e, n = transform_proj(wgs84, projloc, np.array(lon), np.array(lat))
+    corner = (-xx / 2.0 + e, yy / 2.0 + n)
+    dxdy = (xx / nx, -yy / ny)
 
-    return Grid(proj=projloc, x0y0=corner,
-                nxny=(nx, ny), dxdy=dxdy,
-                pixel_ref='corner')
+    return Grid(
+        proj=projloc, x0y0=corner, nxny=(nx, ny), dxdy=dxdy, pixel_ref='corner'
+    )
