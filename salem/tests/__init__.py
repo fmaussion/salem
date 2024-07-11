@@ -78,6 +78,13 @@ def requires_matplotlib(test):
     return test if has_matplotlib else unittest.skip(msg)(test)
 
 
+def requires_static_key(test):
+    msg = "requires google static map key"
+    do_test = (("STATIC_MAP_API_KEY" in os.environ) and
+               (os.environ.get("STATIC_MAP_API_KEY")))
+    return test if do_test else unittest.skip(msg)(test)
+
+
 def requires_motionless(test):
     msg = "requires motionless"
     return test if has_motionless else unittest.skip(msg)(test)
