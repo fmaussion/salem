@@ -3,8 +3,8 @@
 What's New
 ==========
 
-v0.3.11 (9 July 2024)
----------------------
+v0.3.11 (12 July 2024)
+----------------------
 
 A minor release of the salem package to fix a few deprecation warnings
 and an important change in how google maps are generated:
