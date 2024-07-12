@@ -38,7 +38,7 @@ from salem import (Grid, wgs84, mercator_grid, GeoNetcdf,
                    GoogleVisibleMap, open_wrf_dataset, open_xr_dataset,
                    python_version, cache_dir, sample_data_dir)
 from salem.utils import get_demo_file
-from salem.tests import (requires_matplotlib, requires_cartopy)
+from salem.tests import (requires_matplotlib, requires_cartopy, requires_static_key)
 
 # Globals
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -810,6 +810,7 @@ def test_hef_topo_withnan():
 
 
 @requires_matplotlib
+@requires_static_key
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
@@ -828,6 +829,7 @@ def test_gmap():
 
 
 @requires_matplotlib
+@requires_static_key
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
 def test_gmap_transformed():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
@@ -857,6 +859,7 @@ def test_gmap_transformed():
 
 
 @requires_matplotlib
+@requires_static_key
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap_llconts():
     # This was because some problems were left unnoticed by other tests
