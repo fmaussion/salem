@@ -1,22 +1,48 @@
-"""
-Some useful functions
-"""
-from __future__ import division
+"""Some useful functions."""
 
+from __future__ import annotations
+
+import importlib.util
 import io
 import os
 import shutil
+import sys
+import warnings
 import zipfile
 from collections import OrderedDict
+from pathlib import Path
+from typing import List
+from urllib.request import urlopen, urlretrieve
 
 import numpy as np
 from joblib import Memory
-from salem import (cache_dir, sample_data_dir, sample_data_gh_commit,
-                   download_dir, python_version)
-from urllib.request import urlretrieve, urlopen
+
+from salem import (
+    cache_dir,
+    download_dir,
+    python_version,
+    sample_data_dir,
+    sample_data_gh_commit,
+)
 
 
-def _hash_cache_dir():
+def import_if_exists(module_name: str, package: str | None = None) -> bool:
+    """Import a module if it exists and is not yet imported."""
+    if module_name in sys.modules:
+        return True
+    try:
+        importlib.import_module(module_name, package=package)
+    except ImportError:
+        return False
+    return True
+
+
+def deprecated_arg(msg: str) -> None:
+    """Warns that an argument is deprecated."""
+    warnings.warn(msg, DeprecationWarning, stacklevel=2)
+
+
+def _hash_cache_dir() -> str:
     """Get the path to the right cache directory.
 
     We need to make sure that cached files correspond to the same
@@ -28,6 +54,7 @@ def _hash_cache_dir():
     Returns
     -------
     path to the dir
+
     """
     import hashlib
 
@@ -35,42 +62,49 @@ def _hash_cache_dir():
 
     try:
         import shapely
+
         out['shapely_version'] = shapely.__version__
         out['shapely_file'] = shapely.__file__
     except ImportError:
         pass
     try:
         import fiona
+
         out['fiona_version'] = fiona.__version__
         out['fiona_file'] = fiona.__file__
     except ImportError:
         pass
     try:
         import pandas
+
         out['pandas_version'] = pandas.__version__
         out['pandas_file'] = pandas.__file__
     except ImportError:
         pass
     try:
         import geopandas
+
         out['geopandas_version'] = geopandas.__version__
         out['geopandas_file'] = geopandas.__file__
     except ImportError:
         pass
     try:
         import osgeo
+
         out['osgeo_version'] = osgeo.__version__
         out['osgeo_file'] = osgeo.__file__
     except ImportError:
         pass
     try:
         import pyproj
+
         out['pyproj_version'] = pyproj.__version__
         out['pyproj_file'] = pyproj.__file__
     except ImportError:
         pass
     try:
         import salem
+
         out['salem_version'] = salem.__version__
         out['salem_file'] = salem.__file__
     except ImportError:
@@ -94,15 +128,51 @@ except TypeError:
 
 # A series of variables and dimension names that Salem will understand
 valid_names = dict()
-valid_names['x_dim'] = ['west_east', 'lon', 'longitude', 'longitudes', 'lons',
-                        'xlong', 'xlong_m', 'dimlon', 'x', 'lon_3', 'long',
-                        'phony_dim_0', 'eastings', 'easting', 'nlon', 'nlong',
-                        'grid_longitude_t']
-valid_names['y_dim'] = ['south_north', 'lat', 'latitude', 'latitudes', 'lats',
-                        'xlat', 'xlat_m', 'dimlat', 'y', 'lat_3', 'phony_dim_1',
-                        'northings', 'northing', 'nlat', 'grid_latitude_t']
-valid_names['z_dim'] = ['levelist', 'level', 'pressure', 'press', 'zlevel', 'z',
-                        'bottom_top']
+valid_names['x_dim'] = [
+    'west_east',
+    'lon',
+    'longitude',
+    'longitudes',
+    'lons',
+    'xlong',
+    'xlong_m',
+    'dimlon',
+    'x',
+    'lon_3',
+    'long',
+    'phony_dim_0',
+    'eastings',
+    'easting',
+    'nlon',
+    'nlong',
+    'grid_longitude_t',
+]
+valid_names['y_dim'] = [
+    'south_north',
+    'lat',
+    'latitude',
+    'latitudes',
+    'lats',
+    'xlat',
+    'xlat_m',
+    'dimlat',
+    'y',
+    'lat_3',
+    'phony_dim_1',
+    'northings',
+    'northing',
+    'nlat',
+    'grid_latitude_t',
+]
+valid_names['z_dim'] = [
+    'levelist',
+    'level',
+    'pressure',
+    'press',
+    'zlevel',
+    'z',
+    'bottom_top',
+]
 valid_names['t_dim'] = ['time', 'times', 'xtime']
 
 valid_names['lon_var'] = ['lon', 'longitude', 'longitudes', 'lons', 'long']
@@ -113,7 +183,7 @@ sample_data_gh_repo = 'fmaussion/salem-sample-data'
 nearth_base = 'http://shadedrelief.com/natural3/ne3_data/'
 
 
-def str_in_list(l1, l2):
+def str_in_list(l1: List[str], l2: List[str]) -> List[str]:
     """Check if one element of l1 is in l2 and if yes, returns the name of
     that element in a list (could be more than one.
 
@@ -123,55 +193,56 @@ def str_in_list(l1, l2):
     ['time']
     >>> print(str_in_list(['time', 'lon'], ['temp','time','prcp','lon']))
     ['time', 'lon']
+
     """
     return [i for i in l1 if i.lower() in l2]
 
 
-def empty_cache():
+def empty_cache() -> None:
     """Empty salem's cache directory."""
-
-    if os.path.exists(cache_dir):
+    if cache_dir.exists():
         shutil.rmtree(cache_dir)
-    os.makedirs(cache_dir)
+    cache_dir.mkdir()
 
 
-def cached_shapefile_path(fpath):
-    """Checks if a shapefile is cached and returns the corresponding path.
+def cached_shapefile_path(fpath: Path | str) -> Path:
+    """Check if a shapefile is cached and returns the corresponding path.
 
     This function checks for the last time the file has changed,
     so it should be safe to use.
     """
-
-    p, ext = os.path.splitext(fpath)
-
-    if ext.lower() == '.p':
+    if isinstance(fpath, str):
+        fpath = Path(fpath)
+    if fpath.suffix.lower() == '.p':
         # No need to recache pickled files (this is for nested calls)
         return fpath
 
-    if ext.lower() != '.shp':
-        raise ValueError('File extension not recognised: {}'.format(ext))
+    if fpath.suffix.lower() != '.shp':
+        msg = f'File extension not recognised: {fpath.suffix.lower()}'
+        raise ValueError(msg)
 
     # Cached directory and file
-    cp = os.path.commonprefix([cache_dir, p])
-    cp = os.path.join(cache_dir, hash_cache_dir + '_shp',
-                      os.path.relpath(p, cp))
-    ct = '{:d}'.format(int(round(os.path.getmtime(fpath)*1000.)))
-    of = os.path.join(cp, ct + '.p')
-    if os.path.exists(cp):
+    cp = Path(os.path.commonprefix([cache_dir, fpath.with_suffix('')]))
+    cp = (
+        cache_dir
+        / f'{hash_cache_dir}_shp'
+        / fpath.with_suffix('').relative_to(cp)
+    )
+    ct = f'{int(round(fpath.stat().st_mtime*1000.)):d}'
+    of = cp / (ct + '.p')
+    if cp.exists():
         # We have to check if the file changed
-        if os.path.exists(of):
+        if of.exists():
             return of
-        else:
-            # the file has changed
-            shutil.rmtree(cp)
+        # the file has changed
+        shutil.rmtree(cp)
 
-    os.makedirs(cp)
+    cp.mkdir(parents=True, exist_ok=True)
     return of
 
 
 def _urlretrieve(url, ofile, *args, **kwargs):
     """Wrapper for urlretrieve which overwrites."""
-
     try:
         return urlretrieve(url, ofile, *args, **kwargs)
     except:
@@ -191,11 +262,13 @@ def download_demo_files():
 
     Borrowed from OGGM.
     """
-
-    master_zip_url = 'https://github.com/%s/archive/%s.zip' % \
-                     (sample_data_gh_repo, sample_data_gh_commit)
-    ofile = os.path.join(cache_dir,
-                         'salem-sample-data-%s.zip' % sample_data_gh_commit)
+    master_zip_url = 'https://github.com/{}/archive/{}.zip'.format(
+        sample_data_gh_repo,
+        sample_data_gh_commit,
+    )
+    ofile = os.path.join(
+        cache_dir, 'salem-sample-data-%s.zip' % sample_data_gh_commit
+    )
     odir = os.path.join(cache_dir)
 
     # download only if necessary
@@ -224,14 +297,13 @@ def download_demo_files():
     return out
 
 
-def get_demo_file(fname):
-    """Returns the path to the desired demo file."""
-
+def get_demo_file(fname: str | Path) -> Path:
+    """Return the path to the desired demo file."""
     d = download_demo_files()
-    if fname in d:
-        return d[fname]
-    else:
-        return None
+    if str(fname) in d:
+        return Path(d[str(fname)])
+    msg = 'File not found in demo files: {}'.format(fname)
+    raise FileNotFoundError(msg)
 
 
 def get_natural_earth_file(res='lr'):
@@ -243,8 +315,8 @@ def get_natural_earth_file(res='lr'):
     ----------
     res : str
        'lr' or 'hr' (low res or high res)
-    """
 
+    """
     if not os.path.exists(download_dir):
         os.makedirs(download_dir)
 
@@ -267,25 +339,24 @@ def get_natural_earth_file(res='lr'):
 @memory.cache
 def read_colormap(name):
     """Reads a colormap from the custom files in Salem."""
-
     path = get_demo_file(name + '.c3g')
 
     out = []
-    with open(path, 'r') as file:
+    with open(path) as file:
         for line in file:
             if 'rgb(' not in line:
                 continue
             line = line.split('(')[-1].split(')')[0]
             out.append([float(n) for n in line.split(',')])
 
-    return np.asarray(out).astype(float) / 256.
+    return np.asarray(out).astype(float) / 256.0
 
 
 @memory.cache
 def joblib_read_img_url(url):
     """Prevent to re-download from GoogleStaticMap if it was done before"""
-
     from matplotlib.image import imread
+
     fd = urlopen(url, timeout=10)
     return imread(io.BytesIO(fd.read()))
 
@@ -306,9 +377,10 @@ def nice_scale(mapextent, maxlen=0.15):
     20.0
     >>> print(nice_scale(140, maxlen=0.5))
     50.0
+
     """
     d = np.array([1, 2, 5])
-    e = (np.ones(12) * 10) ** (np.arange(12)-5)
+    e = (np.ones(12) * 10) ** (np.arange(12) - 5)
     candidates = np.matmul(e[:, None], d[None, :]).flatten()
     return np.max(candidates[candidates / mapextent <= maxlen])
 
@@ -332,10 +404,17 @@ def reduce(arr, factor=1, how=np.mean):
     Returns
     -------
     the reduced array
+
     """
     arr = np.asarray(arr)
     shape = list(arr.shape)
-    newshape = shape[:-2] + [np.round(shape[-2] / factor).astype(int), factor,
-                             np.round(shape[-1] / factor).astype(int), factor]
-    return how(how(arr.reshape(*newshape), axis=len(newshape)-3),
-               axis=len(newshape)-2)
+    newshape = shape[:-2] + [
+        np.round(shape[-2] / factor).astype(int),
+        factor,
+        np.round(shape[-1] / factor).astype(int),
+        factor,
+    ]
+    return how(
+        how(arr.reshape(*newshape), axis=len(newshape) - 3),
+        axis=len(newshape) - 2,
+    )

@@ -3,17 +3,16 @@
 Diagnostic variables are simply a subclass of FakeVariable that implement
 __getitem__. See examples below.
 """
-from __future__ import division
+
 import copy
 
 import numpy as np
-import pyproj
-from scipy.interpolate import interp1d
 from netCDF4 import num2date
 from pandas import to_datetime
+from scipy.interpolate import interp1d
 from xarray.core import indexing
 
-from salem import lazy_property, wgs84, gis
+from salem import gis, lazy_property, wgs84
 
 POOL = None
 
@@ -22,6 +21,7 @@ def _init_pool():
     global POOL
     if POOL is None:
         import multiprocessing as mp
+
         POOL = mp.Pool()
 
 
@@ -29,8 +29,7 @@ def dummy_func(*args):
     pass
 
 
-class ScaledVar():
-
+class ScaledVar:
     def __init__(self, ncvar):
         self.ncvar = ncvar
         try:
@@ -46,11 +45,11 @@ class ScaledVar():
         self.ncvar.set_auto_scale(self.scale)
 
 
-class Unstaggerer(object):
+class Unstaggerer:
     """Duck NetCDF4.Variable class which "unstaggers" WRF variables.
 
-     It looks for the staggered dimension and automatically unstaggers it.
-     """
+    It looks for the staggered dimension and automatically unstaggers it.
+    """
 
     def __init__(self, ncvar):
         """Instanciate.
@@ -58,8 +57,8 @@ class Unstaggerer(object):
         Parameters
         ----------
         ncvar: the netCDF variable to unstagger.
-        """
 
+        """
         self.ncvar = ncvar
 
         # Attributes
@@ -91,11 +90,13 @@ class Unstaggerer(object):
 
         def filter_attrs():
             return attrs
+
         self.ncattrs = filter_attrs
         self.filters = ncvar.filters
 
         def _chunking():
             return self.shape
+
         self.chunking = _chunking
 
         for attr in self.ncattrs():
@@ -116,12 +117,12 @@ class Unstaggerer(object):
         Parameters
         ----------
         ncvar: the netCDF variable candidate forunstagger.
+
         """
         return np.any(['_stag' in d for d in ncvar.dimensions])
 
     def __getitem__(self, item):
         """Override __getitem__."""
-
         # take care of ellipsis and other strange indexes
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
 
@@ -129,36 +130,36 @@ class Unstaggerer(object):
         was_scalar = False
         sl = item[self.ds]
         if np.isscalar(sl) and not isinstance(sl, slice):
-            sl = slice(sl, sl+1)
+            sl = slice(sl, sl + 1)
             was_scalar = True
 
         # Ok, get the indexes right
         start = sl.start or 0
         stop = sl.stop or self._ds_shape
         if stop < 0:
-            stop += self._ds_shape-1
-        stop = np.clip(stop+1, 0, self._ds_shape)
+            stop += self._ds_shape - 1
+        stop = np.clip(stop + 1, 0, self._ds_shape)
         itemr = copy.deepcopy(item)
         if was_scalar:
             item[self.ds] = start
-            itemr[self.ds] = start+1
+            itemr[self.ds] = start + 1
         else:
-            item[self.ds] = slice(start, stop-1)
-            itemr[self.ds] = slice(start+1, stop)
+            item[self.ds] = slice(start, stop - 1)
+            itemr[self.ds] = slice(start + 1, stop)
         with ScaledVar(self.ncvar) as var:
-            return 0.5*(var[tuple(item)] + var[tuple(itemr)])
+            return 0.5 * (var[tuple(item)] + var[tuple(itemr)])
 
 
-class FakeVariable(object):
-    """Duck NetCDF4.Variable class
-    """
+class FakeVariable:
+    """Duck NetCDF4.Variable class"""
+
     def __init__(self, nc):
         self.name = self.__class__.__name__
         self.nc = nc
 
     @staticmethod
     def can_do():
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _copy_attrs_from(self, ncvar):
         # copies the necessary nc attributes from a template variable
@@ -170,6 +171,7 @@ class FakeVariable(object):
 
         def filter_attrs():
             return attrs
+
         self.ncattrs = filter_attrs
         self.filters = ncvar.filters
         self.chunking = ncvar.chunking
@@ -187,7 +189,7 @@ class FakeVariable(object):
         return getattr(self, name)
 
     def __getitem__(self, item):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class T2C(FakeVariable):
@@ -234,9 +236,13 @@ class AccumulatedVariable(FakeVariable):
             time = []
             stimes = vars['Times'][0:2]
             for t in stimes:
-                time.append(to_datetime(t.tobytes().decode(),
-                                        errors='raise',
-                                        format='%Y-%m-%d_%H:%M:%S'))
+                time.append(
+                    to_datetime(
+                        t.tobytes().decode(),
+                        errors='raise',
+                        format='%Y-%m-%d_%H:%M:%S',
+                    )
+                )
             dt_minutes = time[1] - time[0]
             dt_minutes = dt_minutes.seconds / 60
         return 60 / dt_minutes
@@ -251,7 +257,6 @@ class AccumulatedVariable(FakeVariable):
         return can_do
 
     def __getitem__(self, item):
-
         # take care of ellipsis and other strange indexes
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
 
@@ -260,25 +265,25 @@ class AccumulatedVariable(FakeVariable):
         was_scalar = False
         if np.isscalar(sl) and not isinstance(sl, slice):
             was_scalar = True
-            sl = slice(sl, sl+1)
+            sl = slice(sl, sl + 1)
 
         # Ok, get the indexes right
         start = sl.start or 0
         stop = sl.stop or self._nel
         if stop < 0:
-            stop += self._nel-1
+            stop += self._nel - 1
         start -= 1
         do_nan = False
         if start < 0:
             do_nan = True
         itemr = copy.deepcopy(item)
-        item[0] = slice(start, stop-1)
-        itemr[0] = slice(start+1, stop)
+        item[0] = slice(start, stop - 1)
+        itemr[0] = slice(start + 1, stop)
 
         # done
         with ScaledVar(self.nc.variables[self.accvn]) as var:
             if do_nan:
-                item[0] = slice(0, stop-1)
+                item[0] = slice(0, stop - 1)
                 out = var[itemr]
                 try:
                     # in case we have a masked array
@@ -296,7 +301,6 @@ class AccumulatedVariable(FakeVariable):
 
 
 class PRCP_NC(AccumulatedVariable):
-
     def __init__(self, nc):
         AccumulatedVariable.__init__(self, nc, 'RAINNC')
         self.units = 'mm h-1'
@@ -308,7 +312,6 @@ class PRCP_NC(AccumulatedVariable):
 
 
 class PRCP_C(AccumulatedVariable):
-
     def __init__(self, nc):
         AccumulatedVariable.__init__(self, nc, 'RAINC')
         self.units = 'mm h-1'
@@ -328,13 +331,17 @@ class PRCP(FakeVariable):
 
     @staticmethod
     def can_do(nc):
-        return (AccumulatedVariable.can_do(nc) and
-                'RAINC' in nc.variables and
-                'RAINNC' in nc.variables)
+        return (
+            AccumulatedVariable.can_do(nc)
+            and 'RAINC' in nc.variables
+            and 'RAINNC' in nc.variables
+        )
 
     def __getitem__(self, item):
-        with ScaledVar(self.nc.variables['PRCP_NC']) as p1, \
-                ScaledVar(self.nc.variables['PRCP_C']) as p2:
+        with (
+            ScaledVar(self.nc.variables['PRCP_NC']) as p1,
+            ScaledVar(self.nc.variables['PRCP_C']) as p2,
+        ):
             return p1[item] + p2[item]
 
 
@@ -351,7 +358,7 @@ class THETA(FakeVariable):
 
     def __getitem__(self, item):
         with ScaledVar(self.nc.variables['T']) as var:
-            return var[item] + 300.
+            return var[item] + 300.0
 
 
 class TK(FakeVariable):
@@ -366,15 +373,17 @@ class TK(FakeVariable):
         return np.all([n in nc.variables for n in ['T', 'P', 'PB']])
 
     def __getitem__(self, item):
-        p1000mb = 100000.
+        p1000mb = 100000.0
         r_d = 287.04
-        cp = 7 * r_d / 2.
+        cp = 7 * r_d / 2.0
         with ScaledVar(self.nc.variables['T']) as var:
-            t = var[item] + 300.
-        with ScaledVar(self.nc.variables['P']) as p, \
-                ScaledVar(self.nc.variables['PB']) as pb:
+            t = var[item] + 300.0
+        with (
+            ScaledVar(self.nc.variables['P']) as p,
+            ScaledVar(self.nc.variables['PB']) as pb,
+        ):
             p = p[item] + pb[item]
-        return (p/p1000mb)**(r_d/cp) * t
+        return (p / p1000mb) ** (r_d / cp) * t
 
 
 class WS(FakeVariable):
@@ -390,9 +399,9 @@ class WS(FakeVariable):
 
     def __getitem__(self, item):
         with ScaledVar(self.nc.variables['U']) as var:
-            ws = var[item]**2
+            ws = var[item] ** 2
         with ScaledVar(self.nc.variables['V']) as var:
-            ws += var[item]**2
+            ws += var[item] ** 2
         return np.sqrt(ws)
 
 
@@ -408,9 +417,10 @@ class PRESSURE(FakeVariable):
         return np.all([n in nc.variables for n in ['P', 'PB']])
 
     def __getitem__(self, item):
-
-        with ScaledVar(self.nc.variables['P']) as p, \
-                ScaledVar(self.nc.variables['PB']) as pb:
+        with (
+            ScaledVar(self.nc.variables['P']) as p,
+            ScaledVar(self.nc.variables['PB']) as pb,
+        ):
             res = p[item] + pb[item]
             if p.units == 'Pa':
                 res /= 100
@@ -431,8 +441,10 @@ class GEOPOTENTIAL(FakeVariable):
         return np.all([n in nc.variables for n in ['PH', 'PHB']])
 
     def __getitem__(self, item):
-        with ScaledVar(self.nc.variables['PH']) as p, \
-                ScaledVar(self.nc.variables['PHB']) as pb:
+        with (
+            ScaledVar(self.nc.variables['PH']) as p,
+            ScaledVar(self.nc.variables['PHB']) as pb,
+        ):
             return p[item] + pb[item]
 
 
@@ -469,17 +481,16 @@ class SLP(FakeVariable):
         return np.all([n in nc.variables for n in need])
 
     def __getitem__(self, item):
-
         # take care of ellipsis and other strange indexes
         item = list(indexing.expanded_indexer(item, len(self.dimensions)))
         # we need the empty dims for _ncl_slp() to work
         squeezax = []
         for i, c in enumerate(item):
             if np.isscalar(c) and not isinstance(c, slice):
-                item[i] = slice(c, c+1)
+                item[i] = slice(c, c + 1)
                 squeezax.append(i)
         # add a slice in the 4th dim
-        item.insert(self.ds, slice(0, self._ds_shape+1))
+        item.insert(self.ds, slice(0, self._ds_shape + 1))
         item = tuple(item)
 
         # get data
@@ -497,19 +508,20 @@ class SLP(FakeVariable):
 
 # Diagnostic variable classes in a list
 var_classes = [cls.__name__ for cls in vars()['FakeVariable'].__subclasses__()]
-var_classes.extend([cls.__name__ for cls in
-                    vars()['AccumulatedVariable'].__subclasses__()])
+var_classes.extend(
+    [cls.__name__ for cls in vars()['AccumulatedVariable'].__subclasses__()]
+)
 var_classes.remove('AccumulatedVariable')
 
 
 def _interp1d(args):
-    f = interp1d(args[0], args[1], fill_value=args[3],
-                 bounds_error=False)
+    f = interp1d(args[0], args[1], fill_value=args[3], bounds_error=False)
     return f(args[2])
 
 
-def interp3d(data, zcoord, levels, fill_value=np.nan,
-             use_multiprocessing=True):
+def interp3d(
+    data, zcoord, levels, fill_value=np.nan, use_multiprocessing=True
+):
     """Interpolate on the first dimension of a 3d var
 
     Useful for WRF pressure or geopotential levels
@@ -531,14 +543,17 @@ def interp3d(data, zcoord, levels, fill_value=np.nan,
     Returns
     -------
     a ndarray, with the first dimension now begin of shape nlevels
-    """
 
+    """
     ndims = len(data.shape)
     if ndims == 4:
         out = []
         for d, z in zip(data, zcoord):
-            out.append(np.expand_dims(interp3d(d, z, levels,
-                                               fill_value=fill_value), 0))
+            out.append(
+                np.expand_dims(
+                    interp3d(d, z, levels, fill_value=fill_value), 0
+                )
+            )
         return np.concatenate(out, axis=0)
     if ndims != 3:
         raise ValueError('ndims must be 3')
@@ -547,8 +562,9 @@ def interp3d(data, zcoord, levels, fill_value=np.nan,
         inp = []
         for j in range(data.shape[-2]):
             for i in range(data.shape[-1]):
-                inp.append((zcoord[:, j, i], data[:, j, i], levels,
-                            fill_value))
+                inp.append(
+                    (zcoord[:, j, i], data[:, j, i], levels, fill_value)
+                )
         _init_pool()
         out = POOL.map(_interp1d, inp, chunksize=1000)
         out = np.asarray(out).T
@@ -560,8 +576,12 @@ def interp3d(data, zcoord, levels, fill_value=np.nan,
         out = np.zeros((len(levels), data.shape[-2], data.shape[-1]))
         for i in range(data.shape[-1]):
             for j in range(data.shape[-2]):
-                f = interp1d(zcoord[:, j, i], data[:, j, i],
-                             fill_value=fill_value, bounds_error=False)
+                f = interp1d(
+                    zcoord[:, j, i],
+                    data[:, j, i],
+                    fill_value=fill_value,
+                    bounds_error=False,
+                )
                 out[:, j, i] = f(levels)
     return out
 
@@ -579,8 +599,8 @@ def _ncl_slp(z, t, p, q):
     T: temp
     P: pressure
     Q: specific humidity
-    """
 
+    """
     ndims = len(z.shape)
     if ndims == 4:
         out = []
@@ -596,7 +616,7 @@ def _ncl_slp(z, t, p, q):
     g = 9.81
     gamma = 0.0065
     tc = 273.16 + 17.5
-    pconst = 10000.
+    pconst = 10000.0
 
     #  Find least zeta level that is pconst Pa above the surface.  We
     # later use this level to extrapolate a surface pressure and
@@ -613,14 +633,13 @@ def _ncl_slp(z, t, p, q):
     if np.any(level == -1):
         raise RuntimeError('Error_in_finding_100_hPa_up')  # pragma: no cover
 
-    klo = (level-1).clip(0, nz-1)
-    khi = (klo+1).clip(0, nz-1)
+    klo = (level - 1).clip(0, nz - 1)
+    khi = (klo + 1).clip(0, nz - 1)
 
     if np.any((klo - khi) == 0):
         raise RuntimeError('Trapping levels are weird.')  # pragma: no cover
 
-    x, y = np.meshgrid(np.arange(nx, dtype=int),
-                       np.arange(ny, dtype=int))
+    x, y = np.meshgrid(np.arange(nx, dtype=int), np.arange(ny, dtype=int))
 
     plo = p[klo, y, x]
     phi = p[khi, y, x]
@@ -634,13 +653,17 @@ def _ncl_slp(z, t, p, q):
     qlo = q[klo, y, x]
     qhi = q[khi, y, x]
 
-    tlo *= (1. + 0.608 * qlo)
-    thi *= (1. + 0.608 * qhi)
+    tlo *= 1.0 + 0.608 * qlo
+    thi *= 1.0 + 0.608 * qhi
 
     p_at_pconst = p0 - pconst
-    t_at_pconst = thi - (thi-tlo) * np.log(p_at_pconst/phi) * np.log(plo/phi)
-    z_at_pconst = zhi - (zhi-zlo) * np.log(p_at_pconst/phi) * np.log(plo/phi)
-    t_surf = t_at_pconst * ((p0/p_at_pconst)**(gamma*r/g))
+    t_at_pconst = thi - (thi - tlo) * np.log(p_at_pconst / phi) * np.log(
+        plo / phi
+    )
+    z_at_pconst = zhi - (zhi - zlo) * np.log(p_at_pconst / phi) * np.log(
+        plo / phi
+    )
+    t_surf = t_at_pconst * ((p0 / p_at_pconst) ** (gamma * r / g))
     t_sea_level = t_at_pconst + gamma * z_at_pconst
 
     # If we follow a traditional computation, there is a correction to the
@@ -649,7 +672,7 @@ def _ncl_slp(z, t, p, q):
     l1 = t_sea_level < tc
     l2 = t_surf <= tc
     l3 = ~l1
-    t_sea_level = tc - 0.005 * (t_surf-tc)**2
+    t_sea_level = tc - 0.005 * (t_surf - tc) ** 2
     pok = np.nonzero(l2 & l3)
     t_sea_level[pok] = tc
 
@@ -657,7 +680,9 @@ def _ncl_slp(z, t, p, q):
     z_half_lowest = z[0, ...]
 
     # Convert to hPa in this step
-    return 0.01 * (p0 * np.exp((2.*g*z_half_lowest)/(r*(t_sea_level+t_surf))))
+    return 0.01 * (
+        p0 * np.exp((2.0 * g * z_half_lowest) / (r * (t_sea_level + t_surf)))
+    )
 
 
 def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
@@ -678,8 +703,8 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
         - grids: a list of Grids corresponding to the domains
           defined in the namelist
         - maps: a list of maps corresponding to the grids (if do_maps==True)
-    """
 
+    """
     with open(fpath) as f:
         lines = f.readlines()
 
@@ -725,39 +750,46 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
 
     # define projection
     if map_proj == 'LAMBERT':
-        pwrf = '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} ' \
-               '+lat_0={lat_0} +lon_0={lon_0} ' \
-               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = (
+            '+proj=lcc +lat_1={lat_1} +lat_2={lat_2} '
+            '+lat_0={lat_0} +lon_0={lon_0} '
+            '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        )
         pwrf = pwrf.format(**pargs)
     elif map_proj == 'MERCATOR':
-        pwrf = '+proj=merc +lat_ts={lat_1} +lon_0={lon_0} ' \
-               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = (
+            '+proj=merc +lat_ts={lat_1} +lon_0={lon_0} '
+            '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        )
         pwrf = pwrf.format(**pargs)
     elif map_proj == 'POLAR':
-        pwrf = '+proj=stere +lat_ts={lat_1} +lat_0=90.0 +lon_0={lon_0} ' \
-               '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        pwrf = (
+            '+proj=stere +lat_ts={lat_1} +lat_0=90.0 +lon_0={lon_0} '
+            '+x_0=0 +y_0=0 +a=6370000 +b=6370000'
+        )
         pwrf = pwrf.format(**pargs)
     else:
-        raise NotImplementedError('WRF proj not implemented yet: '
-                                  '{}'.format(map_proj))
+        raise NotImplementedError(
+            'WRF proj not implemented yet: ' '{}'.format(map_proj)
+        )
     pwrf = gis.check_crs(pwrf)
 
     # get easting and northings from dom center (probably unnecessary here)
     e, n = gis.transform_proj(wgs84, pwrf, pargs['ref_lon'], pargs['lat_0'])
 
     # LL corner
-    nx, ny = e_we[0]-1, e_sn[0]-1
-    x0 = -(nx-1) / 2. * dx + e  # -2 because of staggered grid
-    y0 = -(ny-1) / 2. * dy + n
+    nx, ny = e_we[0] - 1, e_sn[0] - 1
+    x0 = -(nx - 1) / 2.0 * dx + e  # -2 because of staggered grid
+    y0 = -(ny - 1) / 2.0 * dy + n
 
     # parent grid
     grid = gis.Grid(nxny=(nx, ny), x0y0=(x0, y0), dxdy=(dx, dy), proj=pwrf)
 
     # child grids
     out = [grid]
-    for ips, jps, pid, ratio, we, sn in zip(i_parent_start, j_parent_start,
-                                            parent_id, parent_ratio,
-                                            e_we, e_sn):
+    for ips, jps, pid, ratio, we, sn in zip(
+        i_parent_start, j_parent_start, parent_id, parent_ratio, e_we, e_sn
+    ):
         if ips == 1:
             continue
         ips -= 1
@@ -767,27 +799,34 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
         nx = we / ratio
         ny = sn / ratio
         if nx != (we / ratio):
-            raise RuntimeError('e_we and ratios are incompatible: '
-                               '(e_we - 1) / ratio must be integer!')
+            raise RuntimeError(
+                'e_we and ratios are incompatible: '
+                '(e_we - 1) / ratio must be integer!'
+            )
         if ny != (sn / ratio):
-            raise RuntimeError('e_sn and ratios are incompatible: '
-                               '(e_sn - 1) / ratio must be integer!')
+            raise RuntimeError(
+                'e_sn and ratios are incompatible: '
+                '(e_sn - 1) / ratio must be integer!'
+            )
 
         prevgrid = out[pid - 1]
         xx, yy = prevgrid.corner_grid.x_coord, prevgrid.corner_grid.y_coord
         dx = prevgrid.dx / ratio
         dy = prevgrid.dy / ratio
-        grid = gis.Grid(nxny=(we, sn),
-                        x0y0=(xx[ips], yy[jps]),
-                        dxdy=(dx, dy),
-                        pixel_ref='corner',
-                        proj=pwrf)
+        grid = gis.Grid(
+            nxny=(we, sn),
+            x0y0=(xx[ips], yy[jps]),
+            dxdy=(dx, dy),
+            pixel_ref='corner',
+            proj=pwrf,
+        )
         out.append(grid.center_grid)
 
     maps = None
     if do_maps:
-        from salem import Map
         import shapely.geometry as shpg
+
+        from salem import Map
 
         if map_kwargs is None:
             map_kwargs = {}
@@ -796,15 +835,22 @@ def geogrid_simulator(fpath, do_maps=True, map_kwargs=None):
         for i, g in enumerate(out):
             m = Map(g, **map_kwargs)
 
-            for j in range(i+1, len(out)):
+            for j in range(i + 1, len(out)):
                 cg = out[j]
                 left, right, bottom, top = cg.extent
 
-                s = np.array([(left, bottom), (right, bottom),
-                              (right, top), (left, top)])
+                s = np.array(
+                    [
+                        (left, bottom),
+                        (right, bottom),
+                        (right, top),
+                        (left, top),
+                    ]
+                )
                 l1 = shpg.LinearRing(s)
-                m.set_geometry(l1, crs=cg.proj, linewidth=(len(out)-j),
-                               zorder=5)
+                m.set_geometry(
+                    l1, crs=cg.proj, linewidth=(len(out) - j), zorder=5
+                )
 
             maps.append(m)
 
