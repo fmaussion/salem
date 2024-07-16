@@ -6,6 +6,7 @@ What's New
 v0.3.x (Unreleased)
 -------------------
 
+- fix a bug in which ```salem.__version__``` would not show the correct version
 
 v0.3.11 (12 July 2024)
 ----------------------
