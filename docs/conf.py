@@ -322,6 +322,11 @@ html_static_path = ["_static"]
 # implements a search results scorer. If empty, the default will be used.
 # html_search_scorer = 'scorer.js'
 
+# Plausible analytics
+html_js_files = [
+    ('https://plausible.io/js/script.js', {"data-domain": "salem.readthedocs.io", "defer": "defer"}),
+]
+
 # Output file base name for HTML help builder.
 htmlhelp_basename = "salemdoc"
 
