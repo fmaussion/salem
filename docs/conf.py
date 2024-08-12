@@ -324,7 +324,7 @@ html_static_path = ["_static"]
 
 # Plausible analytics
 html_js_files = [
-    ('https://plausible.io/js/script.js', {"data-domain": "salem.readthedocs.io", "defer": "defer"}),
+    ('https://plausible.oggm.org/js/script.js', {"data-domain": "salem.readthedocs.io", "defer": "defer"}),
 ]
 
 # Output file base name for HTML help builder.
