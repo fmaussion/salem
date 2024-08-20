@@ -21,7 +21,8 @@ from salem.datasets import (GeoDataset, GeoNetcdf, GeoTiff, WRF,
                             GoogleCenterMap, GoogleVisibleMap, EsriITMIX)
 from salem.tests import (requires_rasterio, requires_motionless,
                          requires_geopandas, requires_internet,
-                         requires_matplotlib, requires_shapely)
+                         requires_matplotlib, requires_shapely,
+                         requires_static_key)
 
 
 class TestDataset(unittest.TestCase):
@@ -432,6 +433,7 @@ class TestGoogleStaticMap(unittest.TestCase):
     @requires_internet
     @requires_motionless
     @requires_matplotlib
+    @requires_static_key
     def test_center(self):
         import matplotlib as mpl
         gm = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
@@ -468,6 +470,7 @@ class TestGoogleStaticMap(unittest.TestCase):
     @requires_internet
     @requires_motionless
     @requires_matplotlib
+    @requires_static_key
     def test_visible(self):
         import matplotlib as mpl
 
