@@ -811,7 +811,7 @@ def test_hef_topo_withnan():
 
 @requires_matplotlib
 @requires_static_key
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap():
     g = GoogleCenterMap(center_ll=(10.762660, 46.794221), zoom=13,
                         size_x=640, size_y=640)
@@ -830,7 +830,7 @@ def test_gmap():
 
 @requires_matplotlib
 @requires_static_key
-@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=25)
+@pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
 def test_gmap_transformed():
     dem = GeoTiff(get_demo_file('hef_srtm.tif'))
     dem.set_subset(margin=-100)
