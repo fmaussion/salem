@@ -8,7 +8,7 @@ Salem
     :target: https://badge.fury.io/py/salem
 .. image:: https://anaconda.org/conda-forge/salem/badges/version.svg
    :target: https://anaconda.org/conda-forge/salem/
-.. image:: https://github.com/fmaussion/salem/workflows/run-tests.yml/badge.svg?branch=master
+.. image:: https://github.com/fmaussion/salem/actions/workflows/run-tests.yml/badge.svg 
     :target: https://github.com/fmaussion/salem/actions/workflows/run-tests.yml
 .. image:: https://coveralls.io/repos/fmaussion/salem/badge.svg?branch=master&service=github
     :target: https://coveralls.io/github/fmaussion/salem?branch=master
