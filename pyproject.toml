@@ -1,10 +1,62 @@
-[build-system]
-build-backend = 'setuptools.build_meta'
-requires = [
-    "setuptools>=61",
-    "setuptools_scm[toml]>=7.0",
-    "wheel",
+[project]
+name = "salem"
+description = "Geoscientific data I/O and map projections"
+authors = [{name = "Fabien Maussion", email = "fabien.maussion@uibk.ac.at"}]
+license = {text = "BSD 3-clause"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pyproj",
+    "joblib",
+    "netCDF4",
+    "pandas",
+    "xarray",
+]
+dynamic = ["version"]
 
 [tool.setuptools_scm]
-fallback_version = "0.3.8"
+fallback_version = "0.3.11"
+version_file = "salem/_version.py"
+
+[project.urls]
+Homepage = "https://salem.readthedocs.io"
+Documentation = "https://salem.readthedocs.io"
+Source = "https://github.com/fmaussion/salem"
+Tracker = "https://github.com/fmaussion/salem/issues"
+
+[project.readme]
+file = "README.rst"
+content-type = "text/x-rst; charset=UTF-8"
+
+[build-system]
+requires = [
+    "setuptools>=64",
+    "setuptools_scm>=8",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+platforms = ["any"]
+include-package-data = true
+license-files = ["LICENSE.rst"]
+
+[tool.setuptools.packages.find]
+exclude = ["docs"]
+namespaces = false
+
+[tool.distutils.bdist_wheel]
+universal = 1

@@ -19,7 +19,7 @@ jobs:
           - py311-all
           - py312-all
         use-mpl:
-          - "--mpl"
+          - "--mpl --mpl-results-path=/tmp/salem-mpl-results"
         include:
           - test-env: py311-min
             use-mpl: ""
@@ -31,9 +31,9 @@ jobs:
         shell: bash -leo pipefail {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: ci/requirements-${{ matrix.test-env }}.yml
           activate-environment: test_env
@@ -58,6 +58,13 @@ jobs:
           COVERALLS_SERVICE_NAME: github
           COVERALLS_PARALLEL: true
         run: coveralls
+      - name: Upload pytest-mpl artifacts
+        if: "${{ failure() && matrix.use-mpl != '' }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: "pytest-mpl-results-${{ matrix.test-env }}"
+          path: /tmp/salem-mpl-results/
+          if-no-files-found: ignore
   finish-coveralls:
     name: Coveralls Finished
     needs: test
@@ -69,5 +76,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_SERVICE_NAME: github
       run: |
-        pip3 install --upgrade coveralls==3.2.0 &&
+        pip3 install --upgrade coveralls &&
         coveralls --finish
