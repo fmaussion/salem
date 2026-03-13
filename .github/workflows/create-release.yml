@@ -34,7 +34,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: pypi-release  # configure to require manual approval
       url: https://pypi.org/p/salem
     permissions:
