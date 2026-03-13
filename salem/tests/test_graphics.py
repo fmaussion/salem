@@ -972,7 +972,6 @@ def test_lookup_transform():
 @requires_matplotlib
 @requires_cartopy
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=10)
-@pytest.mark.skip(reason='There is an unknown issue with cartopy')
 def test_cartopy():
 
     import cartopy
@@ -1022,7 +1021,6 @@ def test_cartopy():
 
 @requires_cartopy
 @pytest.mark.mpl_image_compare(baseline_dir=baseline_dir, tolerance=7)
-@pytest.mark.skip(reason='There is an unknown issue with cartopy')
 def test_cartopy_polar():
 
     import cartopy
