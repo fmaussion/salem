@@ -299,8 +299,8 @@ class TestXarray(unittest.TestCase):
         assert_allclose(nlon, ds['XLONG'], atol=1e-4)
         assert_allclose(nlat, ds['XLAT'], atol=1e-4)
 
-        # the grid should not be missunderstood as lonlat
-        t2 = ds.T2.isel(Time=0) - 273.15
+        # Xarray changed behavior here
+        t2 = ds.T2.isel(Time=0).drop_attrs() - 273.15
         with pytest.raises(RuntimeError):
             t2.salem.grid
 
@@ -338,8 +338,8 @@ class TestXarray(unittest.TestCase):
         assert_allclose(nlon, ds['lon'], atol=1e-4)
         assert_allclose(nlat, ds['lat'], atol=1e-4)
 
-        # the grid should not be missunderstood as lonlat
-        t2 = ds.T2.isel(time=0) - 273.15
+        # if we lost attrs
+        t2 = ds.T2.isel(time=0).drop_attrs() - 273.15
         with pytest.raises(RuntimeError):
             t2.salem.grid
 
