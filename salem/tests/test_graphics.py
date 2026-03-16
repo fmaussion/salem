@@ -373,7 +373,7 @@ def test_extendednorm():
     ax1 = fig.add_subplot(1, 2, 1)
     ax2 = fig.add_subplot(1, 2, 2)
     imax = ax1.imshow(a, interpolation='None', norm=norm, cmap=cm,
-                      origin='lower');
+                      origin='lower')
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes("right", size="5%", pad=0.2)
     plt.colorbar(imax, cax=cax, extend='both')

@@ -1192,7 +1192,8 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
 
     try:
         combined = xr.combine_nested(datasets, combine_attrs='drop_conflicts',
-                                     concat_dim='time', compat=compat)
+                                     concat_dim='time', compat=compat,
+                                     data_vars='all')
     except ValueError:
         # Older xarray
         combined = xr.combine_nested(datasets, concat_dim='time',
