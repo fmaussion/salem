@@ -934,6 +934,8 @@ def test_colormaps():
         cb = mpl.colorbar.ColorbarBase(ax, cmap=get_cmap(cm),
                                        orientation='horizontal')
         cb.set_label(cm);
+        # force identical ticks to baseline, since we want to check the colours
+        cb.set_ticks(np.arange(0, 1.1, 0.1))
     return fig
 
 
@@ -1007,7 +1009,7 @@ def test_cartopy():
     ds = ds.T2C.mean(dim='time', keep_attrs=True)
 
     ax = plt.subplot(3, 2, 5)
-    smap = ds.salem.quick_map(ax=ax, factor=1)
+    smap = ds.salem.quick_map(ax=ax, factor=.5)
     ax.scatter(ds.lon, ds.lat, transform=smap.transform(ax=ax))
 
     p = ds.salem.cartopy()
