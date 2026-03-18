@@ -10,15 +10,15 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: GIS",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+dynamic = ["version"]
+
 dependencies = [
     "numpy",
     "scipy",
@@ -28,7 +28,6 @@ dependencies = [
     "pandas",
     "xarray",
 ]
-dynamic = ["version"]
 
 [tool.setuptools_scm]
 fallback_version = "0.3.11"
