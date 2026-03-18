@@ -25,7 +25,7 @@ dependencies = [
     "pyproj",
     "joblib",
     "netCDF4",
-    "pandas>=3.0",
+    "pandas>=2.0",
     "xarray",
 ]
 
