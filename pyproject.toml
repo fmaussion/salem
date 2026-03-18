@@ -51,6 +51,39 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+dev = ["flake8", "build", "twine"]
+docs = [
+    "salem[minimal]",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "numpydoc",
+    "ipykernel",
+    "ipython",
+    "sphinx-gallery",
+    "bottleneck",
+]
+full = ["salem[minimal]", "fiona"]
+minimal = [
+    "salem[parallel]",
+    "shapely",
+    "geopandas",
+    "rasterio",
+    "matplotlib",
+    "scikit-image",
+    "Pillow",
+    "cartopy",
+    "dask",
+]
+tests = [
+    "salem[minimal]",
+    "coveralls",
+    "pytest-cov",
+    "pytest",
+    "pytest-mpl",
+    "motionless",
+]
+
 [tool.setuptools]
 platforms = ["any"]
 include-package-data = true
