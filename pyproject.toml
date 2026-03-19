@@ -10,22 +10,24 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: GIS",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+dynamic = ["version"]
+
 dependencies = [
-    "numpy",
+    "numpy>=2.0",
     "scipy",
     "pyproj",
     "joblib",
     "netCDF4",
-    "pandas",
+    "pandas>=2.0",
     "xarray",
 ]
-dynamic = ["version"]
 
 [tool.setuptools_scm]
 fallback_version = "0.3.11"
@@ -48,6 +50,39 @@ requires = [
     "wheel",
 ]
 build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = ["flake8", "build", "twine"]
+docs = [
+    "salem[minimal]",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "numpydoc",
+    "ipykernel",
+    "ipython",
+    "sphinx-gallery",
+    "bottleneck",
+]
+full = ["salem[minimal]", "fiona"]
+minimal = [
+    "salem[parallel]",
+    "shapely",
+    "geopandas",
+    "rasterio",
+    "matplotlib",
+    "scikit-image",
+    "Pillow",
+    "cartopy",
+    "dask",
+]
+tests = [
+    "salem[minimal]",
+    "coveralls",
+    "pytest-cov",
+    "pytest",
+    "pytest-mpl",
+    "motionless",
+]
 
 [tool.setuptools]
 platforms = ["any"]

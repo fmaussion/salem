@@ -5,7 +5,10 @@ What's New
 
 v0.3.x (Unreleased)
 -------------------
+A minor release of the salem package to fix a few deprecation warnings and
+update packaging:
 
+- update CI workflow to automatically build and publish new salem releases (:pull:`260` by `Nicolas Gampierakis <https://github.com/gampnico>`_).
 
 v0.3.11 (12 July 2024)
 ----------------------

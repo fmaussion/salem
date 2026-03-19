@@ -18,6 +18,8 @@ jobs:
           - py310-all
           - py311-all
           - py312-all
+          - py313-all
+          - py314-all
         use-mpl:
           - "--mpl --mpl-results-path=/tmp/salem-mpl-results"
         include:
@@ -31,7 +33,7 @@ jobs:
         shell: bash -leo pipefail {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -60,7 +62,7 @@ jobs:
         run: coveralls
       - name: Upload pytest-mpl artifacts
         if: "${{ failure() && matrix.use-mpl != '' }}"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: "pytest-mpl-results-${{ matrix.test-env }}"
           path: /tmp/salem-mpl-results/

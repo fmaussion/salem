@@ -2,16 +2,25 @@ name: test_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - python=3.13
   - numpy>=2.0
   - scipy
   - pyproj
   - joblib
   - netCDF4
+  - shapely
+  - geopandas
+  - rasterio
   - pandas>=2.0
   - xarray
   - dask
+  - matplotlib
+  - scikit-image
+  - Pillow
+  - cartopy
   - pip
   - pip:
     - coveralls==3.2.0
     - pytest-cov
+    - pytest-mpl
+    - motionless
