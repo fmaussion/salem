@@ -5,7 +5,8 @@ What's New
 
 v0.3.x (Unreleased)
 -------------------
-
+- address deprecations, including dropping support for numpy and pandas below
+versions 2.0 (:pull:`259`).
 
 v0.3.11 (12 July 2024)
 ----------------------
