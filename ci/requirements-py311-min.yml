@@ -3,12 +3,12 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - numpy
+  - numpy>=2.0
   - scipy
   - pyproj
   - joblib
   - netCDF4
-  - pandas
+  - pandas>=2.0
   - xarray
   - pip
   - pip:
