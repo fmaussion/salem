@@ -7,9 +7,9 @@ dependencies:
   - ipykernel
   - ipython
   - netcdf4
-  - numpy
+  - numpy>=2.0
   - numpydoc
-  - pandas
+  - pandas>=2.0
   - rasterio
   - sphinx
   - matplotlib
