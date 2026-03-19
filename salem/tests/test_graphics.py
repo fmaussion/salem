@@ -1009,7 +1009,7 @@ def test_cartopy():
     ds = ds.T2C.mean(dim='time', keep_attrs=True)
 
     ax = plt.subplot(3, 2, 5)
-    smap = ds.salem.quick_map(ax=ax, factor=.5)
+    smap = ds.salem.quick_map(ax=ax, factor=1)
     ax.scatter(ds.lon, ds.lat, transform=smap.transform(ax=ax))
 
     p = ds.salem.cartopy()
