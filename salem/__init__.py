@@ -2,7 +2,7 @@
 Salem package
 """
 from __future__ import division
-
+import os
 from os import path
 from os import makedirs
 import sys
@@ -32,7 +32,7 @@ def lazy_property(fn):
 wgs84 = pyproj.Proj(proj='latlong', datum='WGS84')
 
 # Path to the cache directory
-cache_dir = path.join(path.expanduser('~'), '.salem_cache')
+cache_dir = os.getenv('SALEMCACHEDIR', path.join(path.expanduser('~'), '.salem_cache'))
 if not path.exists(cache_dir):
     makedirs(cache_dir)
 download_dir = path.join(cache_dir, 'downloads')
