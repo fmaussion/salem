@@ -9,6 +9,8 @@ A minor release of the salem package to fix a few deprecation warnings and
 update packaging:
 
 - update CI workflow to automatically build and publish new salem releases (:pull:`260` by `Nicolas Gampierakis <https://github.com/gampnico>`_).
+- address deprecations, including dropping support for numpy and pandas below
+versions 2.0 (:pull:`259`).
 
 v0.3.11 (12 July 2024)
 ----------------------

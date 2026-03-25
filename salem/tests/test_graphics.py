@@ -934,6 +934,8 @@ def test_colormaps():
         cb = mpl.colorbar.ColorbarBase(ax, cmap=get_cmap(cm),
                                        orientation='horizontal')
         cb.set_label(cm);
+        # force identical ticks to baseline, since we want to check the colours
+        cb.set_ticks(np.arange(0, 1.1, 0.1))
     return fig
 
 
