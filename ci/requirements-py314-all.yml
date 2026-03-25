@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.14
-  - numpy
+  - numpy>=2.0
   - scipy
   - pyproj
   - joblib
@@ -11,7 +11,7 @@ dependencies:
   - shapely
   - geopandas
   - rasterio
-  - pandas
+  - pandas>=2.0
   - xarray
   - dask
   - matplotlib
