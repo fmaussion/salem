@@ -26,12 +26,6 @@ try:
 except ImportError:
     # xarray < v0.11
     from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
-try:
-    from xarray.core.pycompat import basestring
-except ImportError:
-    # latest xarray dropped python2 support, so we can safely assume py3 here
-    basestring = str
-
 # Locals
 from salem import transform_proj
 
@@ -1165,7 +1159,7 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
     xarray.Dataset
     """
 
-    if isinstance(paths, basestring):
+    if isinstance(paths, str):
         paths = sorted(glob(paths))
     if not paths:
         raise IOError('no files to open')
