@@ -314,7 +314,9 @@ def nice_scale(mapextent: float, maxlen: float = 0.15) -> float:
     return np.max(candidates[candidates / mapextent <= maxlen])
 
 
-def reduce(arr: Any, factor: int = 1, how: Callable[..., Any] = np.mean) -> Any:
+def reduce(
+    arr: Any, factor: int = 1, how: Callable[..., Any] = np.mean
+) -> Any:
     """Reduces an array's size by a given factor.
 
     The reduction can be done by any reduction function (default is mean).
