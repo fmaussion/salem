@@ -1018,7 +1018,7 @@ def open_wrf_dataset(file, **kwargs):
     return ds
 
 
-def is_rotated_proj_working():
+def is_rotated_proj_working() -> bool:
 
     import pyproj
     srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
@@ -1028,9 +1028,9 @@ def is_rotated_proj_working():
     p1 = pyproj.Proj(srs)
     p2 = wgs84
 
-    return np.isclose(transform_proj(p1, p2, -20, -9),
-                      [-22.243473889042903, -0.06328365194179102],
-                      atol=1e-5).all()
+    return bool(np.isclose(transform_proj(p1, p2, -20, -9),
+                           [-22.243473889042903, -0.06328365194179102],
+                           atol=1e-5).all())
 
 
 def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
