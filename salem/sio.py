@@ -26,12 +26,6 @@ try:
 except ImportError:
     # xarray < v0.11
     from xarray.backends.api import _default_lock as NETCDF4_PYTHON_LOCK
-try:
-    from xarray.core.pycompat import basestring
-except ImportError:
-    # latest xarray dropped python2 support, so we can safely assume py3 here
-    basestring = str
-
 # Locals
 from salem import transform_proj
 
@@ -1024,7 +1018,7 @@ def open_wrf_dataset(file, **kwargs):
     return ds
 
 
-def is_rotated_proj_working():
+def is_rotated_proj_working() -> bool:
 
     import pyproj
     srs = ('+ellps=WGS84 +proj=ob_tran +o_proj=latlon '
@@ -1034,9 +1028,9 @@ def is_rotated_proj_working():
     p1 = pyproj.Proj(srs)
     p2 = wgs84
 
-    return np.isclose(transform_proj(p1, p2, -20, -9),
-                      [-22.243473889042903, -0.06328365194179102],
-                      atol=1e-5).all()
+    return bool(np.isclose(transform_proj(p1, p2, -20, -9),
+                           [-22.243473889042903, -0.06328365194179102],
+                           atol=1e-5).all())
 
 
 def open_metum_dataset(file, pole_longitude=None, pole_latitude=None,
@@ -1165,7 +1159,7 @@ def open_mf_wrf_dataset(paths, chunks=None, compat='no_conflicts', lock=None,
     xarray.Dataset
     """
 
-    if isinstance(paths, basestring):
+    if isinstance(paths, str):
         paths = sorted(glob(paths))
     if not paths:
         raise IOError('no files to open')
