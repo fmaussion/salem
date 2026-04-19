@@ -8,6 +8,7 @@ import os
 import shutil
 import zipfile
 from collections import OrderedDict
+from typing import Any, Callable, Iterable, List, Optional
 
 import numpy as np
 from joblib import Memory
@@ -113,7 +114,7 @@ sample_data_gh_repo = 'fmaussion/salem-sample-data'
 nearth_base = 'http://shadedrelief.com/natural3/ne3_data/'
 
 
-def str_in_list(l1, l2):
+def str_in_list(l1: Iterable[str], l2: Iterable[str]) -> List[str]:
     """Check if one element of l1 is in l2 and if yes, returns the name of
     that element in a list (could be more than one.
 
@@ -224,7 +225,7 @@ def download_demo_files():
     return out
 
 
-def get_demo_file(fname):
+def get_demo_file(fname: str) -> Optional[str]:
     """Returns the path to the desired demo file."""
 
     d = download_demo_files()
@@ -234,7 +235,7 @@ def get_demo_file(fname):
         return None
 
 
-def get_natural_earth_file(res='lr'):
+def get_natural_earth_file(res: str = 'lr') -> Optional[str]:
     """Returns the path to the desired natural earth file.
 
     http://www.shadedrelief.com/natural3/pages/textures.html
@@ -290,7 +291,7 @@ def joblib_read_img_url(url):
     return imread(io.BytesIO(fd.read()))
 
 
-def nice_scale(mapextent, maxlen=0.15):
+def nice_scale(mapextent: float, maxlen: float = 0.15) -> float:
     """Returns a nice number for a legend scale of a map.
 
     Parameters
@@ -313,7 +314,7 @@ def nice_scale(mapextent, maxlen=0.15):
     return np.max(candidates[candidates / mapextent <= maxlen])
 
 
-def reduce(arr, factor=1, how=np.mean):
+def reduce(arr: Any, factor: int = 1, how: Callable[..., Any] = np.mean) -> Any:
     """Reduces an array's size by a given factor.
 
     The reduction can be done by any reduction function (default is mean).
