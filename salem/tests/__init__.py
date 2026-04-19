@@ -5,9 +5,13 @@ import os
 from salem import python_version
 from urllib.request import urlopen
 from urllib.error import URLError
+from typing import Any, Callable
 
 
-def has_internet():
+TestCallable = Callable[..., Any]
+
+
+def has_internet() -> bool:
     """Not so recommended it seems"""
     try:
         _ = urlopen('http://www.google.com', timeout=1)
@@ -62,55 +66,55 @@ except ImportError:
     has_dask = False
 
 
-def requires_internet(test):
+def requires_internet(test: TestCallable) -> TestCallable:
     msg = "requires internet"
     return test if has_internet() else unittest.skip(msg)(test)
 
 
-def requires_matplotlib_and_py3(test):
+def requires_matplotlib_and_py3(test: TestCallable) -> TestCallable:
     msg = "requires matplotlib and py3"
     return test if has_matplotlib and (python_version == 'py3') \
         else unittest.skip(msg)(test)
 
 
-def requires_matplotlib(test):
+def requires_matplotlib(test: TestCallable) -> TestCallable:
     msg = "requires matplotlib"
     return test if has_matplotlib else unittest.skip(msg)(test)
 
 
-def requires_static_key(test):
+def requires_static_key(test: TestCallable) -> TestCallable:
     msg = "requires google static map key"
     do_test = (("STATIC_MAP_API_KEY" in os.environ) and
                (os.environ.get("STATIC_MAP_API_KEY")))
     return test if do_test else unittest.skip(msg)(test)
 
 
-def requires_motionless(test):
+def requires_motionless(test: TestCallable) -> TestCallable:
     msg = "requires motionless"
     return test if has_motionless else unittest.skip(msg)(test)
 
 
-def requires_rasterio(test):
+def requires_rasterio(test: TestCallable) -> TestCallable:
     msg = "requires rasterio"
     return test if has_rasterio else unittest.skip(msg)(test)
 
 
-def requires_cartopy(test):
+def requires_cartopy(test: TestCallable) -> TestCallable:
     msg = "requires cartopy"
     return test if has_cartopy else unittest.skip(msg)(test)
 
 
-def requires_shapely(test):
+def requires_shapely(test: TestCallable) -> TestCallable:
     msg = "requires shapely"
     return test if has_shapely else unittest.skip(msg)(test)
 
 
-def requires_geopandas(test):
+def requires_geopandas(test: TestCallable) -> TestCallable:
     msg = "requires geopandas"
     return test if has_geopandas else unittest.skip(msg)(test)
 
 
-def requires_dask(test):
+def requires_dask(test: TestCallable) -> TestCallable:
     msg = "requires dask"
     return test if has_dask else unittest.skip(msg)(test)
 
