@@ -10,42 +10,43 @@ License: BSD License (BSD)
 
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
+from typing import Any
 from numpy import asarray, concatenate, ones
 
 
 class Polygon(object):
     # Adapt Shapely or GeoJSON/geo_interface polygons to a common interface
-    def __init__(self, context):
+    def __init__(self, context: Any) -> None:
         if hasattr(context, 'interiors'):
             self.context = context
         else:
             self.context = getattr(context, '__geo_interface__', context)
 
     @property
-    def geom_type(self):
+    def geom_type(self) -> str:
         return (getattr(self.context, 'geom_type', None)
                 or self.context['type'])
 
     @property
-    def exterior(self):
+    def exterior(self) -> Any:
         return (getattr(self.context, 'exterior', None)
                 or self.context['coordinates'][0])
 
     @property
-    def interiors(self):
+    def interiors(self) -> Any:
         value = getattr(self.context, 'interiors', None)
         if value is None:
             value = self.context['coordinates'][1:]
         return value
 
 
-def PolygonPath(polygon):
+def PolygonPath(polygon: Any) -> Path:
     """Constructs a compound matplotlib path from a Shapely or GeoJSON-like
     geometric object"""
     this = Polygon(polygon)
     assert this.geom_type == 'Polygon'
 
-    def coding(ob):
+    def coding(ob: Any):
         # The codes will be all "LINETO" commands, except for "MOVETO"s at the
         # beginning of each subpath
         n = len(getattr(ob, 'coords', None) or ob)
@@ -62,7 +63,7 @@ def PolygonPath(polygon):
     return Path(vertices, codes)
 
 
-def PolygonPatch(polygon, **kwargs):
+def PolygonPatch(polygon: Any, **kwargs: Any) -> PathPatch:
     """Constructs a matplotlib patch from a geometric object
 
     The `polygon` may be a Shapely or GeoJSON-like object with or without holes.
