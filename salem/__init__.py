@@ -7,20 +7,21 @@ from os import path
 from os import makedirs
 import sys
 from functools import wraps
+from typing import Any, Callable
 
 import pyproj
 
 from .version import __version__
 
 
-def lazy_property(fn):
+def lazy_property(fn: Callable[[Any], Any]) -> property:
     """Decorator that makes a property lazy-evaluated."""
 
     attr_name = '_lazy_' + fn.__name__
 
     @property
     @wraps(fn)
-    def _lazy_property(self):
+    def _lazy_property(self: Any) -> Any:
         if not hasattr(self, attr_name):
             setattr(self, attr_name, fn(self))
         return getattr(self, attr_name)
